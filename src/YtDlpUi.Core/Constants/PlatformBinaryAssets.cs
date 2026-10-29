@@ -8,9 +8,12 @@ namespace YtDlpUi.Core.Constants;
 
 public static class PlatformBinaryAssets
 {
-    private const string YtDlpDownloadBase = "https://github.com/yt-dlp/yt-dlp/releases/download/latest";
+    // yt-dlp and Deno publish no "latest" tag, so the latest-release redirect is the stable URL.
+    private const string YtDlpDownloadBase = "https://github.com/yt-dlp/yt-dlp/releases/latest/download";
+    private const string DenoDownloadBase = "https://github.com/denoland/deno/releases/latest/download";
+
+    // FFmpeg-Builds publishes a rolling release tagged "latest".
     private const string FfmpegDownloadBase = "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest";
-    private const string DenoDownloadBase = "https://github.com/denoland/deno/releases/download/latest";
 
     public static ReleaseAsset GetYtDlpAsset(string runtimeIdentifier)
     {
@@ -58,22 +61,29 @@ public static class PlatformBinaryAssets
     private static string ResolveYtDlpFileName(string runtimeIdentifier) =>
         NormalizeRuntimeIdentifier(runtimeIdentifier) switch
         {
-            "win-x64" or "win-x86" or "win7-x64" or "win7-x86" => "yt-dlp.exe",
+            "win-x64" or "win7-x64" => "yt-dlp.exe",
+            "win-x86" or "win7-x86" => "yt-dlp_x86.exe",
             "win-arm64" => "yt-dlp_arm64.exe",
-            "linux-x64" or "linux-arm64" => "yt-dlp_linux",
-            "osx-x64" or "osx-arm64" => "yt-dlp",
+            "linux-x64" => "yt-dlp_linux",
+            "linux-arm64" => "yt-dlp_linux_aarch64",
+            "osx-x64" or "osx-arm64" => "yt-dlp_macos",
             _ => throw CreateUnsupportedException(runtimeIdentifier, "yt-dlp", BinaryReleaseManifest.YtDlpReleasePageUrl),
         };
 
     private static string ResolveFfmpegFileName(string runtimeIdentifier) =>
         NormalizeRuntimeIdentifier(runtimeIdentifier) switch
         {
-            "win-x64" or "win-arm64" or "win-x86" or "win7-x64" or "win7-x86" =>
+            "win-x64" or "win7-x64" =>
                 "ffmpeg-master-latest-win64-gpl.zip",
-            "osx-x64" or "osx-arm64" =>
-                "ffmpeg-master-latest-macos64-gpl.zip",
-            "linux-x64" or "linux-arm64" =>
+            "win-arm64" =>
+                "ffmpeg-master-latest-winarm64-gpl.zip",
+            "win-x86" or "win7-x86" =>
+                "ffmpeg-master-latest-win32-gpl.zip",
+            "linux-x64" =>
                 "ffmpeg-master-latest-linux64-gpl.tar.xz",
+            "linux-arm64" =>
+                "ffmpeg-master-latest-linuxarm64-gpl.tar.xz",
+            // FFmpeg-Builds publishes no macOS build, so macOS is reported as unsupported.
             _ => throw CreateUnsupportedException(runtimeIdentifier, "ffmpeg", BinaryReleaseManifest.FfmpegReleasePageUrl),
         };
 
