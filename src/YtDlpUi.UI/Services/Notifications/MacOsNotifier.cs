@@ -51,7 +51,7 @@ public sealed class MacOsNotifier : IDesktopNotifier
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("macOS notification failed: " + ex.Message);
+            Trace.TraceWarning("macOS notification failed: " + ex);
         }
     }
 }

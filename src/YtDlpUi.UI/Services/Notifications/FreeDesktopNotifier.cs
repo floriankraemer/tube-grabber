@@ -29,7 +29,7 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("Freedesktop notification failed: " + ex.Message);
+            Trace.TraceWarning("Freedesktop notification failed: " + ex);
         }
     }
 

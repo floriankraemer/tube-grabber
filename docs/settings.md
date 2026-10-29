@@ -5,7 +5,16 @@ Configuration is stored under `~/.yt-dlp-ui/`:
 - `app.json` — yt-dlp/ffmpeg paths, max concurrent downloads, theme, active profile, background settings
 - `profiles/*.json` — named download profiles with common yt-dlp options
 - `subscriptions.json` — channel subscriptions and their state (see [Subscriptions and background mode](#subscriptions-and-background-mode))
+- `logs/app-YYYY-MM-DD.log` — diagnostic log, see [Log files](#log-files)
 - `instance.lock` — lock file that keeps a second app instance from starting
+
+## Log files
+
+The app writes errors and diagnostics from background work (subscription checks, notifications, tray, startup) and unhandled exceptions to `~/.yt-dlp-ui/logs/app-YYYY-MM-DD.log`.
+Each line has a timestamp, level, source and message; errors include the exception with its stack trace.
+There is one file per day, and only the newest 7 files are kept.
+On Linux and macOS the folder and files are readable by your user only.
+If the log cannot be written, for example on a read-only disk, logging is skipped silently.
 
 ## Appearance
 
