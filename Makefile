@@ -88,12 +88,12 @@ coverage:
 	dotnet tool restore
 	dotnet test $(SLN) -c Release --verbosity minimal \
 		/p:CollectCoverage=true \
-		/p:CoverletOutput=$(COV_DIR)/coverage \
 		/p:CoverletOutputFormat=cobertura
-	test -f $(COV_DIR)/coverage.cobertura.xml
+	test -f $(COV_DIR)/YtDlpUi.Core.Tests.cobertura.xml
+	test -f $(COV_DIR)/YtDlpUi.UI.Tests.cobertura.xml
 	rm -rf $(COV_DIR)/html
 	dotnet tool run reportgenerator -- \
-		-reports:artifacts/coverage/coverage.cobertura.xml \
+		-reports:artifacts/coverage/*.cobertura.xml \
 		-targetdir:artifacts/coverage/html \
 		-reporttypes:Html
 

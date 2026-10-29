@@ -147,8 +147,8 @@ switch ($Target.ToLowerInvariant()) {
     "coverage" {
         $coverageDir = Join-Path $PSScriptRoot (Join-Path "artifacts" "coverage")
         New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
-        $coverageBase = Join-Path $coverageDir "coverage"
-        $coberturaPath = "$coverageBase.cobertura.xml"
+        $coberturaPaths = @("YtDlpUi.Core.Tests", "YtDlpUi.UI.Tests") |
+            ForEach-Object { Join-Path $coverageDir "$_.cobertura.xml" }
         $htmlDir = Join-Path $coverageDir "html"
 
         Write-Host "Restoring dotnet tools (ReportGenerator)..."
@@ -162,13 +162,14 @@ switch ($Target.ToLowerInvariant()) {
                 "-c", "Release",
                 "--verbosity", "minimal",
                 "/p:CollectCoverage=true",
-                "/p:CoverletOutput=$coverageBase",
                 "/p:CoverletOutputFormat=cobertura"
             )
 
-            if (-not (Test-Path $coberturaPath)) {
-                Write-Host "Expected Cobertura file not found: $coberturaPath" -ForegroundColor Red
-                exit 1
+            foreach ($coberturaPath in $coberturaPaths) {
+                if (-not (Test-Path $coberturaPath)) {
+                    Write-Host "Expected Cobertura file not found: $coberturaPath" -ForegroundColor Red
+                    exit 1
+                }
             }
 
             if (Test-Path $htmlDir) {
@@ -176,7 +177,7 @@ switch ($Target.ToLowerInvariant()) {
             }
 
             # Use repo-relative paths for ReportGenerator so Windows drive letters are not parsed as -reports flags.
-            $coberturaRel = "artifacts/coverage/coverage.cobertura.xml"
+            $coberturaRel = "artifacts/coverage/*.cobertura.xml"
             $htmlRel = "artifacts/coverage/html"
 
             Write-Host "Generating HTML report (ReportGenerator)..."

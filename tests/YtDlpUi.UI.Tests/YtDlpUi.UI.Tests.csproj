@@ -6,19 +6,10 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.DownloadJobViewModel</Include>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionItemViewModel</Include>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.OptionSectionViewModel</Include>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.SearchResultViewModel</Include>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.SearchViewModel</Include>
-    <Include>[YtDlpUi.UI]YtDlpUi.UI.ViewModels.ViewModelBase</Include>
-    <ExcludeByFile>**/Views/**</ExcludeByFile>
-    <ExcludeByFile>**/Program.cs</ExcludeByFile>
-    <ExcludeByFile>**/App.axaml.cs</ExcludeByFile>
-    <ExcludeByFile>**/Services/AppServices.cs</ExcludeByFile>
-    <ExcludeByFile>**/Services/Notifications/*Notifier.cs</ExcludeByFile>
-    <ExcludeByFile>**/*MainWindowViewModel.cs</ExcludeByFile>
-    <ExcludeByFile>**/*SettingsViewModel.cs</ExcludeByFile>
+    <Include>[YtDlpUi.UI]*</Include>
+    <Exclude>[YtDlpUi.UI]YtDlpUi.UI.App,[YtDlpUi.UI]YtDlpUi.UI.Program,[YtDlpUi.UI]YtDlpUi.UI.Views.*</Exclude>
+    <ExcludeByFile>**/Views/**,**/Program.cs,**/App.axaml.cs,**/Services/AppServices.cs,**/Services/FileSystemLauncherService.cs,**/Services/StoragePickerService.cs,**/Services/Notifications/*Notifier.cs,**/*MainWindowViewModel.cs,**/*SettingsViewModel.cs</ExcludeByFile>
+    <CoverletOutput>$(MSBuildThisFileDirectory)../../artifacts/coverage/$(MSBuildProjectName).cobertura.xml</CoverletOutput>
     <Threshold>85</Threshold>
     <ThresholdType>line</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
