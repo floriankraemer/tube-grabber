@@ -11,10 +11,7 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
 {
     public const int PageSize = 20;
 
-    private readonly IYtDlpProcessRunner _processRunner;
-    private readonly IAppConfigStore _appConfigStore;
-    private readonly IBinaryLocator _binaryLocator;
-    private readonly IJsRuntimeLocator _jsRuntimeLocator;
+    private readonly YtDlpFlatPlaylistRunner _runner;
     private readonly YtDlpSearchResultParser _parser;
 
     public YtDlpSearchService(
@@ -24,10 +21,7 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         IJsRuntimeLocator jsRuntimeLocator,
         YtDlpSearchResultParser? parser = null)
     {
-        _processRunner = processRunner;
-        _appConfigStore = appConfigStore;
-        _binaryLocator = binaryLocator;
-        _jsRuntimeLocator = jsRuntimeLocator;
+        _runner = new YtDlpFlatPlaylistRunner(processRunner, appConfigStore, binaryLocator, jsRuntimeLocator);
         _parser = parser ?? new YtDlpSearchResultParser();
     }
 
@@ -45,31 +39,14 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         if (skip < 0)
             throw new ArgumentOutOfRangeException(nameof(skip));
 
-        var config = await _appConfigStore.LoadAsync(cancellationToken);
-        var ytDlpPath = _binaryLocator.ResolveYtDlpPath(config)
-            ?? throw new InvalidOperationException("yt-dlp was not found. Install it or set its path in Settings.");
-
         var trimmedQuery = query.Trim();
-        var args = BuildSearchArguments(config, _jsRuntimeLocator, trimmedQuery, skip);
-        var invocation = new YtDlpInvocation
-        {
-            ExecutablePath = ytDlpPath,
-            Arguments = args,
-        };
-
-        var result = await _processRunner.RunAsync(invocation, cancellationToken: cancellationToken);
-        if (result.ExitCode != 0)
-        {
-            var message = YtDlpFailureMessageBuilder.Build(result);
-            throw new InvalidOperationException(
-                string.IsNullOrWhiteSpace(message)
-                    ? "YouTube search failed. Check that a JS runtime is configured in Settings."
-                    : message);
-        }
-
-        var output = string.IsNullOrWhiteSpace(result.StandardOutput)
-            ? result.StandardError
-            : result.StandardOutput;
+        var end = skip + PageSize;
+        var output = await _runner.RunAsync(
+            $"ytsearch{end}:{trimmedQuery}",
+            skip + 1,
+            end,
+            "YouTube search failed. Check that a JS runtime is configured in Settings.",
+            cancellationToken);
 
         var results = _parser.Parse(output);
         return new SearchResultPage
@@ -88,26 +65,11 @@ public sealed class YtDlpSearchService : IYtDlpSearchService
         int skip = 0)
     {
         var end = skip + PageSize;
-        var args = new List<string>
-        {
-            "--flat-playlist",
-            "--dump-single-json",
-            "--skip-download",
-            "--ignore-config",
-            "--playlist-start",
-            (skip + 1).ToString(System.Globalization.CultureInfo.InvariantCulture),
-            "--playlist-end",
-            end.ToString(System.Globalization.CultureInfo.InvariantCulture),
-        };
-
-        var jsRuntimes = JsRuntimeArgumentBuilder.Build(config, jsRuntimeLocator);
-        if (!string.IsNullOrWhiteSpace(jsRuntimes))
-        {
-            args.Add("--js-runtimes");
-            args.Add(jsRuntimes);
-        }
-
-        args.Add($"ytsearch{end}:{query}");
-        return args;
+        return YtDlpFlatPlaylistRunner.BuildArguments(
+            config,
+            jsRuntimeLocator,
+            $"ytsearch{end}:{query}",
+            skip + 1,
+            end);
     }
 }
