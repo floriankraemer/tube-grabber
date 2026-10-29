@@ -22,7 +22,7 @@
       <StackPanel Spacing="8">
         <Grid Classes="addRow" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
           <TextBox Grid.Column="0"
-                   Watermark="Paste YouTube or video URL"
+                   PlaceholderText="Paste YouTube or video URL"
                    Text="{Binding UrlInput}"
                    KeyDown="UrlInput_KeyDown" />
           <ComboBox Grid.Column="1"

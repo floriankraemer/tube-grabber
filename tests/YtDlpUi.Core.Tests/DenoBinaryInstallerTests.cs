@@ -24,7 +24,7 @@ public sealed class DenoBinaryInstallerTests : IDisposable
         var locator = new BinaryLocator(_root);
         var installer = new DenoBinaryInstaller(source, locator, helper, "linux-x64");
 
-        var result = await installer.InstallAsync();
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess);
         Assert.True(File.Exists(result.InstalledPath));

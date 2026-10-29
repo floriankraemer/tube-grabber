@@ -101,7 +101,7 @@ public sealed class SubscriptionItemViewModelTests
 
         item.SelectedProfile = null;
 
-        _monitor.DidNotReceiveWithAnyArgs().SetProfileAsync(default!, default!, default);
+        _monitor.DidNotReceiveWithAnyArgs().SetProfileAsync(default!, default!, TestContext.Current.CancellationToken);
     }
 
     [Fact]

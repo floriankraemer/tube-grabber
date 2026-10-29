@@ -16,7 +16,7 @@ public sealed class DownloadEnqueueCoordinatorTests
     {
         var coordinator = CreateCoordinator(Substitute.For<IDownloadQueueService>());
 
-        var result = await coordinator.TryEnqueueAsync("not a url", "default");
+        var result = await coordinator.TryEnqueueAsync("not a url", "default", TestContext.Current.CancellationToken);
 
         Assert.False(result.IsSuccess);
         Assert.NotNull(result.Error);
@@ -33,7 +33,7 @@ public sealed class DownloadEnqueueCoordinatorTests
             appConfig,
             new BinaryLocator(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
 
-        var result = await coordinator.TryEnqueueAsync("https://www.youtube.com/watch?v=abc", "default");
+        var result = await coordinator.TryEnqueueAsync("https://www.youtube.com/watch?v=abc", "default", TestContext.Current.CancellationToken);
 
         Assert.False(result.IsSuccess);
         Assert.Contains("yt-dlp", result.Error!, StringComparison.OrdinalIgnoreCase);
@@ -64,7 +64,7 @@ public sealed class DownloadEnqueueCoordinatorTests
 
         var result = await coordinator.TryEnqueueAsync(
             "https://www.youtube.com/watch?v=abc&t=5",
-            "default");
+            "default", TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess);
         await queue.Received(1).EnqueueAsync(

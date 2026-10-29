@@ -38,10 +38,10 @@ public sealed class YtDlpSearchServiceTests : IDisposable
 
         var profiles = new ProfileStore(_root);
         var appConfig = new AppConfigStore(_root, profiles);
-        await appConfig.EnsureBootstrapAsync();
-        var config = await appConfig.LoadAsync();
+        await appConfig.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await appConfig.LoadAsync(TestContext.Current.CancellationToken);
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
-        await appConfig.SaveAsync(config);
+        await appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
 
         var service = new YtDlpSearchService(
             new SearchRunner(json),
@@ -49,7 +49,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        var page = await service.SearchAsync("test query");
+        var page = await service.SearchAsync("test query", TestContext.Current.CancellationToken);
 
         Assert.Equal("test query", page.Query);
         Assert.Single(page.Results);
@@ -65,7 +65,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   "));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   ", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -110,10 +110,10 @@ public sealed class YtDlpSearchServiceTests : IDisposable
 
         var profiles = new ProfileStore(_root);
         var appConfig = new AppConfigStore(_root, profiles);
-        await appConfig.EnsureBootstrapAsync();
-        var config = await appConfig.LoadAsync();
+        await appConfig.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await appConfig.LoadAsync(TestContext.Current.CancellationToken);
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
-        await appConfig.SaveAsync(config);
+        await appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
 
         var service = new YtDlpSearchService(
             new SearchRunner(json),
@@ -121,7 +121,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        var page = await service.SearchAsync("query");
+        var page = await service.SearchAsync("query", TestContext.Current.CancellationToken);
 
         Assert.Equal(20, page.Results.Count);
         Assert.True(page.HasMoreResults);

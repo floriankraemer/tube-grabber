@@ -56,11 +56,11 @@ public sealed class SingleInstanceGuardTests : IDisposable
         first.StartListening(() => shown.TrySetResult());
 
         using var silent = new NamedPipeClientStream(".", _pipeName, PipeDirection.Out);
-        await silent.ConnectAsync(5000);
+        await silent.ConnectAsync(5000, TestContext.Current.CancellationToken);
 
         await SendRawAsync(SingleInstanceGuard.ShowMessage);
 
-        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class SingleInstanceGuardTests : IDisposable
         using var second = NewGuard();
         Assert.True(await Task.Run(() => NotifyWithRetry(second)));
 
-        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class SingleInstanceGuardTests : IDisposable
         await SendRawAsync("bogus");
         await SendRawAsync(SingleInstanceGuard.ShowMessage);
 
-        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
     }
 
     [Fact]

@@ -1,30 +1,31 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <OutputType>Exe</OutputType>
     <Include>[YtDlpUi.Core]*</Include>
     <Exclude>[YtDlpUi.Core]YtDlpUi.Core.Constants.*,[YtDlpUi.Core]YtDlpUi.Core.Models.*,[YtDlpUi.Core]YtDlpUi.Core.Abstractions.*</Exclude>
     <ExcludeByFile>**/YtDlpProcessRunner.cs,**/BinaryDownloadHelper.cs,**/FfmpegBinaryInstaller.cs,**/YtDlpBinaryInstaller.cs,**/GitHubBinaryReleaseSource.cs</ExcludeByFile>
-    <CoverletOutput>$(MSBuildThisFileDirectory)../../artifacts/coverage/$(MSBuildProjectName).cobertura.xml</CoverletOutput>
-    <Threshold>85</Threshold>
-    <ThresholdType>method</ThresholdType>
-    <ThresholdStat>total</ThresholdStat>
+    <CoverageThreshold>85</CoverageThreshold>
+    <CoverageThresholdType>method</CoverageThresholdType>
+  </PropertyGroup>
+
+  <!-- `make coverage` passes -p:Coverage=true; plain `dotnet test` stays coverage-free. Coverlet CLI options are not comma-split, hence the Replace. -->
+  <PropertyGroup Condition="'$(Coverage)' == 'true'">
+    <TestingPlatformCommandLineArguments>--coverlet --coverlet-output-format cobertura --coverlet-include "$(Include)" --coverlet-exclude "$(Exclude.Replace(',', '" --coverlet-exclude "'))" --coverlet-exclude-by-file "$(ExcludeByFile.Replace(',', '" --coverlet-exclude-by-file "'))" --coverlet-threshold $(CoverageThreshold) --coverlet-threshold-type $(CoverageThresholdType) --coverlet-threshold-stat Total --coverlet-file-prefix $(MSBuildProjectName) --results-directory $(MSBuildThisFileDirectory)../../artifacts/coverage</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="coverlet.msbuild" Version="6.0.2">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.*" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
-    <PackageReference Include="NSubstitute" Version="5.*" />
-    <PackageReference Include="xunit" Version="2.*" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.*">
+    <PackageReference Include="coverlet.mtp" Version="10.1.0" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.11.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
+    <PackageReference Include="xunit.v3" Version="4.0.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>

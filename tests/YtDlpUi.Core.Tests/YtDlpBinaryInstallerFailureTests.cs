@@ -23,7 +23,7 @@ public sealed class YtDlpBinaryInstallerFailureTests : IDisposable
         var helper = new BinaryDownloadHelper(new HttpClient(handler));
         var installer = new YtDlpBinaryInstaller(new GitHubBinaryReleaseSource(), new BinaryLocator(_root), helper, "linux-x64");
 
-        var result = await installer.InstallAsync();
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(BinaryReleaseManifest.YtDlpReleasePageUrl, result.ManualDownloadUrl);

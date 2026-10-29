@@ -85,10 +85,14 @@ publish-ui-win: publish-ui
 
 coverage:
 	mkdir -p $(COV_DIR)
+	rm -f $(COV_DIR)/*.cobertura*.xml
 	dotnet tool restore
 	dotnet test $(SLN) -c Release --verbosity minimal \
-		/p:CollectCoverage=true \
-		/p:CoverletOutputFormat=cobertura
+		-p:Coverage=true
+	@# coverlet.mtp appends a timestamp to report names; normalise to <Project>.cobertura.xml
+	for p in YtDlpUi.Core.Tests YtDlpUi.UI.Tests; do \
+		mv $(COV_DIR)/$$p.coverage.cobertura.*.xml $(COV_DIR)/$$p.cobertura.xml; \
+	done
 	test -f $(COV_DIR)/YtDlpUi.Core.Tests.cobertura.xml
 	test -f $(COV_DIR)/YtDlpUi.UI.Tests.cobertura.xml
 	rm -rf $(COV_DIR)/html
@@ -99,7 +103,7 @@ coverage:
 
 mutation-test:
 	dotnet tool restore
-	cd src/YtDlpUi.Core && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker || dotnet tool run dotnet-stryker)
+	cd tests/YtDlpUi.Core.Tests && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker -f ../../src/YtDlpUi.Core/stryker-config.json -t mtp || dotnet tool run dotnet-stryker -f ../../src/YtDlpUi.Core/stryker-config.json -t mtp)
 
 else
 

@@ -3,6 +3,7 @@
 // See LICENSE for details.
 
 using System.Collections.ObjectModel;
+using Avalonia;
 using Avalonia.Threading;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
@@ -233,20 +234,14 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     private void ScheduleRefreshJobs()
     {
-        try
-        {
-            if (Dispatcher.UIThread.CheckAccess())
-            {
-                SyncJobs();
-                return;
-            }
-
-            _ = Dispatcher.UIThread.InvokeAsync(SyncJobs);
-        }
-        catch (InvalidOperationException)
+        // No Application (e.g. unit tests) means no UI thread to marshal to.
+        if (Application.Current is null || Dispatcher.UIThread.CheckAccess())
         {
             SyncJobs();
+            return;
         }
+
+        _ = Dispatcher.UIThread.InvokeAsync(SyncJobs);
     }
 
     private void SyncJobs()

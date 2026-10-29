@@ -30,7 +30,7 @@ public sealed class SettingsCoordinatorTests : IDisposable
     [Fact]
     public async Task TestFfmpegAsync_ReturnsNotFoundWhenMissing()
     {
-        var result = await _coordinator.TestFfmpegAsync(new AppConfiguration());
+        var result = await _coordinator.TestFfmpegAsync(new AppConfiguration(), TestContext.Current.CancellationToken);
         Assert.Contains("not found", result ?? string.Empty, StringComparison.OrdinalIgnoreCase);
     }
 
@@ -69,13 +69,13 @@ public sealed class SettingsCoordinatorTests : IDisposable
     [Fact]
     public async Task SaveAsync_RoundTripsBackgroundSettings()
     {
-        var (config, profiles) = await _coordinator.LoadAsync();
+        var (config, profiles) = await _coordinator.LoadAsync(TestContext.Current.CancellationToken);
         config.RunInBackground = false;
         config.StartAtLogin = true;
         config.SubscriptionCheckIntervalMinutes = 90;
 
-        await _coordinator.SaveAsync(config, profiles[0]);
-        var (reloaded, _) = await _coordinator.LoadAsync();
+        await _coordinator.SaveAsync(config, profiles[0], TestContext.Current.CancellationToken);
+        var (reloaded, _) = await _coordinator.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.False(reloaded.RunInBackground);
         Assert.True(reloaded.StartAtLogin);

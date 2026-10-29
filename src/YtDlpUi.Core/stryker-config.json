@@ -1,5 +1,5 @@
 {
-  "strykerConfig": {
+  "stryker-config": {
     "project": "YtDlpUi.Core.csproj",
     "mutate": [
       "Services/YtDlpCommandBuilder.cs",

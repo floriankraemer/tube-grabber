@@ -42,13 +42,13 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
     [Fact]
     public async Task EnqueueAsync_ExtractsTitleFromOutput()
     {
-        await _appConfig.EnsureBootstrapAsync();
-        var config = await _appConfig.LoadAsync();
+        await _appConfig.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         config.DownloadFolder = _root;
-        await _appConfig.SaveAsync(config);
+        await _appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId);
+        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId, TestContext.Current.CancellationToken);
         var completed = await WaitForJobAsync(job.Id, static j =>
             j.Status == DownloadStatus.Completed
             && !string.IsNullOrWhiteSpace(j.Title)

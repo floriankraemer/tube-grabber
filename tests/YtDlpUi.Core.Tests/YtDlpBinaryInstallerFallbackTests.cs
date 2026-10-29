@@ -21,13 +21,13 @@ public sealed class YtDlpBinaryInstallerFallbackTests : IDisposable
         var locator = new BinaryLocator(_root);
         var existing = locator.GetBundledYtDlpPath();
         Directory.CreateDirectory(Path.GetDirectoryName(existing)!);
-        await File.WriteAllTextAsync(existing, "existing");
+        await File.WriteAllTextAsync(existing, "existing", TestContext.Current.CancellationToken);
 
         var handler = new FailingHttpMessageHandler();
         var helper = new BinaryDownloadHelper(new HttpClient(handler));
         var installer = new YtDlpBinaryInstaller(new GitHubBinaryReleaseSource(), locator, helper, "linux-x64");
 
-        var result = await installer.InstallAsync();
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
         Assert.True(result.IsSuccess);
         Assert.Equal(existing, result.InstalledPath);
     }

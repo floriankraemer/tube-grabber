@@ -3,9 +3,8 @@
 #   docker compose build
 #   docker compose run --rm dev make ci
 #
-# SDK 9.x: YtDlpUi.slnx requires .NET SDK 9.0.200+ (MSBuild slnx support).
-# Projects still target net8.0.
-FROM mcr.microsoft.com/dotnet/sdk:9.0
+# Projects target net10.0; YtDlpUi.slnx requires .NET SDK 9.0.200+ (MSBuild slnx support).
+FROM mcr.microsoft.com/dotnet/sdk:10.0
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -13,14 +12,8 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git make curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Projects target net8.0; SDK 9 is required for .slnx but the 8.0 shared runtime is still needed to run tests and the console app.
-RUN curl -fsSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
-    && chmod +x /tmp/dotnet-install.sh \
-    && /tmp/dotnet-install.sh --channel 8.0 --runtime dotnet --install-dir /usr/share/dotnet \
-    && rm /tmp/dotnet-install.sh
-
 # Stryker.NET — see docs/build.md; `make mutation-test` uses `dotnet-stryker`.
-RUN dotnet tool install -g dotnet-stryker --version 4.14.1
+RUN dotnet tool install -g dotnet-stryker --version 5.0.0
 
 ENV PATH="${PATH}:/root/.dotnet/tools"
 

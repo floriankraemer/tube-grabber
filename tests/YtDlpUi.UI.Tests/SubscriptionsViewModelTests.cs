@@ -62,7 +62,7 @@ public sealed class SubscriptionsViewModelTests
         await _viewModel.SubscribeAsync();
 
         Assert.Equal("Enter a channel URL.", _viewModel.ErrorMessage);
-        await _monitor.DidNotReceiveWithAnyArgs().AddAsync(default!, default!, default);
+        await _monitor.DidNotReceiveWithAnyArgs().AddAsync(default!, default!, default, TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -98,7 +98,7 @@ public sealed class SubscriptionsViewModelTests
     public async Task SubscribeAsync_Failure_ShowsMessageAndKeepsUrl()
     {
         await _viewModel.InitializeAsync();
-        _monitor.AddAsync(default!, default!, default, default)
+        _monitor.AddAsync(default!, default!, default, TestContext.Current.CancellationToken)
             .ReturnsForAnyArgs(Task.FromException<ChannelSubscription>(new InvalidOperationException("Already subscribed.")));
         _viewModel.ChannelUrl = "https://www.youtube.com/@a";
 
@@ -115,7 +115,7 @@ public sealed class SubscriptionsViewModelTests
     {
         await _viewModel.InitializeAsync();
         var gate = new TaskCompletionSource<ChannelSubscription>();
-        _monitor.AddAsync(default!, default!, default, default).ReturnsForAnyArgs(gate.Task);
+        _monitor.AddAsync(default!, default!, default, TestContext.Current.CancellationToken).ReturnsForAnyArgs(gate.Task);
         _viewModel.ChannelUrl = "https://www.youtube.com/@a";
 
         var running = _viewModel.SubscribeAsync();
@@ -242,7 +242,7 @@ public sealed class SubscriptionsViewModelTests
         });
 
         _monitor.SubscriptionsChanged += Raise.Event<EventHandler>(_monitor, EventArgs.Empty);
-        await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await refreshed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         await WaitUntilAsync(() => _viewModel.Items.Count == 2);
 
         Assert.Same(first, _viewModel.Items[0]);
@@ -257,7 +257,7 @@ public sealed class SubscriptionsViewModelTests
         _monitor.ClearReceivedCalls();
 
         _monitor.SubscriptionsChanged += Raise.Event<EventHandler>(_monitor, EventArgs.Empty);
-        await Task.Delay(50);
+        await Task.Delay(50, TestContext.Current.CancellationToken);
 
         await _monitor.DidNotReceive().ListAsync(Arg.Any<CancellationToken>());
     }

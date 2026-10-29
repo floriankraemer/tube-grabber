@@ -23,7 +23,7 @@
     <StackPanel DockPanel.Dock="Top" Spacing="8" Margin="0,0,0,12">
       <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
         <TextBox Grid.Column="0"
-                 Watermark="Search YouTube"
+                 PlaceholderText="Search YouTube"
                  Text="{Binding SearchQuery}"
                  KeyDown="SearchQuery_KeyDown" />
         <Button Grid.Column="1" Content="Search" Click="Search_Click" />

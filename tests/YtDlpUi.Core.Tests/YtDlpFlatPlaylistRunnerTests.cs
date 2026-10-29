@@ -45,7 +45,7 @@ public sealed class YtDlpFlatPlaylistRunnerTests : IDisposable
     {
         var runner = await CreateRunnerAsync(new FakeProcessRunner(0, "out", "err"));
 
-        Assert.Equal("out", await runner.RunAsync("target", 1, 5, "fallback"));
+        Assert.Equal("out", await runner.RunAsync("target", 1, 5, "fallback", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -53,7 +53,7 @@ public sealed class YtDlpFlatPlaylistRunnerTests : IDisposable
     {
         var runner = await CreateRunnerAsync(new FakeProcessRunner(0, "  ", "err"));
 
-        Assert.Equal("err", await runner.RunAsync("target", 1, 5, "fallback"));
+        Assert.Equal("err", await runner.RunAsync("target", 1, 5, "fallback", TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -63,7 +63,7 @@ public sealed class YtDlpFlatPlaylistRunnerTests : IDisposable
         var runner = await CreateRunnerAsync(new FakeProcessRunner(failed));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => runner.RunAsync("target", 1, 5, "fallback"));
+            () => runner.RunAsync("target", 1, 5, "fallback", TestContext.Current.CancellationToken));
 
         Assert.Equal(YtDlpFailureMessageBuilder.Build(failed), ex.Message);
     }
@@ -80,7 +80,7 @@ public sealed class YtDlpFlatPlaylistRunnerTests : IDisposable
             new JsRuntimeLocator());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => runner.RunAsync("target", 1, 5, "fallback"));
+            () => runner.RunAsync("target", 1, 5, "fallback", TestContext.Current.CancellationToken));
 
         Assert.Equal("yt-dlp was not found. Install it or set its path in Settings.", ex.Message);
     }
