@@ -111,6 +111,45 @@ public sealed class AppConfigStoreTests : IDisposable
         Assert.Equal(ThemePreference.Dark, loaded.ThemePreference);
     }
 
+    [Fact]
+    public async Task SaveAsync_PersistsSubscriptionAndBackgroundSettings()
+    {
+        var config = await _store.LoadAsync();
+        config.SubscriptionCheckIntervalMinutes = 240;
+        config.RunInBackground = false;
+        config.StartAtLogin = true;
+        await _store.SaveAsync(config);
+
+        var loaded = await _store.LoadAsync();
+        Assert.Equal(240, loaded.SubscriptionCheckIntervalMinutes);
+        Assert.False(loaded.RunInBackground);
+        Assert.True(loaded.StartAtLogin);
+    }
+
+    [Fact]
+    public async Task LoadAsync_FromV3WithoutNewFields_AppliesDefaults()
+    {
+        Directory.CreateDirectory(_root);
+        var v3Json = """
+            {
+              "SchemaVersion": 3,
+              "MaxConcurrentDownloads": 3,
+              "ActiveProfileId": "default",
+              "ThemePreference": "Dark"
+            }
+            """;
+        await File.WriteAllTextAsync(Path.Combine(_root, AppPaths.AppConfigFileName), v3Json);
+
+        var loaded = await _store.LoadAsync();
+
+        Assert.Equal(SchemaVersions.AppConfig, loaded.SchemaVersion);
+        Assert.Equal(3, loaded.MaxConcurrentDownloads);
+        Assert.Equal(ThemePreference.Dark, loaded.ThemePreference);
+        Assert.Equal(AppPaths.DefaultSubscriptionCheckIntervalMinutes, loaded.SubscriptionCheckIntervalMinutes);
+        Assert.True(loaded.RunInBackground);
+        Assert.False(loaded.StartAtLogin);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

@@ -28,6 +28,23 @@ public sealed class SettingsMigrationTests
     }
 
     [Fact]
+    public void MigrateAppConfig_FromV3_SetsSubscriptionAndBackgroundDefaults()
+    {
+        var config = new AppConfiguration
+        {
+            SchemaVersion = 3,
+            SubscriptionCheckIntervalMinutes = 0,
+            RunInBackground = false,
+            StartAtLogin = true,
+        };
+        var migrated = SettingsMigration.MigrateAppConfig(config);
+        Assert.Equal(SchemaVersions.AppConfig, migrated.SchemaVersion);
+        Assert.Equal(AppPaths.DefaultSubscriptionCheckIntervalMinutes, migrated.SubscriptionCheckIntervalMinutes);
+        Assert.True(migrated.RunInBackground);
+        Assert.False(migrated.StartAtLogin);
+    }
+
+    [Fact]
     public void MigrateProfile_UpgradesSchemaVersion()
     {
         var profile = new DownloadProfile { Id = "p", Name = "P", SchemaVersion = 0 };
