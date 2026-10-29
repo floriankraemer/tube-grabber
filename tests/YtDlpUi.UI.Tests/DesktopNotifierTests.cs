@@ -40,7 +40,7 @@ public sealed class DesktopNotifierTests
     [Fact]
     public async Task NullDesktopNotifier_CompletesWithoutThrowing()
     {
-        await new NullDesktopNotifier().ShowAsync("title", "body");
+        await new NullDesktopNotifier().ShowAsync("title", "body", TestContext.Current.CancellationToken);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class DesktopNotifierTests
         try
         {
             Environment.SetEnvironmentVariable(variable, "unix:path=/nonexistent/yt-dlp-ui-test-bus");
-            await new FreeDesktopNotifier().ShowAsync("title", "body");
+            await new FreeDesktopNotifier().ShowAsync("title", "body", TestContext.Current.CancellationToken);
         }
         finally
         {

@@ -39,7 +39,7 @@ public sealed class MainWindowViewModelErrorTests
             .Returns<Task<DownloadJob>>(_ => throw new InvalidOperationException("queue failed"));
 
         var ytDlpPath = Path.Combine(Path.GetTempPath(), $"yt-dlp-test-{Guid.NewGuid():N}");
-        await File.WriteAllTextAsync(ytDlpPath, string.Empty);
+        await File.WriteAllTextAsync(ytDlpPath, string.Empty, TestContext.Current.CancellationToken);
 
         var appConfig = Substitute.For<IAppConfigStore>();
         appConfig.LoadAsync(Arg.Any<CancellationToken>())

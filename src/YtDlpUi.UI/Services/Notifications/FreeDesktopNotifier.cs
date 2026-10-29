@@ -20,7 +20,7 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
         {
             using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             timeout.CancelAfter(CallTimeout);
-            using var connection = new Connection(Address.Session
+            using var connection = new DBusConnection(DBusAddress.Session
                 ?? throw new InvalidOperationException("No D-Bus session bus address."));
             await connection.ConnectAsync().AsTask().WaitAsync(timeout.Token).ConfigureAwait(false);
 
@@ -36,7 +36,7 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
     internal static string EscapeMarkup(string text) =>
         text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
 
-    private static MessageBuffer BuildNotifyMessage(Connection connection, string title, string body, string iconPath)
+    private static MessageBuffer BuildNotifyMessage(DBusConnection connection, string title, string body, string iconPath)
     {
         using var writer = connection.GetMessageWriter();
         writer.WriteMethodCallHeader(

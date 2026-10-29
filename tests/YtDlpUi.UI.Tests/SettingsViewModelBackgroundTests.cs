@@ -40,7 +40,7 @@ public sealed class SettingsViewModelBackgroundTests : IDisposable
 
         Assert.True(await _viewModel.SaveAsync());
 
-        var config = await _appConfig.LoadAsync();
+        var config = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
         Assert.False(config.RunInBackground);
         Assert.Equal(30, config.SubscriptionCheckIntervalMinutes);
     }

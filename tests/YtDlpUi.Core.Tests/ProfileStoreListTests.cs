@@ -13,7 +13,7 @@ public sealed class ProfileStoreListTests
     {
         var root = Path.Combine(Path.GetTempPath(), "yt-dlp-ui-tests", Guid.NewGuid().ToString("N"));
         var store = new ProfileStore(root);
-        var profiles = await store.ListAsync();
+        var profiles = await store.ListAsync(TestContext.Current.CancellationToken);
         Assert.Empty(profiles);
     }
 }

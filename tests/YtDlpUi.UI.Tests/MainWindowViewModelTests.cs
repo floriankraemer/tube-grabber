@@ -33,7 +33,7 @@ public sealed class MainWindowViewModelTests
         queue.EnqueueAsync(Arg.Any<string>(), "default", Arg.Any<CancellationToken>()).Returns(job);
 
         var ytDlpPath = Path.Combine(Path.GetTempPath(), $"yt-dlp-test-{Guid.NewGuid():N}");
-        await File.WriteAllTextAsync(ytDlpPath, string.Empty);
+        await File.WriteAllTextAsync(ytDlpPath, string.Empty, TestContext.Current.CancellationToken);
 
         var appConfig = Substitute.For<IAppConfigStore>();
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
@@ -68,7 +68,7 @@ public sealed class MainWindowViewModelTests
         queue.EnqueueAsync(Arg.Any<string>(), "audio-mp3", Arg.Any<CancellationToken>()).Returns(job);
 
         var ytDlpPath = Path.Combine(Path.GetTempPath(), $"yt-dlp-test-{Guid.NewGuid():N}");
-        await File.WriteAllTextAsync(ytDlpPath, string.Empty);
+        await File.WriteAllTextAsync(ytDlpPath, string.Empty, TestContext.Current.CancellationToken);
 
         var appConfig = Substitute.For<IAppConfigStore>();
         appConfig.LoadAsync(Arg.Any<CancellationToken>())

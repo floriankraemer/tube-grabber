@@ -59,7 +59,7 @@ public sealed class SettingsViewModelTests : IDisposable
         Directory.CreateDirectory(ytDlpDir);
         var ytDlpName = OperatingSystem.IsWindows() ? "yt-dlp.exe" : "yt-dlp";
         var ytDlpPath = Path.Combine(ytDlpDir, ytDlpName);
-        await File.WriteAllTextAsync(ytDlpPath, string.Empty);
+        await File.WriteAllTextAsync(ytDlpPath, string.Empty, TestContext.Current.CancellationToken);
 
         await _viewModel.LoadAsync();
 
@@ -71,7 +71,7 @@ public sealed class SettingsViewModelTests : IDisposable
     {
         var installedPath = Path.Combine(_root, "bin", "yt-dlp", OperatingSystem.IsWindows() ? "yt-dlp.exe" : "yt-dlp");
         Directory.CreateDirectory(Path.GetDirectoryName(installedPath)!);
-        await File.WriteAllTextAsync(installedPath, string.Empty);
+        await File.WriteAllTextAsync(installedPath, string.Empty, TestContext.Current.CancellationToken);
 
         var installer = Substitute.For<IBinaryInstaller>();
         installer.InstallAsync(Arg.Any<CancellationToken>())
@@ -89,7 +89,7 @@ public sealed class SettingsViewModelTests : IDisposable
 
         Assert.Equal(installedPath, vm.YtDlpPath);
         Assert.Equal("yt-dlp installed.", vm.StatusMessage);
-        var config = await _appConfig.LoadAsync();
+        var config = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(installedPath, config.YtDlpPath);
     }
 

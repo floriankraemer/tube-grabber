@@ -86,7 +86,7 @@ Targets:
   clean            remove bin/obj folders under the solution
   ci               restore, build-release, test-release
   publish-ui       self-contained UI publish -> artifacts\publish-ui-<RID>
-  coverage         run tests with Coverlet + HTML report -> artifacts/coverage
+  coverage         run tests with coverlet.mtp + HTML report -> artifacts/coverage
   mutation-test    Stryker.NET on critical paths (HTML under each project's StrykerOutput/)
   help             show this message
 "@
@@ -156,14 +156,21 @@ switch ($Target.ToLowerInvariant()) {
         try {
             Invoke-DotNet @("tool", "restore")
 
-            Write-Host "Running tests with code coverage (Coverlet)..."
+            Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $coverageDir "*.cobertura*.xml")
+
+            Write-Host "Running tests with code coverage (coverlet.mtp)..."
             Invoke-DotNet @(
                 "test", $Sln,
                 "-c", "Release",
                 "--verbosity", "minimal",
-                "/p:CollectCoverage=true",
-                "/p:CoverletOutputFormat=cobertura"
+                "-p:Coverage=true"
             )
+
+            # coverlet.mtp appends a timestamp to report names; normalise to <Project>.cobertura.xml
+            foreach ($project in @("YtDlpUi.Core.Tests", "YtDlpUi.UI.Tests")) {
+                $raw = Get-ChildItem $coverageDir -Filter "$project.coverage.cobertura.*.xml" | Select-Object -First 1
+                if ($raw) { Move-Item -Force $raw.FullName (Join-Path $coverageDir "$project.cobertura.xml") }
+            }
 
             foreach ($coberturaPath in $coberturaPaths) {
                 if (-not (Test-Path $coberturaPath)) {
@@ -204,9 +211,9 @@ switch ($Target.ToLowerInvariant()) {
         try {
             Invoke-DotNet @("tool", "restore")
             $hasGlobalStryker = $null -ne (Get-Command dotnet-stryker -ErrorAction SilentlyContinue)
-            Push-Location (Join-Path $PSScriptRoot "src\YtDlpUi.Core")
+            Push-Location (Join-Path $PSScriptRoot "tests\YtDlpUi.Core.Tests")
             try {
-                if ($hasGlobalStryker) { & dotnet-stryker } else { Invoke-DotNet @("tool", "run", "dotnet-stryker") }
+                if ($hasGlobalStryker) { & dotnet-stryker -f "..\..\src\YtDlpUi.Core\stryker-config.json" -t mtp } else { Invoke-DotNet @("tool", "run", "dotnet-stryker", "-f", "..\..\src\YtDlpUi.Core\stryker-config.json", "-t", "mtp") }
                 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
             finally { Pop-Location }
@@ -214,7 +221,7 @@ switch ($Target.ToLowerInvariant()) {
         finally { Pop-Location }
         Write-Host ""
         Write-Host "Mutation testing complete." -ForegroundColor Green
-        Write-Host "  Core HTML: src/YtDlpUi.Core/StrykerOutput/<run>/reports/mutation-report.html"
+        Write-Host "  Core HTML: tests/YtDlpUi.Core.Tests/StrykerOutput/<run>/reports/mutation-report.html"
     }
     default {
         Write-Host "Unknown target: $Target" -ForegroundColor Red

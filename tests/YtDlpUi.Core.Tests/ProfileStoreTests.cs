@@ -23,7 +23,7 @@ public sealed class ProfileStoreTests : IDisposable
     public async Task ConcurrentSavesAndReads_NeverSeeLockedOrPartialFile()
     {
         var profile = new DownloadProfile { Id = "p1", Name = "Music" };
-        await _store.SaveAsync(profile);
+        await _store.SaveAsync(profile, TestContext.Current.CancellationToken);
 
         var tasks = Enumerable.Range(0, 64)
             .Select(i => Task.Run(async () =>
@@ -50,8 +50,8 @@ public sealed class ProfileStoreTests : IDisposable
             ExtraArgs = "--simulate",
         };
 
-        await _store.SaveAsync(profile);
-        var loaded = await _store.GetAsync("p1");
+        await _store.SaveAsync(profile, TestContext.Current.CancellationToken);
+        var loaded = await _store.GetAsync("p1", TestContext.Current.CancellationToken);
         Assert.NotNull(loaded);
         Assert.Equal("Music", loaded.Name);
         Assert.Equal("--simulate", loaded.ExtraArgs);
@@ -60,15 +60,15 @@ public sealed class ProfileStoreTests : IDisposable
     [Fact]
     public async Task DeleteAsync_BlocksLastProfile()
     {
-        await _store.SaveAsync(new DownloadProfile { Id = AppPaths.DefaultProfileId, Name = "Default" });
-        await Assert.ThrowsAsync<InvalidOperationException>(() => _store.DeleteAsync(AppPaths.DefaultProfileId));
+        await _store.SaveAsync(new DownloadProfile { Id = AppPaths.DefaultProfileId, Name = "Default" }, TestContext.Current.CancellationToken);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => _store.DeleteAsync(AppPaths.DefaultProfileId, TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task DuplicateAsync_CreatesCopy()
     {
-        await _store.SaveAsync(new DownloadProfile { Id = "src", Name = "Source", Options = { ["-f"] = "best" } });
-        var copy = await _store.DuplicateAsync("src");
+        await _store.SaveAsync(new DownloadProfile { Id = "src", Name = "Source", Options = { ["-f"] = "best" } }, TestContext.Current.CancellationToken);
+        var copy = await _store.DuplicateAsync("src", TestContext.Current.CancellationToken);
         Assert.NotEqual("src", copy.Id);
         Assert.Contains("(copy)", copy.Name);
     }

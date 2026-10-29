@@ -3,6 +3,7 @@
 // See LICENSE for details.
 
 using System.Collections.ObjectModel;
+using Avalonia;
 using Avalonia.Threading;
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Models;
@@ -228,19 +229,13 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
 
     private void OnSubscriptionsChanged(object? sender, EventArgs e)
     {
-        try
-        {
-            if (Dispatcher.UIThread.CheckAccess())
-            {
-                _ = RefreshAsync();
-                return;
-            }
-
-            _ = Dispatcher.UIThread.InvokeAsync(RefreshAsync);
-        }
-        catch (InvalidOperationException)
+        // No Application (e.g. unit tests) means no UI thread to marshal to.
+        if (Application.Current is null || Dispatcher.UIThread.CheckAccess())
         {
             _ = RefreshAsync();
+            return;
         }
+
+        _ = Dispatcher.UIThread.InvokeAsync(RefreshAsync);
     }
 }

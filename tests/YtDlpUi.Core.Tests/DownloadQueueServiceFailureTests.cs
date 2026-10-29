@@ -40,13 +40,13 @@ public sealed class DownloadQueueServiceFailureTests : IDisposable
     [Fact]
     public async Task EnqueueAsync_MarksJobFailedOnNonZeroExit()
     {
-        await new AppConfigStore(_root, new ProfileStore(_root)).EnsureBootstrapAsync();
-        var config = await new AppConfigStore(_root, new ProfileStore(_root)).LoadAsync();
+        await new AppConfigStore(_root, new ProfileStore(_root)).EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await new AppConfigStore(_root, new ProfileStore(_root)).LoadAsync(TestContext.Current.CancellationToken);
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         config.DownloadFolder = _root;
-        await new AppConfigStore(_root, new ProfileStore(_root)).SaveAsync(config);
+        await new AppConfigStore(_root, new ProfileStore(_root)).SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId);
+        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId, TestContext.Current.CancellationToken);
         await WaitForTerminalStateAsync(job.Id);
 
         var failed = _queue.Jobs.Single(j => j.Id == job.Id);
@@ -59,15 +59,15 @@ public sealed class DownloadQueueServiceFailureTests : IDisposable
     [Fact]
     public async Task RemoveAsync_RemovesCompletedJob()
     {
-        await new AppConfigStore(_root, new ProfileStore(_root)).EnsureBootstrapAsync();
-        var config = await new AppConfigStore(_root, new ProfileStore(_root)).LoadAsync();
+        await new AppConfigStore(_root, new ProfileStore(_root)).EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await new AppConfigStore(_root, new ProfileStore(_root)).LoadAsync(TestContext.Current.CancellationToken);
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         config.DownloadFolder = _root;
-        await new AppConfigStore(_root, new ProfileStore(_root)).SaveAsync(config);
+        await new AppConfigStore(_root, new ProfileStore(_root)).SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId);
+        var job = await _queue.EnqueueAsync("https://www.youtube.com/watch?v=abc", config.ActiveProfileId, TestContext.Current.CancellationToken);
         await WaitForTerminalStateAsync(job.Id);
-        await _queue.RemoveAsync(job.Id);
+        await _queue.RemoveAsync(job.Id, TestContext.Current.CancellationToken);
         Assert.Empty(_queue.Jobs);
     }
 

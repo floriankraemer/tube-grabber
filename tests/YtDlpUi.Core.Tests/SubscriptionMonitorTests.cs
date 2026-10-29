@@ -58,7 +58,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     {
         _feed.Entries = Videos("v5", "v4", "v3", "v2", "v1");
 
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 2);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 2, TestContext.Current.CancellationToken);
 
         Assert.Equal([Watch("v4"), Watch("v5")], _queue.EnqueuedUrls);
         Assert.Equal("https://www.youtube.com/channel/UC1/videos", subscription.ChannelUrl);
@@ -72,7 +72,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     {
         _feed.Entries = Videos("v2", "v1");
 
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
 
         Assert.Empty(_queue.EnqueuedUrls);
         Assert.Equal(["v2", "v1"], subscription.SeenVideoIds);
@@ -83,7 +83,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     {
         _feed.Entries = Videos("v2", "v1");
 
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 500);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 500, TestContext.Current.CancellationToken);
 
         Assert.Equal([Watch("v1"), Watch("v2")], _queue.EnqueuedUrls);
     }
@@ -92,23 +92,23 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task AddAsync_DuplicateChannel_Throws()
     {
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0));
+            () => _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken));
 
         Assert.Equal("You are already subscribed to Channel One.", ex.Message);
-        Assert.Single(await _monitor.ListAsync());
+        Assert.Single(await _monitor.ListAsync(TestContext.Current.CancellationToken));
     }
 
     [Fact]
     public async Task CheckNowAsync_EnqueuesOnlyUnseenVideos()
     {
         _feed.Entries = Videos("v2", "v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
 
         _feed.Entries = Videos("v3", "v2", "v1");
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([Watch("v3")], _queue.EnqueuedUrls);
     }
@@ -117,10 +117,10 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CheckNowAsync_VideoInFlight_IsNotEnqueuedTwice()
     {
         _feed.Entries = Videos("v2", "v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
 
-        await _monitor.CheckNowAsync();
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal([Watch("v2")], _queue.EnqueuedUrls);
     }
@@ -129,7 +129,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CompletedJob_MarksSeenAndNotifies()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         var job = _queue.Jobs.Single();
         job.Title = "Real Title";
         job.Status = DownloadStatus.Completed;
@@ -141,7 +141,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         Assert.Equal("Channel One: Real Title", body);
         Assert.Contains("v1", subscription.SeenVideoIds);
 
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
         Assert.Single(_queue.EnqueuedUrls);
     }
 
@@ -149,10 +149,10 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task FailedJob_IsRetriedWithoutNotification()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
 
         await FailLatestJobAsync(subscription, 1);
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("v1", subscription.SeenVideoIds);
         Assert.Equal([Watch("v1"), Watch("v1")], _queue.EnqueuedUrls);
@@ -163,12 +163,12 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task FailedJob_GivesUpAfterMaxAttemptsAndNotifies()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
 
         for (var attempt = 1; attempt < SubscriptionMonitor.MaxDownloadAttempts; attempt++)
         {
             await FailLatestJobAsync(subscription, attempt);
-            await _monitor.CheckNowAsync();
+            await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
         }
 
         _queue.Jobs.Last().Status = DownloadStatus.Failed;
@@ -180,7 +180,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         Assert.Contains("v1", subscription.SeenVideoIds);
         Assert.Empty(subscription.FailedAttempts);
 
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
         Assert.Equal(SubscriptionMonitor.MaxDownloadAttempts, _queue.EnqueuedUrls.Count);
     }
 
@@ -188,7 +188,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task RemovedJob_MarksSeenWithoutNotification()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         _queue.Clear();
 
         await SweepAsync(() => subscription.SeenVideoIds.Contains("v1"));
@@ -199,7 +199,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CancelledJob_MarksSeenWithoutNotification()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         _queue.Jobs.Single().Status = DownloadStatus.Cancelled;
 
         await SweepAsync(() => subscription.SeenVideoIds.Contains("v1"));
@@ -210,11 +210,11 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task RunningJob_StaysTracked()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         _queue.Jobs.Single().Status = DownloadStatus.Running;
 
         _queue.RaiseJobsChanged();
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.DoesNotContain("v1", subscription.SeenVideoIds);
         Assert.Single(_queue.EnqueuedUrls);
@@ -225,7 +225,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     {
         _notifier.Throw = true;
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         _queue.Jobs.Single().Status = DownloadStatus.Completed;
         var changed = new TaskCompletionSource();
         _monitor.SubscriptionsChanged += (_, _) =>
@@ -236,7 +236,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
 
         await SweepAsync(() => _notifier.ThrowCount > 0);
 
-        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        await changed.Task.WaitAsync(TimeSpan.FromSeconds(5), TestContext.Current.CancellationToken);
         Assert.True(_notifier.ThrowCount > 0);
     }
 
@@ -244,20 +244,20 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task ListAndMutations_CompleteWhileFeedFetchIsBlocked()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         _feed.Entries = Videos("v2", "v1");
         _feed.Hold = new TaskCompletionSource();
         _feed.Entered = new TaskCompletionSource();
 
-        var check = _monitor.CheckNowAsync();
-        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        var check = _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
+        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.True(_monitor.IsChecking);
-        Assert.Single(await _monitor.ListAsync().WaitAsync(TimeSpan.FromSeconds(10)));
-        await _monitor.SetEnabledAsync(subscription.Id, false).WaitAsync(TimeSpan.FromSeconds(10));
+        Assert.Single(await _monitor.ListAsync(TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken));
+        await _monitor.SetEnabledAsync(subscription.Id, false, TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         _feed.Hold.SetResult();
-        await check.WaitAsync(TimeSpan.FromSeconds(10));
+        await check.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.False(_monitor.IsChecking);
         Assert.Empty(_queue.EnqueuedUrls);
@@ -267,16 +267,16 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CheckNowAsync_SubscriptionRemovedDuringFetch_IsNotUpdated()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         _feed.Entries = Videos("v2", "v1");
         _feed.Hold = new TaskCompletionSource();
         _feed.Entered = new TaskCompletionSource();
 
-        var check = _monitor.CheckNowAsync();
-        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
-        await _monitor.RemoveAsync(subscription.Id).WaitAsync(TimeSpan.FromSeconds(10));
+        var check = _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
+        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
+        await _monitor.RemoveAsync(subscription.Id, TestContext.Current.CancellationToken).WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
         _feed.Hold.SetResult();
-        await check.WaitAsync(TimeSpan.FromSeconds(10));
+        await check.WaitAsync(TimeSpan.FromSeconds(10), TestContext.Current.CancellationToken);
 
         Assert.Empty(_queue.EnqueuedUrls);
         Assert.Empty(_store.Saved.Last());
@@ -286,7 +286,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task JobsChanged_Burst_IsCoalescedAndTerminalTransitionStillProcessed()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
         _queue.Jobs.Single().Status = DownloadStatus.Running;
         var readsBefore = _queue.JobsReads;
 
@@ -307,15 +307,15 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task AfterDispose_PublicMethodsThrowObjectDisposed()
     {
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1, TestContext.Current.CancellationToken);
 
         await _monitor.DisposeAsync();
         await _monitor.DisposeAsync();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.ListAsync());
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.CheckNowAsync());
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.RemoveAsync("x"));
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.AddAsync("u", "default", 0));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.ListAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.CheckNowAsync(TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.RemoveAsync("x", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.AddAsync("u", "default", 0, TestContext.Current.CancellationToken));
         Assert.Throws<ObjectDisposedException>(() => _monitor.Start());
     }
 
@@ -323,28 +323,28 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CheckNowAsync_DisabledSubscription_IsSkipped()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
-        await _monitor.SetEnabledAsync(subscription.Id, false);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
+        await _monitor.SetEnabledAsync(subscription.Id, false, TestContext.Current.CancellationToken);
 
         _feed.Entries = Videos("v2", "v1");
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.Empty(_queue.EnqueuedUrls);
-        Assert.False((await _monitor.ListAsync()).Single().Enabled);
+        Assert.False((await _monitor.ListAsync(TestContext.Current.CancellationToken)).Single().Enabled);
     }
 
     [Fact]
     public async Task CheckNowAsync_FeedError_SetsLastErrorAndRecovers()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
 
         _feed.Error = new InvalidOperationException("boom");
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
         Assert.Equal("boom", subscription.LastError);
 
         _feed.Error = null;
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
         Assert.Null(subscription.LastError);
     }
 
@@ -352,11 +352,11 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task CheckNowAsync_UnknownProfile_ReportsEnqueueError()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
-        await _monitor.SetProfileAsync(subscription.Id, "gone");
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
+        await _monitor.SetProfileAsync(subscription.Id, "gone", TestContext.Current.CancellationToken);
 
         _feed.Entries = Videos("v2", "v1");
-        await _monitor.CheckNowAsync();
+        await _monitor.CheckNowAsync(TestContext.Current.CancellationToken);
 
         Assert.Contains("gone", subscription.LastError);
         Assert.Empty(_queue.EnqueuedUrls);
@@ -366,12 +366,12 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task RemoveAsync_DeletesSubscription()
     {
         _feed.Entries = Videos("v1");
-        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
 
-        await _monitor.RemoveAsync(subscription.Id);
-        await _monitor.RemoveAsync("missing");
+        await _monitor.RemoveAsync(subscription.Id, TestContext.Current.CancellationToken);
+        await _monitor.RemoveAsync("missing", TestContext.Current.CancellationToken);
 
-        Assert.Empty(await _monitor.ListAsync());
+        Assert.Empty(await _monitor.ListAsync(TestContext.Current.CancellationToken));
         Assert.Empty(_store.Saved.Last());
     }
 
@@ -386,14 +386,14 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
             ProfileId = "default",
         }]);
 
-        Assert.Equal("Persisted", (await _monitor.ListAsync()).Single().ChannelName);
+        Assert.Equal("Persisted", (await _monitor.ListAsync(TestContext.Current.CancellationToken)).Single().ChannelName);
     }
 
     [Fact]
     public async Task Start_ScansImmediatelyAndAgainAfterInterval_HonoringChangedInterval()
     {
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         var callsAfterAdd = _feed.Calls;
         _feed.OnCall = () => _config.SubscriptionCheckIntervalMinutes = 30;
 
@@ -416,7 +416,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     {
         _config.SubscriptionCheckIntervalMinutes = 1;
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         var callsAfterAdd = _feed.Calls;
         _monitor.Start();
         await Eventually(() => _feed.Calls > callsAfterAdd);
@@ -436,7 +436,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task Start_LoopSurvivesExceptions()
     {
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         var callsAfterAdd = _feed.Calls;
         _store.FailSaves = true;
 
@@ -455,7 +455,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     public async Task DisposeAsync_StopsLoop()
     {
         _feed.Entries = Videos("v1");
-        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0, TestContext.Current.CancellationToken);
         var callsAfterAdd = _feed.Calls;
         _monitor.Start();
         await Eventually(() => _feed.Calls > callsAfterAdd);

@@ -23,8 +23,8 @@ public sealed class AppConfigStoreTests : IDisposable
     [Fact]
     public async Task EnsureBootstrap_CreatesDefaultProfileAndConfig()
     {
-        await _store.EnsureBootstrapAsync();
-        var config = await _store.LoadAsync();
+        await _store.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(AppPaths.DefaultProfileId, config.ActiveProfileId);
         Assert.True(File.Exists(Path.Combine(_root, AppPaths.AppConfigFileName)));
         Assert.True(File.Exists(Path.Combine(_root, AppPaths.ProfilesFolderName, $"{AppPaths.DefaultProfileId}.json")));
@@ -43,14 +43,14 @@ public sealed class AppConfigStoreTests : IDisposable
 
         await Task.WhenAll(tasks);
 
-        var loaded = await _store.LoadAsync();
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(AppPaths.DefaultProfileId, loaded.ActiveProfileId);
     }
 
     [Fact]
     public async Task EnsureBootstrap_CreatesAllBuiltInProfiles()
     {
-        await _store.EnsureBootstrapAsync();
+        await _store.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
 
         Assert.True(File.Exists(Path.Combine(_root, AppPaths.ProfilesFolderName, $"{AppPaths.AudioMp3ProfileId}.json")));
         Assert.True(File.Exists(Path.Combine(_root, AppPaths.ProfilesFolderName, $"{AppPaths.HqVideoProfileId}.json")));
@@ -69,11 +69,11 @@ public sealed class AppConfigStoreTests : IDisposable
                 ["-f"] = "bestaudio",
                 ["--no-part"] = true,
             },
-        });
+        }, TestContext.Current.CancellationToken);
 
-        await _store.EnsureBootstrapAsync();
+        await _store.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
 
-        var loaded = await profiles.GetAsync(AppPaths.AudioMp3ProfileId);
+        var loaded = await profiles.GetAsync(AppPaths.AudioMp3ProfileId, TestContext.Current.CancellationToken);
         Assert.True(loaded!.Options.ContainsKey("--force-overwrites"));
         Assert.True(loaded.Options.ContainsKey("-x"));
         Assert.Equal("mp3", loaded.Options["--audio-format"]?.ToString());
@@ -85,11 +85,11 @@ public sealed class AppConfigStoreTests : IDisposable
         var profiles = new ProfileStore(_root);
         var customDefault = BuiltInProfiles.CreateDefault();
         customDefault.Options["-f"] = "custom-format";
-        await profiles.SaveAsync(customDefault);
+        await profiles.SaveAsync(customDefault, TestContext.Current.CancellationToken);
 
-        await _store.EnsureBootstrapAsync();
+        await _store.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
 
-        var loadedDefault = await profiles.GetAsync(AppPaths.DefaultProfileId);
+        var loadedDefault = await profiles.GetAsync(AppPaths.DefaultProfileId, TestContext.Current.CancellationToken);
         Assert.Equal("custom-format", loadedDefault!.Options["-f"]?.ToString());
         Assert.True(File.Exists(Path.Combine(_root, AppPaths.ProfilesFolderName, $"{AppPaths.AudioMp3ProfileId}.json")));
     }
@@ -97,22 +97,22 @@ public sealed class AppConfigStoreTests : IDisposable
     [Fact]
     public async Task SaveAsync_PersistsChanges()
     {
-        var config = await _store.LoadAsync();
+        var config = await _store.LoadAsync(TestContext.Current.CancellationToken);
         config.MaxConcurrentDownloads = 4;
-        await _store.SaveAsync(config);
-        var loaded = await _store.LoadAsync();
+        await _store.SaveAsync(config, TestContext.Current.CancellationToken);
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(4, loaded.MaxConcurrentDownloads);
     }
 
     [Fact]
     public async Task SaveAsync_PersistsQueueColumnWidths()
     {
-        var config = await _store.LoadAsync();
+        var config = await _store.LoadAsync(TestContext.Current.CancellationToken);
         config.QueueColumnWidths["title"] = 350;
         config.QueueColumnWidths["url"] = 420;
-        await _store.SaveAsync(config);
+        await _store.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var loaded = await _store.LoadAsync();
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(350, loaded.QueueColumnWidths["title"]);
         Assert.Equal(420, loaded.QueueColumnWidths["url"]);
     }
@@ -120,24 +120,24 @@ public sealed class AppConfigStoreTests : IDisposable
     [Fact]
     public async Task SaveAsync_PersistsThemePreference()
     {
-        var config = await _store.LoadAsync();
+        var config = await _store.LoadAsync(TestContext.Current.CancellationToken);
         config.ThemePreference = ThemePreference.Dark;
-        await _store.SaveAsync(config);
+        await _store.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var loaded = await _store.LoadAsync();
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(ThemePreference.Dark, loaded.ThemePreference);
     }
 
     [Fact]
     public async Task SaveAsync_PersistsSubscriptionAndBackgroundSettings()
     {
-        var config = await _store.LoadAsync();
+        var config = await _store.LoadAsync(TestContext.Current.CancellationToken);
         config.SubscriptionCheckIntervalMinutes = 240;
         config.RunInBackground = false;
         config.StartAtLogin = true;
-        await _store.SaveAsync(config);
+        await _store.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        var loaded = await _store.LoadAsync();
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(240, loaded.SubscriptionCheckIntervalMinutes);
         Assert.False(loaded.RunInBackground);
         Assert.True(loaded.StartAtLogin);
@@ -155,9 +155,9 @@ public sealed class AppConfigStoreTests : IDisposable
               "ThemePreference": "Dark"
             }
             """;
-        await File.WriteAllTextAsync(Path.Combine(_root, AppPaths.AppConfigFileName), v3Json);
+        await File.WriteAllTextAsync(Path.Combine(_root, AppPaths.AppConfigFileName), v3Json, TestContext.Current.CancellationToken);
 
-        var loaded = await _store.LoadAsync();
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
 
         Assert.Equal(SchemaVersions.AppConfig, loaded.SchemaVersion);
         Assert.Equal(3, loaded.MaxConcurrentDownloads);

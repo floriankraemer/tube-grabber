@@ -89,7 +89,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
     {
         var (service, _) = await CreateServiceAsync(new CapturingProcessRunner(0, FeedJson));
 
-        var feed = await service.GetLatestAsync("https://www.youtube.com/@chan", 10);
+        var feed = await service.GetLatestAsync("https://www.youtube.com/@chan", 10, TestContext.Current.CancellationToken);
 
         Assert.Equal("UCabc", feed.ChannelId);
         Assert.Equal("Chan", feed.ChannelName);
@@ -101,7 +101,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
     {
         var (service, process) = await CreateServiceAsync(new CapturingProcessRunner(0, FeedJson));
 
-        await service.GetLatestAsync("https://www.youtube.com/@chan/shorts?x=1", 7);
+        await service.GetLatestAsync("https://www.youtube.com/@chan/shorts?x=1", 7, TestContext.Current.CancellationToken);
 
         var args = process.Invocation!.Arguments.ToList();
         Assert.Equal("1", args[args.IndexOf("--playlist-start") + 1]);
@@ -115,7 +115,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
         var (service, _) = await CreateServiceAsync(new CapturingProcessRunner(0, "not json"));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.GetLatestAsync("@chan", 5));
+            () => service.GetLatestAsync("@chan", 5, TestContext.Current.CancellationToken));
 
         Assert.Equal("Could not read the channel feed from yt-dlp output.", ex.Message);
     }
@@ -126,7 +126,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
         var (service, _) = await CreateServiceAsync(new CapturingProcessRunner(1, string.Empty));
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.GetLatestAsync("@chan", 5));
+            () => service.GetLatestAsync("@chan", 5, TestContext.Current.CancellationToken));
 
         Assert.Equal("yt-dlp exited with code 1.", ex.Message);
     }
@@ -136,7 +136,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
     {
         var (service, _) = await CreateServiceAsync(new CapturingProcessRunner(0, FeedJson));
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.GetLatestAsync("@chan", 0));
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.GetLatestAsync("@chan", 0, TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -145,7 +145,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
         var (service, process) = await CreateServiceAsync(new CapturingProcessRunner(0, FeedJson));
 
         await Assert.ThrowsAsync<InvalidOperationException>(
-            () => service.GetLatestAsync("https://www.youtube.com/watch?v=abc", 5));
+            () => service.GetLatestAsync("https://www.youtube.com/watch?v=abc", 5, TestContext.Current.CancellationToken));
 
         Assert.Null(process.Invocation);
     }

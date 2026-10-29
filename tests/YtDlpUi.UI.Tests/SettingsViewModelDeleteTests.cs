@@ -33,8 +33,8 @@ public sealed class SettingsViewModelDeleteTests : IDisposable
     [Fact]
     public async Task DeleteProfileAsync_RemovesSecondaryProfile()
     {
-        await _profiles.SaveAsync(new DownloadProfile { Id = "default", Name = "Default" });
-        await _profiles.SaveAsync(new DownloadProfile { Id = "extra", Name = "Extra" });
+        await _profiles.SaveAsync(new DownloadProfile { Id = "default", Name = "Default" }, TestContext.Current.CancellationToken);
+        await _profiles.SaveAsync(new DownloadProfile { Id = "extra", Name = "Extra" }, TestContext.Current.CancellationToken);
         await _viewModel.LoadAsync();
         await _viewModel.SelectProfileAsync(_viewModel.Profiles.First(p => p.Id == "extra"));
         await _viewModel.DeleteProfileAsync();

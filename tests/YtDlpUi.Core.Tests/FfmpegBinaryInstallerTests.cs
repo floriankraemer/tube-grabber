@@ -29,7 +29,7 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
         var executableName = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
         var installer = CreateInstaller(new FakeArchiveHttpMessageHandler($"ffmpeg-master-latest-win64-gpl/bin/{executableName}"));
 
-        var result = await installer.InstallAsync();
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
 
         Assert.True(result.IsSuccess);
         Assert.Equal(ExecutableSizeBytes, new FileInfo(result.InstalledPath!).Length);
@@ -41,7 +41,7 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
     {
         var installer = CreateInstaller(new FakeArchiveHttpMessageHandler("readme.txt"));
 
-        var result = await installer.InstallAsync();
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
 
         Assert.False(result.IsSuccess);
         Assert.False(Directory.Exists(_extractDirectory));

@@ -63,7 +63,7 @@
           </ComboBox.ItemTemplate>
         </ComboBox>
         <TextBox
-                 Watermark="https://www.youtube.com/@channel"
+                 PlaceholderText="https://www.youtube.com/@channel"
                  Text="{Binding ChannelUrl}"
                  KeyDown="ChannelUrl_KeyDown" />
       </DockPanel>
