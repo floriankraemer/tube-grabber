@@ -58,10 +58,9 @@ public sealed partial class App : Application
             {
                 DataContext = Services.CreateMainViewModel(),
             };
-            TrayAvailable = TryCreateTray();
+            TrayAvailable = TryCreateTray() && TrayHost.IsAvailable();
 
-            // A hidden start without a tray would leave no way to reach the window.
-            if (!StartMinimized || !TrayAvailable)
+            if (TrayHost.ShouldShowWindowOnStart(StartMinimized, TrayAvailable))
                 desktop.MainWindow = _mainWindow;
 
             InstanceGuard?.StartListening(() => Dispatcher.UIThread.Post(ShowMainWindow));
@@ -134,9 +133,6 @@ public sealed partial class App : Application
         _mainWindow?.OpenSubscriptionsWindow();
     }
 
-    // ponytail: Avalonia cannot report tray availability, so only creation failures count as "no tray".
-    // On GNOME without an AppIndicator extension no icon appears but the process stays alive; launching
-    // the app again reopens the window through the single-instance "show" message.
     private bool TryCreateTray()
     {
         try

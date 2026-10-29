@@ -61,7 +61,7 @@ public sealed partial class MainWindow : Window
 
         // Cancel before the first await: the window stays open while the async work completes.
         e.Cancel = true;
-        if (App.RunInBackground && App.TrayAvailable)
+        if (TrayHost.ShouldHideOnClose(App.RunInBackground, App.TrayAvailable))
         {
             Hide();
             ShowBackgroundHint();
