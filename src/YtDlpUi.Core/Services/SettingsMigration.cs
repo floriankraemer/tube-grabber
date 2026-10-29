@@ -17,6 +17,13 @@ public static class SettingsMigration
         if (config.SchemaVersion < 3)
             config.ThemePreference = ThemePreference.System;
 
+        if (config.SchemaVersion < 4)
+        {
+            config.SubscriptionCheckIntervalMinutes = AppPaths.DefaultSubscriptionCheckIntervalMinutes;
+            config.RunInBackground = true;
+            config.StartAtLogin = false;
+        }
+
         config.SchemaVersion = SchemaVersions.AppConfig;
         return config;
     }

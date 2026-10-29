@@ -27,6 +27,10 @@ public sealed class AppSettingsValidator
         if (config.MaxConcurrentDownloads < 1 || config.MaxConcurrentDownloads > AppPaths.MaxConcurrentDownloadsCap)
             errors.Add($"Max concurrent downloads must be between 1 and {AppPaths.MaxConcurrentDownloadsCap}.");
 
+        if (config.SubscriptionCheckIntervalMinutes < AppPaths.MinSubscriptionCheckIntervalMinutes
+            || config.SubscriptionCheckIntervalMinutes > AppPaths.MaxSubscriptionCheckIntervalMinutes)
+            errors.Add($"Subscription check interval must be between {AppPaths.MinSubscriptionCheckIntervalMinutes} and {AppPaths.MaxSubscriptionCheckIntervalMinutes} minutes.");
+
         if (string.IsNullOrWhiteSpace(profile.Name))
             errors.Add("Profile name is required.");
 
