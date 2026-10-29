@@ -21,6 +21,10 @@ public sealed class AppConfigStore : IAppConfigStore
     private readonly string _configFilePath;
     private readonly IProfileStore _profileStore;
 
+    // LoadAsync bootstraps built-in profiles and may write files; concurrent callers (UI, queue, subscription monitor)
+    // must not interleave those writes.
+    private readonly SemaphoreSlim _ioLock = new(1, 1);
+
     public AppConfigStore(string configRoot, IProfileStore profileStore)
     {
         ConfigRoot = configRoot;
@@ -41,6 +45,19 @@ public sealed class AppConfigStore : IAppConfigStore
 
     public async Task EnsureBootstrapAsync(CancellationToken cancellationToken = default)
     {
+        await _ioLock.WaitAsync(cancellationToken);
+        try
+        {
+            await EnsureBootstrapLockedAsync(cancellationToken);
+        }
+        finally
+        {
+            _ioLock.Release();
+        }
+    }
+
+    private async Task EnsureBootstrapLockedAsync(CancellationToken cancellationToken)
+    {
         Directory.CreateDirectory(ConfigRoot);
         ConfigFilePermissions.ApplyRestrictedPermissions(ConfigRoot, isDirectory: true);
 
@@ -51,7 +68,7 @@ public sealed class AppConfigStore : IAppConfigStore
         await EnsureBuiltInProfilesAsync(cancellationToken);
 
         if (!File.Exists(_configFilePath))
-            await SaveAsync(new AppConfiguration(), cancellationToken);
+            await SaveLockedAsync(new AppConfiguration(), cancellationToken);
     }
 
     private async Task EnsureBuiltInProfilesAsync(CancellationToken cancellationToken)
@@ -72,7 +89,20 @@ public sealed class AppConfigStore : IAppConfigStore
 
     public async Task<AppConfiguration> LoadAsync(CancellationToken cancellationToken = default)
     {
-        await EnsureBootstrapAsync(cancellationToken);
+        await _ioLock.WaitAsync(cancellationToken);
+        try
+        {
+            return await LoadLockedAsync(cancellationToken);
+        }
+        finally
+        {
+            _ioLock.Release();
+        }
+    }
+
+    private async Task<AppConfiguration> LoadLockedAsync(CancellationToken cancellationToken)
+    {
+        await EnsureBootstrapLockedAsync(cancellationToken);
 
         if (!File.Exists(_configFilePath))
             return new AppConfiguration();
@@ -85,6 +115,19 @@ public sealed class AppConfigStore : IAppConfigStore
     }
 
     public async Task SaveAsync(AppConfiguration configuration, CancellationToken cancellationToken = default)
+    {
+        await _ioLock.WaitAsync(cancellationToken);
+        try
+        {
+            await SaveLockedAsync(configuration, cancellationToken);
+        }
+        finally
+        {
+            _ioLock.Release();
+        }
+    }
+
+    private async Task SaveLockedAsync(AppConfiguration configuration, CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(ConfigRoot);
         SettingsMigration.MigrateAppConfig(configuration);

@@ -31,6 +31,23 @@ public sealed class AppConfigStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ConcurrentFirstRunLoadsAndSaves_DoNotCollide()
+    {
+        var tasks = Enumerable.Range(0, 32)
+            .Select(i => Task.Run(async () =>
+            {
+                var config = await _store.LoadAsync();
+                if (i % 4 == 0)
+                    await _store.SaveAsync(config);
+            }));
+
+        await Task.WhenAll(tasks);
+
+        var loaded = await _store.LoadAsync();
+        Assert.Equal(AppPaths.DefaultProfileId, loaded.ActiveProfileId);
+    }
+
+    [Fact]
     public async Task EnsureBootstrap_CreatesAllBuiltInProfiles()
     {
         await _store.EnsureBootstrapAsync();
