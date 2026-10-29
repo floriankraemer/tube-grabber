@@ -67,6 +67,7 @@ public sealed class AppServices
         DenoInstaller = new DenoBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FileSystemLauncher = new FileSystemLauncherService();
         StoragePicker = new StoragePickerService();
+        LoginItemService = new LoginItemService();
     }
 
     public string ConfigRoot { get; }
@@ -98,6 +99,7 @@ public sealed class AppServices
     public IBinaryInstaller DenoInstaller { get; }
     public IFileSystemLauncher FileSystemLauncher { get; }
     public StoragePickerService StoragePicker { get; }
+    public ILoginItemService LoginItemService { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -132,5 +134,6 @@ public sealed class AppServices
         FfmpegInstaller,
         DenoInstaller,
         BinaryInstallService,
-        FileSystemLauncher);
+        FileSystemLauncher,
+        LoginItemService);
 }

@@ -8,7 +8,7 @@ using Microsoft.Win32;
 
 namespace YtDlpUi.UI.Services;
 
-public sealed class LoginItemService
+public sealed class LoginItemService : ILoginItemService
 {
     private const string AppName = "Yt-dlp-ui";
     private const string LaunchAgentLabel = "com.github.floriankraemer.ytdlpui";

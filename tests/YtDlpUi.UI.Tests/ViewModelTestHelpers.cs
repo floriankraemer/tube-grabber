@@ -72,7 +72,8 @@ internal static class ViewModelTestHelpers
         IBinaryInstaller? ffmpegInstaller = null,
         IBinaryInstaller? denoInstaller = null,
         BinaryInstallService? binaryInstallService = null,
-        IFileSystemLauncher? fileSystemLauncher = null)
+        IFileSystemLauncher? fileSystemLauncher = null,
+        ILoginItemService? loginItemService = null)
     {
         var catalog = new YtDlpOptionCatalog();
         var appConfig = new AppConfigStore(configRoot, profileStore);
@@ -85,6 +86,7 @@ internal static class ViewModelTestHelpers
             ffmpegInstaller ?? Substitute.For<IBinaryInstaller>(),
             denoInstaller ?? Substitute.For<IBinaryInstaller>(),
             binaryInstallService ?? CreateBinaryInstallService(appConfig, new BinaryLocator(configRoot)),
-            fileSystemLauncher ?? Substitute.For<IFileSystemLauncher>());
+            fileSystemLauncher ?? Substitute.For<IFileSystemLauncher>(),
+            loginItemService ?? Substitute.For<ILoginItemService>());
     }
 }
