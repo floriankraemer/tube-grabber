@@ -67,25 +67,29 @@ public sealed class SingleInstanceGuard : IDisposable
 
     private async Task ListenAsync(Action onShow, CancellationToken token)
     {
+        NamedPipeServerStream? server = null;
         while (!token.IsCancellationRequested)
         {
             try
             {
-                await using var server = new NamedPipeServerStream(
-                    _pipeName,
-                    PipeDirection.In,
-                    1,
-                    PipeTransmissionMode.Byte,
-                    PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
+                server ??= CreateServer();
                 await server.WaitForConnectionAsync(token).ConfigureAwait(false);
-                using var reader = new StreamReader(server);
-                var message = await reader.ReadLineAsync(token).ConfigureAwait(false);
-                if (message == ShowMessage)
-                    onShow();
+
+                // On Unix all instances share one listening socket that closes with the last instance;
+                // create the next one first so clients queued meanwhile are not dropped.
+                var connected = server;
+                server = CreateServer();
+                await using (connected.ConfigureAwait(false))
+                {
+                    using var reader = new StreamReader(connected);
+                    var message = await reader.ReadLineAsync(token).ConfigureAwait(false);
+                    if (message == ShowMessage)
+                        onShow();
+                }
             }
             catch (OperationCanceledException)
             {
-                return;
+                break;
             }
             catch (Exception ex)
             {
@@ -96,11 +100,22 @@ public sealed class SingleInstanceGuard : IDisposable
                 }
                 catch (OperationCanceledException)
                 {
-                    return;
+                    break;
                 }
             }
         }
+
+        if (server is not null)
+            await server.DisposeAsync().ConfigureAwait(false);
     }
+
+    private NamedPipeServerStream CreateServer() =>
+        new(
+            _pipeName,
+            PipeDirection.In,
+            NamedPipeServerStream.MaxAllowedServerInstances,
+            PipeTransmissionMode.Byte,
+            PipeOptions.Asynchronous | PipeOptions.CurrentUserOnly);
 
     private static string Sanitize(string value) =>
         new(value.Select(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_' ? c : '_').ToArray());
