@@ -12,8 +12,12 @@ namespace YtDlpUi.Core.Services;
 
 public sealed class SubscriptionMonitor : ISubscriptionMonitor
 {
+    public const int MaxDownloadAttempts = 3;
+
     // ponytail: ScanWindow=30 — more uploads than that between scans are missed; page further if it matters.
     private const int ScanWindow = 30;
+    private const int MaxTrackedFailures = 100;
+    private static readonly TimeSpan SweepDebounce = TimeSpan.FromMilliseconds(250);
 
     private readonly ISubscriptionStore _store;
     private readonly IChannelFeedService _feed;
@@ -23,12 +27,15 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
     private readonly IDesktopNotifier _notifier;
     private readonly TimeProvider _timeProvider;
     private readonly SemaphoreSlim _gate = new(1, 1);
+    private readonly SemaphoreSlim _scanLock = new(1, 1);
     private readonly ConcurrentDictionary<Guid, TrackedJob> _tracked = new();
     private readonly CancellationTokenSource _stop = new();
     private List<ChannelSubscription>? _subscriptions;
     private Task? _loop;
+    private Task _sweepWorker = Task.CompletedTask;
     private volatile bool _isChecking;
-    private int _sweepPending;
+    private int _sweepRequests;
+    private int _disposed;
 
     public SubscriptionMonitor(
         ISubscriptionStore store,
@@ -53,10 +60,15 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
 
     public event EventHandler? SubscriptionsChanged;
 
-    public void Start() => _loop ??= Task.Run(RunLoopAsync);
+    public void Start()
+    {
+        ThrowIfDisposed();
+        _loop ??= Task.Run(RunLoopAsync);
+    }
 
     public async Task<IReadOnlyList<ChannelSubscription>> ListAsync(CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         await _gate.WaitAsync(ct);
         try
         {
@@ -74,6 +86,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         int backlogCount,
         CancellationToken ct = default)
     {
+        ThrowIfDisposed();
         backlogCount = Math.Clamp(backlogCount, 0, ScanWindow);
         var feed = await _feed.GetLatestAsync(channelUrl, ScanWindow, ct);
 
@@ -98,7 +111,6 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
 
             subscriptions.Add(subscription);
             await _store.SaveAsync(subscriptions, ct);
-            await ScanLockedAsync(subscription, ct);
         }
         finally
         {
@@ -106,7 +118,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         }
 
         RaiseChanged();
-        OnJobsChanged(this, EventArgs.Empty);
+        await ScanAsync(c => ScanSubscriptionAsync(subscription.Id, c), ct);
         return subscription;
     }
 
@@ -119,45 +131,41 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
     public Task SetProfileAsync(string id, string profileId, CancellationToken ct = default) =>
         MutateAsync(subscriptions => Update(subscriptions, id, s => s.ProfileId = profileId), ct);
 
-    public async Task CheckNowAsync(CancellationToken ct = default)
+    public Task CheckNowAsync(CancellationToken ct = default)
     {
-        await _gate.WaitAsync(ct);
-        try
-        {
-            _isChecking = true;
-            RaiseChanged();
-            var subscriptions = await LoadLockedAsync(ct);
-            foreach (var subscription in subscriptions.Where(s => s.Enabled).ToList())
-            {
-                ct.ThrowIfCancellationRequested();
-                await ScanLockedAsync(subscription, ct);
-            }
-        }
-        finally
-        {
-            _isChecking = false;
-            _gate.Release();
-        }
-
-        RaiseChanged();
-        OnJobsChanged(this, EventArgs.Empty);
+        ThrowIfDisposed();
+        return ScanAsync(ScanAllAsync, ct);
     }
 
     public async ValueTask DisposeAsync()
     {
+        if (Interlocked.Exchange(ref _disposed, 1) == 1)
+            return;
+
         _queue.JobsChanged -= OnJobsChanged;
         await _stop.CancelAsync();
-        if (_loop is not null)
+        await WaitQuietlyAsync(_loop);
+        await WaitQuietlyAsync(_sweepWorker);
+        _gate.Dispose();
+        _scanLock.Dispose();
+        _stop.Dispose();
+    }
+
+    private static async Task WaitQuietlyAsync(Task? task)
+    {
+        if (task is null)
+            return;
+
+        try
         {
-            try
-            {
-                await _loop;
-            }
-            catch (OperationCanceledException)
-            {
-            }
+            await task;
+        }
+        catch (OperationCanceledException)
+        {
         }
     }
+
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) == 1, this);
 
     private async Task RunLoopAsync()
     {
@@ -197,9 +205,12 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
     private async Task<List<ChannelSubscription>> LoadLockedAsync(CancellationToken ct) =>
         _subscriptions ??= (await _store.LoadAsync(ct)).ToList();
 
+    private static ChannelSubscription? Find(List<ChannelSubscription> subscriptions, string id) =>
+        subscriptions.FirstOrDefault(s => s.Id == id);
+
     private static bool Update(List<ChannelSubscription> subscriptions, string id, Action<ChannelSubscription> change)
     {
-        var subscription = subscriptions.FirstOrDefault(s => s.Id == id);
+        var subscription = Find(subscriptions, id);
         if (subscription is null)
             return false;
 
@@ -209,6 +220,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
 
     private async Task MutateAsync(Func<List<ChannelSubscription>, bool> mutation, CancellationToken ct)
     {
+        ThrowIfDisposed();
         await _gate.WaitAsync(ct);
         try
         {
@@ -226,29 +238,68 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         RaiseChanged();
     }
 
-    private async Task ScanLockedAsync(ChannelSubscription subscription, CancellationToken ct)
+    private async Task ScanAsync(Func<CancellationToken, Task> scan, CancellationToken ct)
     {
+        await _scanLock.WaitAsync(ct);
         try
         {
-            var feed = await _feed.GetLatestAsync(subscription.ChannelUrl, ScanWindow, ct);
-            var skip = _tracked.Values
-                .Where(t => t.SubscriptionId == subscription.Id)
-                .Select(t => t.VideoId)
-                .Concat(subscription.SeenVideoIds)
-                .ToHashSet();
+            _isChecking = true;
+            RaiseChanged();
+            await scan(ct);
+        }
+        finally
+        {
+            _isChecking = false;
+            _scanLock.Release();
+        }
 
-            subscription.LastError = null;
-            foreach (var entry in feed.Entries.Where(e => !skip.Contains(e.VideoId)).Reverse())
-            {
-                var result = await _enqueue.TryEnqueueAsync(entry.WatchUrl, subscription.ProfileId, ct);
-                if (!result.IsSuccess || result.Job is null)
-                {
-                    subscription.LastError = result.Error ?? "Could not enqueue download.";
-                    break;
-                }
+        RaiseChanged();
+        OnJobsChanged(this, EventArgs.Empty);
+    }
 
-                _tracked[result.Job.Id] = new TrackedJob(subscription.Id, entry.VideoId, subscription.ChannelName, entry.Title);
-            }
+    private async Task ScanAllAsync(CancellationToken ct)
+    {
+        List<string> ids;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            ids = (await LoadLockedAsync(ct)).Where(s => s.Enabled).Select(s => s.Id).ToList();
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        foreach (var id in ids)
+        {
+            ct.ThrowIfCancellationRequested();
+            await ScanSubscriptionAsync(id, ct);
+        }
+    }
+
+    // The feed is fetched outside _gate, so the subscription is looked up again afterwards: it may have been removed or disabled meanwhile.
+    private async Task ScanSubscriptionAsync(string id, CancellationToken ct)
+    {
+        string channelUrl;
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var current = Find(await LoadLockedAsync(ct), id);
+            if (current is not { Enabled: true })
+                return;
+
+            channelUrl = current.ChannelUrl;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+
+        ChannelFeed? feed = null;
+        string? error = null;
+        try
+        {
+            feed = await _feed.GetLatestAsync(channelUrl, ScanWindow, ct);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -256,32 +307,105 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         }
         catch (Exception ex)
         {
-            subscription.LastError = ex.Message;
+            error = ex.Message;
         }
 
-        subscription.LastCheckedAt = _timeProvider.GetUtcNow();
-        await _store.SaveAsync(await LoadLockedAsync(ct), ct);
+        await _gate.WaitAsync(ct);
+        try
+        {
+            var subscriptions = await LoadLockedAsync(ct);
+            var current = Find(subscriptions, id);
+            if (current is not { Enabled: true })
+                return;
+
+            if (feed is not null)
+                error = await EnqueueNewEntriesAsync(current, feed, ct);
+
+            current.LastError = error;
+            current.LastCheckedAt = _timeProvider.GetUtcNow();
+            await _store.SaveAsync(subscriptions, ct);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private async Task<string?> EnqueueNewEntriesAsync(ChannelSubscription subscription, ChannelFeed feed, CancellationToken ct)
+    {
+        try
+        {
+            PruneFailedAttempts(subscription, feed);
+            var skip = _tracked.Values
+                .Where(t => t.SubscriptionId == subscription.Id)
+                .Select(t => t.VideoId)
+                .Concat(subscription.SeenVideoIds)
+                .ToHashSet();
+
+            foreach (var entry in feed.Entries.Where(e => !skip.Contains(e.VideoId)).Reverse())
+            {
+                var result = await _enqueue.TryEnqueueAsync(entry.WatchUrl, subscription.ProfileId, ct);
+                if (!result.IsSuccess || result.Job is null)
+                    return result.Error ?? "Could not enqueue download.";
+
+                _tracked[result.Job.Id] = new TrackedJob(subscription.Id, entry.VideoId, subscription.ChannelName, entry.Title);
+            }
+
+            return null;
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            return ex.Message;
+        }
+    }
+
+    private static void PruneFailedAttempts(ChannelSubscription subscription, ChannelFeed feed)
+    {
+        if (subscription.FailedAttempts.Count <= MaxTrackedFailures)
+            return;
+
+        var inFeed = feed.Entries.Select(e => e.VideoId).ToHashSet();
+        foreach (var stale in subscription.FailedAttempts.Keys.Where(k => !inFeed.Contains(k)).ToList())
+            subscription.FailedAttempts.Remove(stale);
     }
 
     private void OnJobsChanged(object? sender, EventArgs e)
     {
-        // JobsChanged fires on every progress line; coalesce into at most one pending sweep.
-        if (_tracked.IsEmpty || Interlocked.Exchange(ref _sweepPending, 1) == 1)
+        // JobsChanged fires on every progress line; a single debounced worker serves any number of requests.
+        if (_tracked.IsEmpty || Volatile.Read(ref _disposed) == 1)
             return;
 
-        _ = Task.Run(async () =>
+        if (Interlocked.Increment(ref _sweepRequests) == 1)
+            _sweepWorker = Task.Run(SweepWorkerAsync);
+    }
+
+    private async Task SweepWorkerAsync()
+    {
+        try
         {
-            try
+            while (true)
             {
-                Interlocked.Exchange(ref _sweepPending, 0);
+                var seen = Volatile.Read(ref _sweepRequests);
+                await Task.Delay(SweepDebounce, _timeProvider, _stop.Token);
                 if (HasFinishedTrackedJob())
                     await SweepAsync();
+
+                if (Interlocked.CompareExchange(ref _sweepRequests, 0, seen) == seen)
+                    return;
             }
-            catch (Exception ex)
-            {
-                Trace.TraceWarning($"Subscription job sweep failed: {ex.Message}");
-            }
-        });
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception ex)
+        {
+            Interlocked.Exchange(ref _sweepRequests, 0);
+            Trace.TraceWarning($"Subscription job sweep failed: {ex.Message}");
+        }
     }
 
     private bool HasFinishedTrackedJob()
@@ -311,13 +435,20 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
                 if (!_tracked.TryRemove(jobId, out _))
                     continue;
 
-                subscriptions.FirstOrDefault(s => s.Id == tracked.SubscriptionId)?.MarkSeen(tracked.VideoId);
                 dirty = true;
+                var subscription = Find(subscriptions, tracked.SubscriptionId);
                 var body = $"{tracked.ChannelName}: {job?.Title ?? tracked.EntryTitle}";
+                if (job?.Status == DownloadStatus.Failed)
+                {
+                    if (subscription is not null && GiveUpAfterFailure(subscription, tracked.VideoId))
+                        notifications.Add(("Download failed", $"{body} (gave up after {MaxDownloadAttempts} attempts)"));
+
+                    continue;
+                }
+
+                subscription?.MarkSeen(tracked.VideoId);
                 if (job?.Status == DownloadStatus.Completed)
                     notifications.Add(("New video downloaded", body));
-                else if (job?.Status == DownloadStatus.Failed)
-                    notifications.Add(("Download failed", body));
             }
 
             if (dirty)
@@ -341,6 +472,19 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         }
 
         RaiseChanged();
+    }
+
+    private static bool GiveUpAfterFailure(ChannelSubscription subscription, string videoId)
+    {
+        var attempts = subscription.FailedAttempts.GetValueOrDefault(videoId) + 1;
+        if (attempts < MaxDownloadAttempts)
+        {
+            subscription.FailedAttempts[videoId] = attempts;
+            return false;
+        }
+
+        subscription.MarkSeen(videoId);
+        return true;
     }
 
     private void RaiseChanged() => SubscriptionsChanged?.Invoke(this, EventArgs.Empty);

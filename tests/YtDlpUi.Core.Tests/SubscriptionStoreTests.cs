@@ -40,6 +40,31 @@ public sealed class SubscriptionStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_FileWithoutFailedAttempts_DefaultsToEmpty()
+    {
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(
+            Path.Combine(_root, AppPaths.SubscriptionsFileName),
+            """{"Subscriptions":[{"Id":"a","ChannelId":"UC1","ChannelName":"C","ChannelUrl":"u","ProfileId":"p","SeenVideoIds":["v1"]}]}""");
+
+        var single = Assert.Single(await _store.LoadAsync());
+
+        Assert.Empty(single.FailedAttempts);
+        Assert.Equal(["v1"], single.SeenVideoIds);
+    }
+
+    [Fact]
+    public async Task SaveAndLoad_RoundTripsFailedAttempts()
+    {
+        var subscription = CreateSubscription();
+        subscription.FailedAttempts["v1"] = 2;
+
+        await _store.SaveAsync([subscription]);
+
+        Assert.Equal(2, Assert.Single(await _store.LoadAsync()).FailedAttempts["v1"]);
+    }
+
+    [Fact]
     public async Task LoadAsync_MissingFile_ReturnsEmpty()
     {
         var loaded = await _store.LoadAsync();

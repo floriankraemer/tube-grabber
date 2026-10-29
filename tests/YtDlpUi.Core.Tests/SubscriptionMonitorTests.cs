@@ -134,7 +134,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         job.Title = "Real Title";
         job.Status = DownloadStatus.Completed;
 
-        _queue.RaiseJobsChanged();
+        await SweepAsync(() => _notifier.Shown.Count > 0);
 
         var (title, body) = await _notifier.NextAsync();
         Assert.Equal("New video downloaded", title);
@@ -146,18 +146,42 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task FailedJob_MarksSeenAndNotifiesFailure()
+    public async Task FailedJob_IsRetriedWithoutNotification()
     {
         _feed.Entries = Videos("v1");
         var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
-        _queue.Jobs.Single().Status = DownloadStatus.Failed;
 
-        _queue.RaiseJobsChanged();
+        await FailLatestJobAsync(subscription, 1);
+        await _monitor.CheckNowAsync();
+
+        Assert.DoesNotContain("v1", subscription.SeenVideoIds);
+        Assert.Equal([Watch("v1"), Watch("v1")], _queue.EnqueuedUrls);
+        Assert.Empty(_notifier.Shown);
+    }
+
+    [Fact]
+    public async Task FailedJob_GivesUpAfterMaxAttemptsAndNotifies()
+    {
+        _feed.Entries = Videos("v1");
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+
+        for (var attempt = 1; attempt < SubscriptionMonitor.MaxDownloadAttempts; attempt++)
+        {
+            await FailLatestJobAsync(subscription, attempt);
+            await _monitor.CheckNowAsync();
+        }
+
+        _queue.Jobs.Last().Status = DownloadStatus.Failed;
+        await SweepAsync(() => _notifier.Shown.Count > 0);
 
         var (title, body) = await _notifier.NextAsync();
         Assert.Equal("Download failed", title);
-        Assert.Equal("Channel One: Title v1", body);
+        Assert.Equal("Channel One: Title v1 (gave up after 3 attempts)", body);
         Assert.Contains("v1", subscription.SeenVideoIds);
+        Assert.Empty(subscription.FailedAttempts);
+
+        await _monitor.CheckNowAsync();
+        Assert.Equal(SubscriptionMonitor.MaxDownloadAttempts, _queue.EnqueuedUrls.Count);
     }
 
     [Fact]
@@ -167,9 +191,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
         _queue.Clear();
 
-        _queue.RaiseJobsChanged();
-
-        await Eventually(() => subscription.SeenVideoIds.Contains("v1"));
+        await SweepAsync(() => subscription.SeenVideoIds.Contains("v1"));
         Assert.Empty(_notifier.Shown);
     }
 
@@ -180,9 +202,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
         _queue.Jobs.Single().Status = DownloadStatus.Cancelled;
 
-        _queue.RaiseJobsChanged();
-
-        await Eventually(() => subscription.SeenVideoIds.Contains("v1"));
+        await SweepAsync(() => subscription.SeenVideoIds.Contains("v1"));
         Assert.Empty(_notifier.Shown);
     }
 
@@ -214,10 +234,89 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
                 changed.TrySetResult();
         };
 
-        _queue.RaiseJobsChanged();
+        await SweepAsync(() => _notifier.ThrowCount > 0);
 
         await changed.Task.WaitAsync(TimeSpan.FromSeconds(5));
         Assert.True(_notifier.ThrowCount > 0);
+    }
+
+    [Fact]
+    public async Task ListAndMutations_CompleteWhileFeedFetchIsBlocked()
+    {
+        _feed.Entries = Videos("v1");
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        _feed.Entries = Videos("v2", "v1");
+        _feed.Hold = new TaskCompletionSource();
+        _feed.Entered = new TaskCompletionSource();
+
+        var check = _monitor.CheckNowAsync();
+        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.True(_monitor.IsChecking);
+        Assert.Single(await _monitor.ListAsync().WaitAsync(TimeSpan.FromSeconds(10)));
+        await _monitor.SetEnabledAsync(subscription.Id, false).WaitAsync(TimeSpan.FromSeconds(10));
+
+        _feed.Hold.SetResult();
+        await check.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.False(_monitor.IsChecking);
+        Assert.Empty(_queue.EnqueuedUrls);
+    }
+
+    [Fact]
+    public async Task CheckNowAsync_SubscriptionRemovedDuringFetch_IsNotUpdated()
+    {
+        _feed.Entries = Videos("v1");
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 0);
+        _feed.Entries = Videos("v2", "v1");
+        _feed.Hold = new TaskCompletionSource();
+        _feed.Entered = new TaskCompletionSource();
+
+        var check = _monitor.CheckNowAsync();
+        await _feed.Entered.Task.WaitAsync(TimeSpan.FromSeconds(10));
+        await _monitor.RemoveAsync(subscription.Id).WaitAsync(TimeSpan.FromSeconds(10));
+        _feed.Hold.SetResult();
+        await check.WaitAsync(TimeSpan.FromSeconds(10));
+
+        Assert.Empty(_queue.EnqueuedUrls);
+        Assert.Empty(_store.Saved.Last());
+    }
+
+    [Fact]
+    public async Task JobsChanged_Burst_IsCoalescedAndTerminalTransitionStillProcessed()
+    {
+        _feed.Entries = Videos("v1");
+        var subscription = await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+        _queue.Jobs.Single().Status = DownloadStatus.Running;
+        var readsBefore = _queue.JobsReads;
+
+        for (var i = 0; i < 1000; i++)
+            _queue.RaiseJobsChanged();
+
+        await SweepAsync(() => _queue.JobsReads > readsBefore);
+        Assert.True(_queue.JobsReads - readsBefore < 20, $"reads: {_queue.JobsReads - readsBefore}");
+
+        _queue.Jobs.Single().Status = DownloadStatus.Completed;
+        _queue.RaiseJobsChanged();
+        await SweepAsync(() => subscription.SeenVideoIds.Contains("v1"));
+
+        Assert.Equal("New video downloaded", (await _notifier.NextAsync()).Title);
+    }
+
+    [Fact]
+    public async Task AfterDispose_PublicMethodsThrowObjectDisposed()
+    {
+        _feed.Entries = Videos("v1");
+        await _monitor.AddAsync("https://www.youtube.com/@chan", "default", 1);
+
+        await _monitor.DisposeAsync();
+        await _monitor.DisposeAsync();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.ListAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.CheckNowAsync());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.RemoveAsync("x"));
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => _monitor.AddAsync("u", "default", 0));
+        Assert.Throws<ObjectDisposedException>(() => _monitor.Start());
     }
 
     [Fact]
@@ -368,6 +467,22 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         Assert.Equal(calls, _feed.Calls);
     }
 
+    private async Task SweepAsync(Func<bool> done)
+    {
+        _queue.RaiseJobsChanged();
+        await Eventually(() =>
+        {
+            _time.Advance(TimeSpan.FromMilliseconds(300));
+            return done();
+        });
+    }
+
+    private async Task FailLatestJobAsync(ChannelSubscription subscription, int expectedAttempts)
+    {
+        _queue.Jobs.Last().Status = DownloadStatus.Failed;
+        await SweepAsync(() => subscription.FailedAttempts.GetValueOrDefault("v1") == expectedAttempts);
+    }
+
     private static string Watch(string id) => $"https://www.youtube.com/watch?v={id}";
 
     private static List<YouTubeSearchResult> Videos(params string[] idsNewestFirst) =>
@@ -397,16 +512,22 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
         public IReadOnlyList<YouTubeSearchResult> Entries { get; set; } = [];
         public Exception? Error { get; set; }
         public Action? OnCall { get; set; }
+        public TaskCompletionSource? Hold { get; set; }
+        public TaskCompletionSource? Entered { get; set; }
         public int Calls => Volatile.Read(ref _calls);
 
-        public Task<ChannelFeed> GetLatestAsync(string channelUrl, int count, CancellationToken cancellationToken = default)
+        public async Task<ChannelFeed> GetLatestAsync(string channelUrl, int count, CancellationToken cancellationToken = default)
         {
             Interlocked.Increment(ref _calls);
             OnCall?.Invoke();
+            Entered?.TrySetResult();
+            if (Hold is not null)
+                await Hold.Task;
+
             if (Error is not null)
                 throw Error;
 
-            return Task.FromResult(new ChannelFeed { ChannelId = "UC1", ChannelName = "Channel One", Entries = Entries });
+            return new ChannelFeed { ChannelId = "UC1", ChannelName = "Channel One", Entries = Entries };
         }
     }
 
@@ -459,12 +580,15 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
     private sealed class FakeQueue : IDownloadQueueService
     {
         private readonly List<DownloadJob> _jobs = [];
+        private int _jobsReads;
 
         public List<string> EnqueuedUrls { get; } = [];
+        public int JobsReads => Volatile.Read(ref _jobsReads);
         public IReadOnlyList<DownloadJob> Jobs
         {
             get
             {
+                Interlocked.Increment(ref _jobsReads);
                 lock (_jobs)
                     return _jobs.ToList();
             }

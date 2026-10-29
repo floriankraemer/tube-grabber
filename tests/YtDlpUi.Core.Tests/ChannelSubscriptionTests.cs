@@ -21,6 +21,17 @@ public sealed class ChannelSubscriptionTests
     }
 
     [Fact]
+    public void MarkSeen_ClearsFailedAttempts()
+    {
+        var subscription = CreateSubscription();
+        subscription.FailedAttempts["v1"] = 2;
+
+        subscription.MarkSeen("v1");
+
+        Assert.Empty(subscription.FailedAttempts);
+    }
+
+    [Fact]
     public void MarkSeen_TrimsOldestBeyondCap()
     {
         var subscription = CreateSubscription();

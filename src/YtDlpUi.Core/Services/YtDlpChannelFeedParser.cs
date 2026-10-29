@@ -3,11 +3,12 @@
 // See LICENSE for details.
 
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
 
-public sealed class YtDlpChannelFeedParser
+public sealed partial class YtDlpChannelFeedParser
 {
     private const string TabTitleSuffix = " - Videos";
 
@@ -32,7 +33,7 @@ public sealed class YtDlpChannelFeedParser
             using var document = JsonDocument.Parse(trimmed);
             var root = document.RootElement;
 
-            var channelId = ReadFirst(root, "channel_id", "uploader_id", "id");
+            var channelId = ReadChannelId(root);
             if (channelId is null)
                 return null;
 
@@ -51,6 +52,19 @@ public sealed class YtDlpChannelFeedParser
             return null;
         }
     }
+
+    private static string? ReadChannelId(JsonElement root)
+    {
+        var channelId = ReadString(root, "channel_id");
+        if (!string.IsNullOrWhiteSpace(channelId))
+            return channelId;
+
+        var id = ReadString(root, "id");
+        return id is not null && ChannelIdPattern().IsMatch(id) ? id : null;
+    }
+
+    [GeneratedRegex("^UC[0-9A-Za-z_-]{22}$")]
+    private static partial Regex ChannelIdPattern();
 
     private static string? ReadChannelName(JsonElement root)
     {

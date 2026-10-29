@@ -86,8 +86,10 @@ Shorts are not on that tab, so they are never queued.
 The app also skips live streams, upcoming premieres, and members-only videos.
 If more than 30 uploads appear between two checks, the older ones are missed.
 
-A video counts as handled when its download completes, fails, is cancelled, or is removed from the queue.
-The app does not retry a failed video.
+A video counts as handled when its download completes, is cancelled, or is removed from the queue.
+A failed download does not count as handled.
+The next check queues the video again.
+After 3 failed attempts, the app gives up on that video and marks it as handled.
 A download that was still running when you quit the app is not marked as handled, so the next check queues it again.
 
 ### Check interval
@@ -118,7 +120,9 @@ Start the app again to bring its window to the front.
 
 ### Notifications
 
-The app sends a desktop notification when a subscription download completes (**New video downloaded**) or fails (**Download failed**).
+The app sends a desktop notification when a subscription download completes (**New video downloaded**).
+It also sends one when it gives up on a video after 3 failed attempts (**Download failed**).
+It sends no notification for a failed attempt that it will retry.
 
 | Operating system | Mechanism |
 |------------------|-----------|
@@ -158,6 +162,7 @@ When you start it again, the running window comes to the front, and the new proc
 
 `subscriptions.json` holds each subscription's channel ID, name, profile, enable state, last check time, and last error.
 It also stores the IDs of up to 500 recently handled videos per channel, so the app does not queue them again.
+For videos that failed but are not yet handled, it stores the number of failed attempts.
 On Linux and macOS, the app restricts the file permissions, as it does for other config files.
 
 ## Security

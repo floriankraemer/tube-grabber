@@ -120,23 +120,22 @@ public sealed class YtDlpChannelFeedParserTests
     [Fact]
     public void Parse_NoChannelName_FallsBackToChannelId()
     {
-        const string json = """{ "id": "UCxyz123", "entries": [] }""";
+        const string json = """{ "channel_id": "UCxyz123", "entries": [] }""";
 
         var feed = _parser.Parse(json);
 
         Assert.NotNull(feed);
-        Assert.Equal("UCxyz123", feed.ChannelId);
         Assert.Equal("UCxyz123", feed.ChannelName);
     }
 
     [Fact]
-    public void Parse_ChannelIdMissing_UsesUploaderIdThenId()
+    public void Parse_ChannelIdMissing_AcceptsRootIdOnlyWhenItIsARealChannelId()
     {
-        const string withUploaderId = """{ "uploader_id": "UCuploader", "id": "UCid", "entries": [] }""";
-        const string withIdOnly = """{ "id": "UCid", "entries": [] }""";
-
-        Assert.Equal("UCuploader", _parser.Parse(withUploaderId)?.ChannelId);
-        Assert.Equal("UCid", _parser.Parse(withIdOnly)?.ChannelId);
+        const string realId = "UCabcdefghijklmnopqrstuv";
+        Assert.Equal(realId, _parser.Parse($$"""{ "id": "{{realId}}", "entries": [] }""")?.ChannelId);
+        Assert.Null(_parser.Parse("""{ "id": "@handle", "entries": [] }"""));
+        Assert.Null(_parser.Parse("""{ "id": "UCshort", "entries": [] }"""));
+        Assert.Null(_parser.Parse("""{ "uploader_id": "@handle", "id": "@handle", "entries": [] }"""));
     }
 
     [Fact]

@@ -18,9 +18,11 @@ public sealed class ChannelSubscription
     public DateTimeOffset? LastCheckedAt { get; set; }
     public string? LastError { get; set; }
     public List<string> SeenVideoIds { get; set; } = [];
+    public Dictionary<string, int> FailedAttempts { get; set; } = [];
 
     public void MarkSeen(string videoId)
     {
+        FailedAttempts.Remove(videoId);
         if (SeenVideoIds.Contains(videoId))
             return;
 

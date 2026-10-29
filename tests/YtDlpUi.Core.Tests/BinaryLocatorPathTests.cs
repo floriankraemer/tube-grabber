@@ -7,6 +7,11 @@ using YtDlpUi.Core.Services;
 
 namespace YtDlpUi.Core.Tests;
 
+// Mutates the process-wide PATH, so it must not overlap with any other test class.
+[CollectionDefinition(nameof(BinaryLocatorPathTests), DisableParallelization = true)]
+public sealed class PathMutationCollection;
+
+[Collection(nameof(BinaryLocatorPathTests))]
 public sealed class BinaryLocatorPathTests : IDisposable
 {
     private readonly string? _previousPath;
