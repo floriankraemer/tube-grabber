@@ -109,6 +109,12 @@ public sealed partial class App : Application
         window.Activate();
     }
 
+    private void ShowSubscriptionsWindow()
+    {
+        ShowMainWindow();
+        _mainWindow?.OpenSubscriptionsWindow();
+    }
+
     // ponytail: Avalonia cannot report tray availability, so only creation failures count as "no tray".
     // On GNOME without an AppIndicator extension no icon appears but the process stays alive; launching
     // the app again reopens the window through the single-instance "show" message.
@@ -118,6 +124,8 @@ public sealed partial class App : Application
         {
             var open = new NativeMenuItem("Open Yt-dlp-ui");
             open.Click += (_, _) => ShowMainWindow();
+            var subscriptions = new NativeMenuItem("Subscriptions…");
+            subscriptions.Click += (_, _) => ShowSubscriptionsWindow();
             var check = new NativeMenuItem("Check subscriptions now");
             check.Click += async (_, _) => await CheckSubscriptionsNowAsync();
             var quit = new NativeMenuItem("Quit");
@@ -127,7 +135,7 @@ public sealed partial class App : Application
             {
                 Icon = LoadWindowIcon(),
                 ToolTipText = "Yt-dlp-ui",
-                Menu = new NativeMenu { open, check, new NativeMenuItemSeparator(), quit },
+                Menu = new NativeMenu { open, subscriptions, check, new NativeMenuItemSeparator(), quit },
             };
             _tray.Clicked += (_, _) => ShowMainWindow();
             TrayIcon.SetIcons(this, new TrayIcons { _tray });

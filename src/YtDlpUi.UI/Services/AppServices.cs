@@ -112,7 +112,7 @@ public sealed class AppServices
     public StoragePickerService StoragePicker { get; }
     public ILoginItemService LoginItemService { get; }
     public IDesktopNotifier DesktopNotifier { get; }
-    public SubscriptionMonitor SubscriptionMonitor { get; }
+    public ISubscriptionMonitor SubscriptionMonitor { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -129,6 +129,11 @@ public sealed class AppServices
         ProfileStore,
         EnqueueCoordinator,
         ThumbnailLoader);
+
+    public SubscriptionsViewModel CreateSubscriptionsViewModel() => new(
+        SubscriptionMonitor,
+        ProfileStore,
+        AppConfigStore);
 
     public SettingsCoordinator CreateSettingsCoordinator() => new(
         AppConfigStore,

@@ -17,6 +17,14 @@ public sealed class AppServicesTests
     }
 
     [Fact]
+    public void CreateSubscriptionsViewModel_ReturnsConfiguredInstance()
+    {
+        var services = new AppServices();
+        using var vm = services.CreateSubscriptionsViewModel();
+        Assert.NotNull(vm);
+    }
+
+    [Fact]
     public void CreateSettingsViewModel_ReturnsConfiguredInstance()
     {
         var services = new AppServices();
