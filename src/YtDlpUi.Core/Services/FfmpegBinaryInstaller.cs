@@ -30,10 +30,10 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
     public async Task<BinaryInstallResult> InstallAsync(CancellationToken cancellationToken = default)
     {
         ReleaseAsset? asset = null;
+        var extractDir = Path.Combine(Path.GetDirectoryName(_binaryLocator.GetBundledFfmpegPath())!, "extract");
         try
         {
             asset = _releaseSource.GetFfmpegAsset(_runtimeIdentifier);
-            var extractDir = Path.Combine(Path.GetDirectoryName(_binaryLocator.GetBundledFfmpegPath())!, "extract");
             var archivePath = Path.Combine(extractDir, asset.FileName);
 
             Directory.CreateDirectory(extractDir);
@@ -65,6 +65,12 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
             return BinaryInstallResult.Failure(
                 BinaryInstallMessages.FormatFailure("ffmpeg", _runtimeIdentifier, ex.Message, releasePageUrl),
                 releasePageUrl);
+        }
+        finally
+        {
+            // The archive and extracted tree are scratch files; only the copied binary is kept.
+            if (Directory.Exists(extractDir))
+                Directory.Delete(extractDir, recursive: true);
         }
     }
 }

@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE for details.
 
+using YtDlpUi.Core.Constants;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
 
@@ -18,6 +19,27 @@ public sealed class AppSettingsValidatorTests
         var profile = new DownloadProfile { Id = "p", Name = "P" };
         var errors = _validator.Validate(config, profile);
         Assert.Contains(errors, e => e.Contains("Max concurrent"));
+    }
+
+    [Theory]
+    [InlineData(AppPaths.MinSubscriptionCheckIntervalMinutes - 1)]
+    [InlineData(AppPaths.MaxSubscriptionCheckIntervalMinutes + 1)]
+    public void Validate_RejectsSubscriptionCheckIntervalOutOfRange(int minutes)
+    {
+        var config = new AppConfiguration { SubscriptionCheckIntervalMinutes = minutes };
+        var profile = new DownloadProfile { Id = "p", Name = "P" };
+        var errors = _validator.Validate(config, profile);
+        Assert.Contains(errors, e => e == "Subscription check interval must be between 15 and 1440 minutes.");
+    }
+
+    [Theory]
+    [InlineData(AppPaths.MinSubscriptionCheckIntervalMinutes)]
+    [InlineData(AppPaths.MaxSubscriptionCheckIntervalMinutes)]
+    public void Validate_AcceptsSubscriptionCheckIntervalBoundaries(int minutes)
+    {
+        var config = new AppConfiguration { SubscriptionCheckIntervalMinutes = minutes };
+        var profile = new DownloadProfile { Id = "p", Name = "P" };
+        Assert.DoesNotContain(_validator.Validate(config, profile), e => e.Contains("Subscription check interval"));
     }
 
     [Fact]

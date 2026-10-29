@@ -39,6 +39,16 @@ public sealed class SettingsViewModelValidationTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_OutOfRangeCheckInterval_FailsWithError()
+    {
+        await _viewModel.LoadAsync();
+        _viewModel.SubscriptionCheckIntervalMinutes = 5;
+        var saved = await _viewModel.SaveAsync();
+        Assert.False(saved);
+        Assert.Contains("Subscription check interval", _viewModel.ValidationError);
+    }
+
+    [Fact]
     public async Task SelectProfileAsync_UpdatesCliPreview()
     {
         await _viewModel.LoadAsync();

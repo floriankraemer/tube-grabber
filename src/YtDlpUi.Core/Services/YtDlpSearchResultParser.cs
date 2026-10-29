@@ -65,6 +65,8 @@ public sealed class YtDlpSearchResultParser
             ?? $"https://www.youtube.com/watch?v={id}";
         var thumbnailUrl = ReadThumbnailUrl(entry, id);
         var durationSeconds = ReadDuration(entry);
+        var liveStatus = ReadString(entry, "live_status");
+        var availability = ReadString(entry, "availability");
 
         return new YouTubeSearchResult
         {
@@ -74,6 +76,8 @@ public sealed class YtDlpSearchResultParser
             WatchUrl = watchUrl,
             ThumbnailUrl = thumbnailUrl,
             DurationSeconds = durationSeconds,
+            LiveStatus = liveStatus,
+            Availability = availability,
         };
     }
 

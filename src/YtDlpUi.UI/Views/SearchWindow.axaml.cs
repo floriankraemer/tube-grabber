@@ -18,6 +18,7 @@ public sealed partial class SearchWindow : Window
     public SearchWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
         _viewModel = App.Services.CreateSearchViewModel();
         DataContext = _viewModel;
         Opened += async (_, _) => await _viewModel.InitializeAsync();

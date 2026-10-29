@@ -22,6 +22,7 @@ public sealed partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
         _viewModel = App.Services.CreateSettingsViewModel();
         DataContext = _viewModel;
         Opened += async (_, _) =>
@@ -47,6 +48,7 @@ public sealed partial class SettingsWindow : Window
     {
         RegisterSection("Profiles", ProfilesPanel);
         RegisterSection("Appearance", AppearancePanel);
+        RegisterSection("Background", BackgroundPanel);
         RegisterSection("Binaries", BinariesPanel);
         RegisterSection("Queue", QueuePanel);
         BuildOptionSections();

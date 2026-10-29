@@ -2,8 +2,10 @@
 
 Configuration is stored under `~/.yt-dlp-ui/`:
 
-- `app.json` — yt-dlp/ffmpeg paths, max concurrent downloads, theme, active profile
+- `app.json` — yt-dlp/ffmpeg paths, max concurrent downloads, theme, active profile, background settings
 - `profiles/*.json` — named download profiles with common yt-dlp options
+- `subscriptions.json` — channel subscriptions and their state (see [Subscriptions and background mode](#subscriptions-and-background-mode))
+- `instance.lock` — lock file that keeps a second app instance from starting
 
 ## Appearance
 
@@ -54,6 +56,114 @@ Built-in profiles (created on first run if missing):
 | **Download HQ Video** | Up to 1080p H.264/AAC, one `.mp4` file (progressive or merged) |
 
 Each profile stores option values from the built-in catalog plus optional **Extra arguments** (quote-aware). Use Extra arguments for flags not exposed in the UI.
+
+## Subscriptions and background mode
+
+A subscription follows one YouTube channel.
+The app checks the channel once at startup and then at a fixed interval.
+Each new upload goes into the queue with the profile you chose for that subscription.
+
+### Adding a subscription
+
+Open **Subscriptions** in the main window, or choose **Subscriptions…** in the tray menu. Paste a channel URL in one of these forms:
+
+- `https://www.youtube.com/@handle`, or a bare `@handle`
+- `https://www.youtube.com/channel/UC…`
+- `https://www.youtube.com/c/name`
+- `https://www.youtube.com/user/name`
+
+Set the profile and the number of existing videos to download, from 0 to 30, then select **Subscribe**.
+The app downloads the latest N videos right away and leaves older videos alone.
+After that, only new uploads are downloaded.
+
+Each subscription has an enable toggle.
+A disabled subscription keeps its state, but the app does not check it.
+
+### What the app checks
+
+Each check reads the 30 most recent videos on the channel's Videos tab.
+Shorts are not on that tab, so they are never queued.
+The app also skips live streams, upcoming premieres, and members-only videos.
+If more than 30 uploads appear between two checks, the older ones are missed.
+
+A video counts as handled when its download completes, is cancelled, or is removed from the queue.
+A failed download does not count as handled.
+The next check queues the video again.
+After 3 failed attempts, the app gives up on that video and marks it as handled.
+A download that was still running when you quit the app is not marked as handled, so the next check queues it again.
+
+### Check interval
+
+Open **Settings → Background** to set **Check subscriptions every** to a value from 15 to 1440 minutes.
+The default is 60 minutes.
+To check now, select **Check now** in the Subscriptions window, or choose **Check subscriptions now** in the tray menu.
+
+### Background mode
+
+With **Keep running in the system tray when the window is closed** enabled (default), closing the main window hides it, and the app keeps running in the tray.
+The first time the window is hidden in a session, the app shows a notification that it is still running.
+Use **Quit** in the tray menu to exit.
+
+The tray menu has these items:
+
+| Item | Action |
+|------|--------|
+| **Open Yt-dlp-ui** | Shows the main window |
+| **Subscriptions…** | Opens the Subscriptions window |
+| **Check subscriptions now** | Runs a check outside the normal interval |
+| **Quit** | Stops the subscription checks and exits the app |
+
+On Linux, GNOME does not show tray icons by default.
+Install an AppIndicator or StatusNotifier extension to see the icon.
+Without the extension, the app still runs.
+Start the app again to bring its window to the front.
+
+### Notifications
+
+The app sends a desktop notification when a subscription download completes (**New video downloaded**).
+It also sends one when it gives up on a video after 3 failed attempts (**Download failed**).
+It sends no notification for a failed attempt that it will retry.
+
+| Operating system | Mechanism |
+|------------------|-----------|
+| Windows | Toast notification |
+| Linux | Freedesktop notification over D-Bus (`org.freedesktop.Notifications`) |
+| macOS | Notification Center |
+
+### Start at login
+
+Enable **Start at login (minimized to tray)** in **Settings → Background** to start the app when you sign in.
+The app writes its login entry when you save the setting.
+
+| Operating system | Location |
+|------------------|----------|
+| Windows | `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`, value `Yt-dlp-ui` |
+| Linux | `~/.config/autostart/yt-dlp-ui.desktop` (uses `XDG_CONFIG_HOME` when set) |
+| macOS | `~/Library/LaunchAgents/com.github.floriankraemer.ytdlpui.plist` |
+
+The login entry starts the app with `--minimized`.
+With the tray available, the app starts without a window.
+Without a tray, the window stays visible, because a hidden app would have no way to show itself again.
+
+### Single instance
+
+The app runs one instance at a time.
+When you start it again, the running window comes to the front, and the new process exits.
+
+### Settings in `app.json`
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `SubscriptionCheckIntervalMinutes` | `60` | Minutes between subscription checks. Values outside 15 to 1440 are clamped. |
+| `RunInBackground` | `true` | Keep the app in the tray when the main window closes |
+| `StartAtLogin` | `false` | Register the app as a login item for your operating system |
+
+### Subscription state
+
+`subscriptions.json` holds each subscription's channel ID, name, profile, enable state, last check time, and last error.
+It also stores the IDs of up to 500 recently handled videos per channel, so the app does not queue them again.
+For videos that failed but are not yet handled, it stores the number of failed attempts.
+On Linux and macOS, the app restricts the file permissions, as it does for other config files.
 
 ## Security
 

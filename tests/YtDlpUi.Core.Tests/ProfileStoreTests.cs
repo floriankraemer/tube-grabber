@@ -20,6 +20,26 @@ public sealed class ProfileStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task ConcurrentSavesAndReads_NeverSeeLockedOrPartialFile()
+    {
+        var profile = new DownloadProfile { Id = "p1", Name = "Music" };
+        await _store.SaveAsync(profile);
+
+        var tasks = Enumerable.Range(0, 64)
+            .Select(i => Task.Run(async () =>
+            {
+                if (i % 2 == 0)
+                    await _store.SaveAsync(new DownloadProfile { Id = "p1", Name = "Music" });
+                else
+                    Assert.Equal("Music", (await _store.GetAsync("p1"))?.Name);
+            }));
+
+        await Task.WhenAll(tasks);
+
+        Assert.Single(Directory.GetFiles(Path.Combine(_root, AppPaths.ProfilesFolderName)));
+    }
+
+    [Fact]
     public async Task SaveAndGet_RoundTripsProfile()
     {
         var profile = new DownloadProfile

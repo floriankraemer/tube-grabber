@@ -77,14 +77,15 @@ public sealed class BinaryDownloadHelper
         else if (archivePath.EndsWith(".tar.xz", StringComparison.OrdinalIgnoreCase))
             ExtractTarXzWithProcess(archivePath, extractDirectory);
 
-        var ffmpeg = Directory.EnumerateFiles(extractDirectory, "ffmpeg*", SearchOption.AllDirectories)
-            .FirstOrDefault(f => Path.GetFileName(f).StartsWith("ffmpeg", StringComparison.OrdinalIgnoreCase)
-                && !Path.GetFileName(f).Contains("ffprobe", StringComparison.OrdinalIgnoreCase));
+        // Match the exact executable name: the downloaded archive lives in this directory too.
+        var executableName = OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg";
+        var ffmpeg = Directory.EnumerateFiles(extractDirectory, executableName, SearchOption.AllDirectories)
+            .FirstOrDefault(f => string.Equals(Path.GetFileName(f), executableName, StringComparison.OrdinalIgnoreCase));
 
         if (ffmpeg is null)
             throw new FileNotFoundException("ffmpeg binary not found in archive.");
 
-        var target = Path.Combine(extractDirectory, OperatingSystem.IsWindows() ? "ffmpeg.exe" : "ffmpeg");
+        var target = Path.Combine(extractDirectory, executableName);
         if (!string.Equals(Path.GetFullPath(ffmpeg), Path.GetFullPath(target), StringComparison.OrdinalIgnoreCase))
             File.Copy(ffmpeg, target, overwrite: true);
 

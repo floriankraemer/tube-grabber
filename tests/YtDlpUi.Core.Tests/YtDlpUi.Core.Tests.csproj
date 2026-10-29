@@ -7,14 +7,9 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <Include>[YtDlpUi.Core]*</Include>
-    <Exclude>[YtDlpUi.Core.Constants]*</Exclude>
-    <Exclude>[YtDlpUi.Core.Models]*</Exclude>
-    <Exclude>[YtDlpUi.Core.Abstractions]*</Exclude>
-    <ExcludeByFile>**/YtDlpProcessRunner.cs</ExcludeByFile>
-    <ExcludeByFile>**/BinaryDownloadHelper.cs</ExcludeByFile>
-    <ExcludeByFile>**/FfmpegBinaryInstaller.cs</ExcludeByFile>
-    <ExcludeByFile>**/YtDlpBinaryInstaller.cs</ExcludeByFile>
-    <ExcludeByFile>**/GitHubBinaryReleaseSource.cs</ExcludeByFile>
+    <Exclude>[YtDlpUi.Core]YtDlpUi.Core.Constants.*,[YtDlpUi.Core]YtDlpUi.Core.Models.*,[YtDlpUi.Core]YtDlpUi.Core.Abstractions.*</Exclude>
+    <ExcludeByFile>**/YtDlpProcessRunner.cs,**/BinaryDownloadHelper.cs,**/FfmpegBinaryInstaller.cs,**/YtDlpBinaryInstaller.cs,**/GitHubBinaryReleaseSource.cs</ExcludeByFile>
+    <CoverletOutput>$(MSBuildThisFileDirectory)../../artifacts/coverage/$(MSBuildProjectName).cobertura.xml</CoverletOutput>
     <Threshold>85</Threshold>
     <ThresholdType>method</ThresholdType>
     <ThresholdStat>total</ThresholdStat>
@@ -25,6 +20,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="8.*" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.*" />
     <PackageReference Include="NSubstitute" Version="5.*" />
     <PackageReference Include="xunit" Version="2.*" />

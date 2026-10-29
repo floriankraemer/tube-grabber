@@ -16,4 +16,9 @@ public static class AppPaths
     public const string DefaultDownloadFolderName = "youtube-downloads";
     public const int DefaultMaxConcurrentDownloads = 2;
     public const int MaxConcurrentDownloadsCap = 8;
+    public const int DefaultSubscriptionCheckIntervalMinutes = 60;
+    public const int MinSubscriptionCheckIntervalMinutes = 15;
+    public const int MaxSubscriptionCheckIntervalMinutes = 1440;
+    public const string SubscriptionsFileName = "subscriptions.json";
+    public const int MaxSeenVideoIdsPerSubscription = 500;
 }

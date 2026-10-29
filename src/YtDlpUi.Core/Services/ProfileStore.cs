@@ -45,10 +45,24 @@ public sealed class ProfileStore : IProfileStore
         Directory.CreateDirectory(_profilesDirectory);
         SettingsMigration.MigrateProfile(profile);
 
+        // Write to a unique temp file and move it into place, so concurrent readers never hit a locked
+        // or half-written profile.
         var path = GetProfilePath(profile.Id);
-        await using var stream = File.Create(path);
-        await JsonSerializer.SerializeAsync(stream, profile, JsonOptions, cancellationToken);
-        ConfigFilePermissions.ApplyRestrictedPermissions(path, isDirectory: false);
+        var tempPath = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await using (var stream = File.Create(tempPath))
+            {
+                await JsonSerializer.SerializeAsync(stream, profile, JsonOptions, cancellationToken);
+            }
+
+            ConfigFilePermissions.ApplyRestrictedPermissions(tempPath, isDirectory: false);
+            File.Move(tempPath, path, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(tempPath);
+        }
     }
 
     public async Task DeleteAsync(string profileId, CancellationToken cancellationToken = default)

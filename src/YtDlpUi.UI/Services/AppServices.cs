@@ -4,6 +4,7 @@
 
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Services;
+using YtDlpUi.UI.Services.Notifications;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Services;
@@ -67,6 +68,17 @@ public sealed class AppServices
         DenoInstaller = new DenoBinaryInstaller(ReleaseSource, BinaryLocator, DownloadHelper);
         FileSystemLauncher = new FileSystemLauncherService();
         StoragePicker = new StoragePickerService();
+        LoginItemService = new LoginItemService();
+        DesktopNotifier = DesktopNotifierFactory.Create();
+        SubscriptionMonitor = new SubscriptionMonitor(
+            new SubscriptionStore(ConfigRoot),
+            new ChannelFeedService(
+                new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
+                UrlNormalizer),
+            EnqueueCoordinator,
+            Queue,
+            AppConfigStore,
+            DesktopNotifier);
     }
 
     public string ConfigRoot { get; }
@@ -98,6 +110,9 @@ public sealed class AppServices
     public IBinaryInstaller DenoInstaller { get; }
     public IFileSystemLauncher FileSystemLauncher { get; }
     public StoragePickerService StoragePicker { get; }
+    public ILoginItemService LoginItemService { get; }
+    public IDesktopNotifier DesktopNotifier { get; }
+    public ISubscriptionMonitor SubscriptionMonitor { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -114,6 +129,11 @@ public sealed class AppServices
         ProfileStore,
         EnqueueCoordinator,
         ThumbnailLoader);
+
+    public SubscriptionsViewModel CreateSubscriptionsViewModel() => new(
+        SubscriptionMonitor,
+        ProfileStore,
+        AppConfigStore);
 
     public SettingsCoordinator CreateSettingsCoordinator() => new(
         AppConfigStore,
@@ -132,5 +152,6 @@ public sealed class AppServices
         FfmpegInstaller,
         DenoInstaller,
         BinaryInstallService,
-        FileSystemLauncher);
+        FileSystemLauncher,
+        LoginItemService);
 }
