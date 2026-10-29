@@ -12,15 +12,18 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        var startMinimized = args.Contains("--minimized", StringComparer.OrdinalIgnoreCase);
         using var guard = SingleInstanceGuard.CreateDefault(App.Services.ConfigRoot);
         if (!guard.TryAcquire())
         {
-            guard.NotifyExistingInstance();
+            // An autostart launch must not pop up the window of the instance that is already running.
+            if (!startMinimized)
+                guard.NotifyExistingInstance();
             return;
         }
 
         App.InstanceGuard = guard;
-        App.StartMinimized = args.Contains("--minimized", StringComparer.OrdinalIgnoreCase);
+        App.StartMinimized = startMinimized;
         BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 

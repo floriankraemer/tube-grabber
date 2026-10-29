@@ -9,6 +9,7 @@ namespace YtDlpUi.UI.Tests;
 public sealed class LoginItemServiceTests : IDisposable
 {
     private const string ExecutablePath = "/opt/yt-dlp-ui/YtDlpUi";
+    private const string IconPath = "/home/u/.yt-dlp-ui/app-icon.png";
 
     private readonly string _root = Directory.CreateTempSubdirectory("login-item-tests-").FullName;
 
@@ -27,8 +28,8 @@ public sealed class LoginItemServiceTests : IDisposable
             Directory.Delete(_root, recursive: true);
     }
 
-    private LoginItemService CreateService(string executablePath = ExecutablePath) =>
-        new(HomeDirectory, XdgConfigHome, executablePath);
+    private LoginItemService CreateService(string executablePath = ExecutablePath, string iconPath = IconPath) =>
+        new(HomeDirectory, XdgConfigHome, executablePath, iconPath);
 
     [Fact]
     public void SetLinux_WhenEnabled_WritesDesktopEntry()
@@ -39,10 +40,29 @@ public sealed class LoginItemServiceTests : IDisposable
             "[Desktop Entry]\n"
             + "Type=Application\n"
             + "Name=Yt-dlp-ui\n"
+            + "Comment=Download queue and channel subscriptions for yt-dlp\n"
             + "Exec=\"/opt/yt-dlp-ui/YtDlpUi\" --minimized\n"
+            + "Icon=/home/u/.yt-dlp-ui/app-icon.png\n"
+            + "StartupWMClass=YtDlpUi\n"
             + "X-GNOME-Autostart-enabled=true\n"
             + "Terminal=false\n",
             File.ReadAllText(DesktopEntryPath));
+    }
+
+    [Fact]
+    public void SetLinux_EscapesPercentInExec()
+    {
+        CreateService("/opt/100%/YtDlpUi").SetLinux(enabled: true);
+
+        Assert.Contains("Exec=\"/opt/100%%/YtDlpUi\" --minimized", File.ReadAllText(DesktopEntryPath));
+    }
+
+    [Fact]
+    public void SetLinux_WithoutIcon_OmitsIconLine()
+    {
+        CreateService(iconPath: string.Empty).SetLinux(enabled: true);
+
+        Assert.DoesNotContain("Icon=", File.ReadAllText(DesktopEntryPath));
     }
 
     [Fact]
