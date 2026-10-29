@@ -4,6 +4,7 @@
 
 using YtDlpUi.Core.Abstractions;
 using YtDlpUi.Core.Services;
+using YtDlpUi.UI.Services.Notifications;
 using YtDlpUi.UI.ViewModels;
 
 namespace YtDlpUi.UI.Services;
@@ -68,6 +69,16 @@ public sealed class AppServices
         FileSystemLauncher = new FileSystemLauncherService();
         StoragePicker = new StoragePickerService();
         LoginItemService = new LoginItemService();
+        DesktopNotifier = DesktopNotifierFactory.Create();
+        SubscriptionMonitor = new SubscriptionMonitor(
+            new SubscriptionStore(ConfigRoot),
+            new ChannelFeedService(
+                new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
+                UrlNormalizer),
+            EnqueueCoordinator,
+            Queue,
+            AppConfigStore,
+            DesktopNotifier);
     }
 
     public string ConfigRoot { get; }
@@ -100,6 +111,8 @@ public sealed class AppServices
     public IFileSystemLauncher FileSystemLauncher { get; }
     public StoragePickerService StoragePicker { get; }
     public ILoginItemService LoginItemService { get; }
+    public IDesktopNotifier DesktopNotifier { get; }
+    public SubscriptionMonitor SubscriptionMonitor { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
