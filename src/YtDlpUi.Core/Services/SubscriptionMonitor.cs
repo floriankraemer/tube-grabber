@@ -10,7 +10,7 @@ using YtDlpUi.Core.Models;
 
 namespace YtDlpUi.Core.Services;
 
-public sealed class SubscriptionMonitor : IAsyncDisposable
+public sealed class SubscriptionMonitor : ISubscriptionMonitor
 {
     // ponytail: ScanWindow=30 — more uploads than that between scans are missed; page further if it matters.
     private const int ScanWindow = 30;

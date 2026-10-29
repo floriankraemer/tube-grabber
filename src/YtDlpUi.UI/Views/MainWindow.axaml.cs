@@ -20,6 +20,7 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _columnSaveDebounce;
     private DownloadJobViewModel? _contextMenuJob;
     private SearchWindow? _searchWindow;
+    private SubscriptionsWindow? _subscriptionsWindow;
 
     public MainWindow()
     {
@@ -249,6 +250,29 @@ public sealed partial class MainWindow : Window
             window.Closed -= OnSearchWindowClosed;
 
         _searchWindow = null;
+    }
+
+    private void Subscriptions_Click(object? sender, RoutedEventArgs e) => OpenSubscriptionsWindow();
+
+    public void OpenSubscriptionsWindow()
+    {
+        if (_subscriptionsWindow is { } existing)
+        {
+            existing.Activate();
+            return;
+        }
+
+        _subscriptionsWindow = new SubscriptionsWindow();
+        _subscriptionsWindow.Closed += OnSubscriptionsWindowClosed;
+        _subscriptionsWindow.Show(this);
+    }
+
+    private void OnSubscriptionsWindowClosed(object? sender, EventArgs e)
+    {
+        if (sender is Window window)
+            window.Closed -= OnSubscriptionsWindowClosed;
+
+        _subscriptionsWindow = null;
     }
 
     private async void Settings_Click(object? sender, RoutedEventArgs e)

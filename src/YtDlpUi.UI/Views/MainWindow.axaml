@@ -14,7 +14,7 @@
     <Border DockPanel.Dock="Top" Padding="12" BorderThickness="0,0,0,1"
             BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
       <StackPanel Spacing="8">
-        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
+        <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto" ColumnSpacing="8">
           <TextBox Grid.Column="0"
                    Watermark="Paste YouTube or video URL"
                    Text="{Binding UrlInput}"
@@ -34,7 +34,8 @@
           </ComboBox>
           <Button Grid.Column="2" Content="Add" Click="Add_Click" />
           <Button Grid.Column="3" Content="Search" Click="Search_Click" />
-          <Button Grid.Column="4" Content="Settings" Click="Settings_Click" />
+          <Button Grid.Column="4" Content="Subscriptions" Click="Subscriptions_Click" />
+          <Button Grid.Column="5" Content="Settings" Click="Settings_Click" />
         </Grid>
         <TextBlock Text="{Binding StatusMessage}" />
         <TextBlock Text="{Binding ErrorMessage}"
