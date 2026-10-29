@@ -140,4 +140,39 @@ public sealed class YtDlpSearchResultParserTests
         Assert.Single(results);
         Assert.Null(results[0].DurationSeconds);
     }
+
+    [Fact]
+    public void Parse_LiveStatusAndAvailability_ParsesBothFields()
+    {
+        const string json = """
+            {
+              "entries": [
+                {
+                  "id": "live1",
+                  "title": "Premiere",
+                  "live_status": "is_upcoming",
+                  "availability": "subscriber_only"
+                }
+              ]
+            }
+            """;
+
+        var results = _parser.Parse(json);
+
+        Assert.Single(results);
+        Assert.Equal("is_upcoming", results[0].LiveStatus);
+        Assert.Equal("subscriber_only", results[0].Availability);
+    }
+
+    [Fact]
+    public void Parse_MissingLiveStatusAndAvailability_LeavesThemNull()
+    {
+        const string json = """{ "entries": [ { "id": "plain1", "title": "Plain" } ] }""";
+
+        var results = _parser.Parse(json);
+
+        Assert.Single(results);
+        Assert.Null(results[0].LiveStatus);
+        Assert.Null(results[0].Availability);
+    }
 }
