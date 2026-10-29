@@ -19,4 +19,6 @@ public static class AppPaths
     public const int DefaultSubscriptionCheckIntervalMinutes = 60;
     public const int MinSubscriptionCheckIntervalMinutes = 15;
     public const int MaxSubscriptionCheckIntervalMinutes = 1440;
+    public const string SubscriptionsFileName = "subscriptions.json";
+    public const int MaxSeenVideoIdsPerSubscription = 500;
 }
