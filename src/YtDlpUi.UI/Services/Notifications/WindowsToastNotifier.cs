@@ -21,7 +21,7 @@ public sealed class WindowsToastNotifier : IDesktopNotifier
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("Windows toast notification failed: " + ex.Message);
+            Trace.TraceWarning("Windows toast notification failed: " + ex);
         }
 #else
         Trace.TraceWarning("Windows toast notifications are unavailable in this build.");

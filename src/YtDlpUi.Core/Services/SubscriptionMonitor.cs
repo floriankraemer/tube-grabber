@@ -188,7 +188,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
             }
             catch (Exception ex)
             {
-                Trace.TraceWarning($"Subscription check failed: {ex.Message}");
+                Trace.TraceWarning($"Subscription check failed: {ex}");
             }
 
             try
@@ -404,7 +404,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
         catch (Exception ex)
         {
             Interlocked.Exchange(ref _sweepRequests, 0);
-            Trace.TraceWarning($"Subscription job sweep failed: {ex.Message}");
+            Trace.TraceWarning($"Subscription job sweep failed: {ex}");
         }
     }
 
@@ -467,7 +467,7 @@ public sealed class SubscriptionMonitor : ISubscriptionMonitor
             }
             catch (Exception ex)
             {
-                Trace.TraceWarning($"Desktop notification failed: {ex.Message}");
+                Trace.TraceWarning($"Desktop notification failed: {ex}");
             }
         }
 

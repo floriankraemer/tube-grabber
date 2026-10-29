@@ -35,7 +35,7 @@ internal static class AppIconFile
         }
         catch (Exception ex)
         {
-            Trace.TraceWarning("Could not write app icon file: " + ex.Message);
+            Trace.TraceWarning("Could not write app icon file: " + ex);
             return string.Empty;
         }
     }

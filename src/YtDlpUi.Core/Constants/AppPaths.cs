@@ -12,6 +12,7 @@ public static class AppPaths
     public const string DefaultProfileId = "default";
     public const string AudioMp3ProfileId = "audio-mp3";
     public const string HqVideoProfileId = "hq-video";
+    public const string LogsFolderName = "logs";
     public const string BinFolderName = "bin";
     public const string DefaultDownloadFolderName = "youtube-downloads";
     public const int DefaultMaxConcurrentDownloads = 2;
