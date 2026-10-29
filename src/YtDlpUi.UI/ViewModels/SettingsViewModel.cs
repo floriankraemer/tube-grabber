@@ -234,6 +234,18 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    public string YtDlpPathPlaceholder => PathPlaceholder("yt-dlp");
+    public string FfmpegPathPlaceholder => PathPlaceholder("ffmpeg");
+    public string JsRuntimePathPlaceholder =>
+        $"Optional path to runtime executable (e.g. {PathPlaceholder("deno")})";
+    public string DownloadFolderPlaceholder => OperatingSystem.IsWindows()
+        ? @"C:\Users\you\youtube-downloads"
+        : "/home/you/youtube-downloads";
+
+    private static string PathPlaceholder(string tool) => OperatingSystem.IsWindows()
+        ? $@"C:\path\to\{tool}.exe"
+        : $"/usr/bin/{tool}";
+
     public string JsRuntimeDescription => SelectedJsRuntimeEngine.Description;
 
     public bool IsJsRuntimePathEnabled => !string.IsNullOrEmpty(SelectedJsRuntimeEngine.Id);

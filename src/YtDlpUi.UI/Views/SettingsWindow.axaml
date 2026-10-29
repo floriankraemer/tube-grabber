@@ -20,8 +20,12 @@
 
     <DockPanel Grid.Column="1" Margin="12">
       <StackPanel DockPanel.Dock="Bottom" Spacing="8" Margin="0,12,0,0">
-        <TextBlock Text="{Binding StatusMessage}" Opacity="0.9" />
+        <TextBlock Text="{Binding StatusMessage}"
+                   Opacity="0.9"
+                   TextTrimming="CharacterEllipsis"
+                   ToolTip.Tip="{Binding StatusMessage}" />
         <TextBlock Text="{Binding ValidationError}"
+                   TextWrapping="Wrap"
                    Foreground="{DynamicResource SystemControlErrorTextForegroundBrush}" />
         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
           <Button Content="Cancel" Click="Cancel_Click" />
@@ -60,11 +64,12 @@
               <CheckBox Content="Start at login (minimized to tray)"
                         IsChecked="{Binding StartAtLogin}" />
             </StackPanel>
-            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto" RowSpacing="8">
               <TextBlock Grid.Row="0" Grid.Column="0" Text="Check subscriptions every" VerticalAlignment="Center" />
               <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8">
                 <NumericUpDown Minimum="15"
                                Maximum="1440"
+                               ClipValueToMinMax="True"
                                Increment="15"
                                FormatString="0"
                                Value="{Binding SubscriptionCheckIntervalMinutes}" />
@@ -87,14 +92,16 @@
               <TextBlock Text="yt-dlp" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
-                         Watermark="C:\path\to\yt-dlp.exe or /usr/bin/yt-dlp"
+                         Watermark="{Binding YtDlpPathPlaceholder}"
                          Text="{Binding YtDlpPath}" />
                 <Button Grid.Column="1" Content="Browse…" Click="BrowseYtDlp_Click" />
                 <Button Grid.Column="2" Content="Test" Click="TestYtDlp_Click" />
                 <Button Grid.Column="3" Content="Install" Click="InstallYtDlp_Click" />
                 <Button Grid.Column="4" Content="Releases" Click="OpenYtDlpReleases_Click" />
               </Grid>
-              <TextBlock FontSize="12" Opacity="0.75">
+              <TextBlock FontSize="12" Opacity="0.75"
+                         TextTrimming="CharacterEllipsis"
+                         ToolTip.Tip="{Binding ResolvedYtDlpPath}">
                 <Run Text="Resolved: " />
                 <Run Text="{Binding ResolvedYtDlpPath}" />
               </TextBlock>
@@ -104,14 +111,16 @@
               <TextBlock Text="ffmpeg" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
-                         Watermark="C:\path\to\ffmpeg.exe or /usr/bin/ffmpeg"
+                         Watermark="{Binding FfmpegPathPlaceholder}"
                          Text="{Binding FfmpegPath}" />
                 <Button Grid.Column="1" Content="Browse…" Click="BrowseFfmpeg_Click" />
                 <Button Grid.Column="2" Content="Test" Click="TestFfmpeg_Click" />
                 <Button Grid.Column="3" Content="Install" Click="InstallFfmpeg_Click" />
                 <Button Grid.Column="4" Content="Releases" Click="OpenFfmpegReleases_Click" />
               </Grid>
-              <TextBlock FontSize="12" Opacity="0.75">
+              <TextBlock FontSize="12" Opacity="0.75"
+                         TextTrimming="CharacterEllipsis"
+                         ToolTip.Tip="{Binding ResolvedFfmpegPath}">
                 <Run Text="Resolved: " />
                 <Run Text="{Binding ResolvedFfmpegPath}" />
               </TextBlock>
@@ -136,13 +145,15 @@
                 </ComboBox>
                 <TextBox Grid.Column="1"
                          IsEnabled="{Binding IsJsRuntimePathEnabled}"
-                         Watermark="Optional path to runtime executable (e.g. C:\path\to\deno.exe)"
+                         Watermark="{Binding JsRuntimePathPlaceholder}"
                          Text="{Binding JsRuntimePath}" />
               </Grid>
               <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto" ColumnSpacing="8">
                 <TextBlock Grid.Column="0"
                            FontSize="12"
                            Opacity="0.75"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip.Tip="{Binding ResolvedJsRuntimePath}"
                            VerticalAlignment="Center">
                   <Run Text="Resolved: " />
                   <Run Text="{Binding ResolvedJsRuntimePath}" />
@@ -164,7 +175,9 @@
                         IsEnabled="{Binding IsDenoInstallEnabled}"
                         Click="OpenDenoReleases_Click" />
               </Grid>
-              <TextBlock FontSize="12" Opacity="0.75">
+              <TextBlock FontSize="12" Opacity="0.75"
+                         TextTrimming="CharacterEllipsis"
+                         ToolTip.Tip="{Binding JsRuntimesArgumentPreview}">
                 <Run Text="yt-dlp argument: " />
                 <Run Text="{Binding JsRuntimesArgumentPreview}" />
               </TextBlock>
@@ -188,14 +201,14 @@
               <TextBlock Text="Download folder" FontWeight="SemiBold" />
               <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                 <TextBox Grid.Column="0"
-                         Watermark="C:\Users\you\youtube-downloads"
+                         Watermark="{Binding DownloadFolderPlaceholder}"
                          Text="{Binding DownloadFolder}" />
                 <Button Grid.Column="1" Content="Browse…" Click="BrowseDownloadFolder_Click" />
               </Grid>
             </StackPanel>
-            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto" RowSpacing="8">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" RowDefinitions="Auto" RowSpacing="8">
               <TextBlock Grid.Row="0" Grid.Column="0" Text="Max concurrent downloads" VerticalAlignment="Center" />
-              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" Value="{Binding MaxConcurrentDownloads}" />
+              <NumericUpDown Grid.Row="0" Grid.Column="1" Minimum="1" Maximum="8" ClipValueToMinMax="True" HorizontalAlignment="Left" Value="{Binding MaxConcurrentDownloads}" />
             </Grid>
           </StackPanel>
         </ScrollViewer>

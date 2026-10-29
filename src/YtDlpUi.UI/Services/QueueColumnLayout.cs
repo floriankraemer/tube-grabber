@@ -21,14 +21,14 @@ public sealed class QueueColumnLayout
     public static readonly IReadOnlyDictionary<string, double> DefaultWidths =
         new Dictionary<string, double>(StringComparer.Ordinal)
         {
-            ["status"] = 90,
-            ["title"] = 220,
-            ["url"] = 280,
-            ["progress"] = 140,
-            ["speed"] = 80,
-            ["eta"] = 80,
-            ["error"] = 220,
-            ["actions"] = 260,
+            ["status"] = 100,
+            ["title"] = 150,
+            ["url"] = 150,
+            ["progress"] = 110,
+            ["speed"] = 75,
+            ["eta"] = 65,
+            ["error"] = 100,
+            ["actions"] = 190,
         };
 
     public static void SetLayoutKey(DataGridColumn column, string? value) =>

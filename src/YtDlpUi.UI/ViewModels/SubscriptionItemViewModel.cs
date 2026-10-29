@@ -53,7 +53,8 @@ public sealed class SubscriptionItemViewModel : ViewModelBase
             if (!SetProperty(ref _enabled, value) || _syncing)
                 return;
 
-            _ = RunAsync(() => _monitor.SetEnabledAsync(Id, value));
+            var previous = !value;
+            _ = RunAsync(() => _monitor.SetEnabledAsync(Id, value), () => Enabled = previous);
         }
     }
 
@@ -62,10 +63,11 @@ public sealed class SubscriptionItemViewModel : ViewModelBase
         get => _selectedProfile;
         set
         {
+            var previous = _selectedProfile;
             if (!SetProperty(ref _selectedProfile, value) || _syncing || value is null)
                 return;
 
-            _ = RunAsync(() => _monitor.SetProfileAsync(Id, value.Id));
+            _ = RunAsync(() => _monitor.SetProfileAsync(Id, value.Id), () => SelectedProfile = previous);
         }
     }
 
@@ -92,7 +94,7 @@ public sealed class SubscriptionItemViewModel : ViewModelBase
         }
     }
 
-    private async Task RunAsync(Func<Task> action)
+    private async Task RunAsync(Func<Task> action, Action? revert = null)
     {
         try
         {
@@ -101,7 +103,23 @@ public sealed class SubscriptionItemViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
+            if (revert is not null)
+                RunSilently(revert);
             _reportError(ex.Message);
+        }
+    }
+
+    // Restores the previous value without re-triggering the monitor call.
+    private void RunSilently(Action change)
+    {
+        _syncing = true;
+        try
+        {
+            change();
+        }
+        finally
+        {
+            _syncing = false;
         }
     }
 }

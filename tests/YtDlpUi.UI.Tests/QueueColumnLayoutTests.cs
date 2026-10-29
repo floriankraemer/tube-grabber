@@ -18,8 +18,8 @@ public sealed class QueueColumnLayoutTests
         var captured = QueueColumnLayout.Capture(grid);
 
         Assert.Equal(8, captured.Count);
-        Assert.Equal(90, captured["status"]);
-        Assert.Equal(260, captured["actions"]);
+        Assert.Equal(100, captured["status"]);
+        Assert.Equal(190, captured["actions"]);
     }
 
     [Fact]
