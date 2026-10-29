@@ -18,11 +18,13 @@ public sealed class LoginItemService : ILoginItemService
     private readonly string _homeDirectory;
     private readonly string _configHome;
     private readonly string _executablePath;
+    private readonly string? _iconPath;
 
     public LoginItemService(
         string? homeDirectory = null,
         string? xdgConfigHome = null,
-        string? executablePath = null)
+        string? executablePath = null,
+        string? iconPath = null)
     {
         _homeDirectory = homeDirectory ?? Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
@@ -31,6 +33,7 @@ public sealed class LoginItemService : ILoginItemService
 
         _executablePath = executablePath ?? Environment.ProcessPath
             ?? throw new InvalidOperationException("Cannot configure start at login: the process path is unknown.");
+        _iconPath = iconPath;
     }
 
     public void SetEnabled(bool enabled)
@@ -116,12 +119,17 @@ public sealed class LoginItemService : ILoginItemService
     private string BuildDesktopEntry()
     {
         // Exec quoting escapes shell-reserved characters; the desktop-entry string value then escapes each backslash.
-        var exec = $"{QuoteExecArgument(_executablePath)} {MinimizedArgument}".Replace("\\", "\\\\");
+        var exec = $"{QuoteExecArgument(_executablePath)} {MinimizedArgument}".Replace("\\", "\\\\").Replace("%", "%%");
+        var iconPath = _iconPath ?? AppIconFile.EnsureDefault();
+        var icon = iconPath.Length == 0 ? string.Empty : $"Icon={iconPath}\n";
 
         return "[Desktop Entry]\n"
             + "Type=Application\n"
             + $"Name={AppName}\n"
+            + "Comment=Download queue and channel subscriptions for yt-dlp\n"
             + $"Exec={exec}\n"
+            + icon
+            + "StartupWMClass=YtDlpUi\n"
             + "X-GNOME-Autostart-enabled=true\n"
             + "Terminal=false\n";
     }

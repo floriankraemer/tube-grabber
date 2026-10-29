@@ -8,6 +8,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using YtDlpUi.Core.Models;
 using YtDlpUi.UI.Services;
 using YtDlpUi.UI.Views;
 
@@ -43,6 +44,16 @@ public sealed partial class App : Application
         {
             _desktop = desktop;
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+            // Everything below reads the config; loading it once up front avoids concurrent first-run bootstrap
+            // writes and guarantees the preferences are known before the window can be closed.
+            var config = Task.Run(LoadStartupConfigAsync).GetAwaiter().GetResult();
+            if (config is not null)
+            {
+                RunInBackground = config.RunInBackground;
+                ThemeService.Apply(config.ThemePreference);
+            }
+
             _mainWindow = new MainWindow
             {
                 DataContext = Services.CreateMainViewModel(),
@@ -58,8 +69,6 @@ public sealed partial class App : Application
 
         base.OnFrameworkInitializationCompleted();
         Services.SubscriptionMonitor.Start();
-        _ = ApplyThemeFromConfigAsync();
-        _ = RefreshRunInBackgroundAsync();
     }
 
     internal static async Task RefreshRunInBackgroundAsync()
@@ -81,6 +90,16 @@ public sealed partial class App : Application
             return;
 
         IsQuitting = true;
+        try
+        {
+            if (Current is App { _mainWindow: { } window })
+                await window.SaveStateAsync();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError($"Failed to save window state: {ex}");
+        }
+
         try
         {
             await Services.SubscriptionMonitor.DisposeAsync();
@@ -160,16 +179,16 @@ public sealed partial class App : Application
         }
     }
 
-    private static async Task ApplyThemeFromConfigAsync()
+    private static async Task<AppConfiguration?> LoadStartupConfigAsync()
     {
         try
         {
-            var config = await Services.AppConfigStore.LoadAsync().ConfigureAwait(false);
-            ThemeService.Apply(config.ThemePreference);
+            return await Services.AppConfigStore.LoadAsync().ConfigureAwait(false);
         }
         catch (Exception ex)
         {
-            System.Diagnostics.Trace.TraceError($"Failed to apply theme preference: {ex}");
+            System.Diagnostics.Trace.TraceError($"Failed to load startup configuration: {ex}");
+            return null;
         }
     }
 }

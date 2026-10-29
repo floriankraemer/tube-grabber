@@ -11,6 +11,8 @@ public sealed class SingleInstanceGuard : IDisposable
     internal const string ShowMessage = "show";
     private const int ConnectTimeoutMs = 2000;
 
+    internal TimeSpan ReadTimeout { get; init; } = TimeSpan.FromSeconds(2);
+
     private readonly string _lockPath;
     private readonly string _pipeName;
     private readonly CancellationTokenSource _shutdown = new();
@@ -27,13 +29,41 @@ public sealed class SingleInstanceGuard : IDisposable
 
     public bool TryAcquire()
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(_lockPath)!);
         try
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(_lockPath)!);
             _lock = new FileStream(_lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None);
             return true;
         }
+        catch (IOException) when (IsHeldByAnotherProcess())
+        {
+            return false;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // An unusable lock location must not stop the app from starting; it just runs unguarded.
+            System.Diagnostics.Trace.TraceError($"Single-instance lock unavailable, continuing without it: {ex}");
+            return true;
+        }
+    }
+
+    // A sharing violation also blocks a shared open; a missing directory or I/O error does not.
+    private bool IsHeldByAnotherProcess()
+    {
+        try
+        {
+            using var probe = new FileStream(_lockPath, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+            return false;
+        }
+        catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+        {
+            return false;
+        }
         catch (IOException)
+        {
+            return true;
+        }
+        catch (UnauthorizedAccessException)
         {
             return false;
         }
@@ -81,15 +111,21 @@ public sealed class SingleInstanceGuard : IDisposable
                 server = CreateServer();
                 await using (connected.ConfigureAwait(false))
                 {
+                    using var readTimeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+                    readTimeout.CancelAfter(ReadTimeout);
                     using var reader = new StreamReader(connected);
-                    var message = await reader.ReadLineAsync(token).ConfigureAwait(false);
+                    var message = await reader.ReadLineAsync(readTimeout.Token).ConfigureAwait(false);
                     if (message == ShowMessage)
                         onShow();
                 }
             }
-            catch (OperationCanceledException)
+            catch (OperationCanceledException) when (token.IsCancellationRequested)
             {
                 break;
+            }
+            catch (OperationCanceledException)
+            {
+                // A silent client timed out; serve the next one.
             }
             catch (Exception ex)
             {

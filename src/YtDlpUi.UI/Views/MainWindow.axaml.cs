@@ -17,6 +17,7 @@ public sealed partial class MainWindow : Window
 {
     private const int ColumnSaveDebounceMs = 400;
 
+    private readonly SemaphoreSlim _stateSaveLock = new(1, 1);
     private CancellationTokenSource? _columnSaveDebounce;
     private DownloadJobViewModel? _contextMenuJob;
     private SearchWindow? _searchWindow;
@@ -54,21 +55,22 @@ public sealed partial class MainWindow : Window
 
     private async void OnClosingAsync(object? sender, WindowClosingEventArgs e)
     {
-        if (!App.IsQuitting)
-        {
-            if (App.RunInBackground && App.TrayAvailable)
-            {
-                e.Cancel = true;
-                Hide();
-                ShowBackgroundHint();
-            }
-            else
-            {
-                _ = App.QuitAsync();
-            }
-        }
+        // The quit path has already saved state and is shutting down; let the window close.
+        if (App.IsQuitting)
+            return;
 
-        await SaveColumnWidthsAsync();
+        // Cancel before the first await: the window stays open while the async work completes.
+        e.Cancel = true;
+        if (App.RunInBackground && App.TrayAvailable)
+        {
+            Hide();
+            ShowBackgroundHint();
+            await SaveStateAsync();
+        }
+        else
+        {
+            await App.QuitAsync();
+        }
     }
 
     private void ShowBackgroundHint()
@@ -96,7 +98,7 @@ public sealed partial class MainWindow : Window
             try
             {
                 await Task.Delay(ColumnSaveDebounceMs, token);
-                await Dispatcher.UIThread.InvokeAsync(SaveColumnWidthsAsync);
+                await Dispatcher.UIThread.InvokeAsync(SaveStateAsync);
             }
             catch (OperationCanceledException)
             {
@@ -129,16 +131,25 @@ public sealed partial class MainWindow : Window
         }
     }
 
-    private async Task SaveColumnWidthsAsync()
+    public async Task SaveStateAsync()
     {
         if (DataContext is not MainWindowViewModel vm)
             return;
 
-        var widths = QueueColumnLayout.Capture(JobsDataGrid);
-        if (widths.Count == 0)
-            return;
+        _columnSaveDebounce?.Cancel();
 
-        await vm.SaveQueueColumnWidthsAsync(widths);
+        // Serialized because each save is a read-modify-write of the shared config file.
+        await _stateSaveLock.WaitAsync();
+        try
+        {
+            var widths = QueueColumnLayout.Capture(JobsDataGrid);
+            if (widths.Count > 0)
+                await vm.SaveQueueColumnWidthsAsync(widths);
+        }
+        finally
+        {
+            _stateSaveLock.Release();
+        }
     }
 
     private async void Add_Click(object? sender, RoutedEventArgs e)

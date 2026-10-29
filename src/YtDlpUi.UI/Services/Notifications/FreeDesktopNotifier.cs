@@ -24,7 +24,7 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
                 ?? throw new InvalidOperationException("No D-Bus session bus address."));
             await connection.ConnectAsync().AsTask().WaitAsync(timeout.Token).ConfigureAwait(false);
 
-            var message = BuildNotifyMessage(connection, title, body);
+            var message = BuildNotifyMessage(connection, title, EscapeMarkup(body), AppIconFile.EnsureDefault());
             await connection.CallMethodAsync(message).WaitAsync(timeout.Token).ConfigureAwait(false);
         }
         catch (Exception ex)
@@ -33,7 +33,10 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
         }
     }
 
-    private static MessageBuffer BuildNotifyMessage(Connection connection, string title, string body)
+    internal static string EscapeMarkup(string text) =>
+        text.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;");
+
+    private static MessageBuffer BuildNotifyMessage(Connection connection, string title, string body, string iconPath)
     {
         using var writer = connection.GetMessageWriter();
         writer.WriteMethodCallHeader(
@@ -44,7 +47,7 @@ public sealed class FreeDesktopNotifier : IDesktopNotifier
             signature: "susssasa{sv}i");
         writer.WriteString(AppName);
         writer.WriteUInt32(0);
-        writer.WriteString(string.Empty);
+        writer.WriteString(iconPath);
         writer.WriteString(title);
         writer.WriteString(body);
         writer.WriteArray(Array.Empty<string>());

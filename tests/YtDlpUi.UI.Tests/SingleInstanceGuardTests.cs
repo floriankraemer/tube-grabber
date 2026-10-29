@@ -36,6 +36,34 @@ public sealed class SingleInstanceGuardTests : IDisposable
     }
 
     [Fact]
+    public void TryAcquire_WhenLockDirectoryIsUnusable_ContinuesWithoutGuard()
+    {
+        var blocker = Path.Combine(_root, "blocker");
+        File.WriteAllText(blocker, string.Empty);
+        using var guard = new SingleInstanceGuard(Path.Combine(blocker, "instance.lock"), _pipeName);
+
+        Assert.True(guard.TryAcquire());
+    }
+
+    [Fact]
+    public async Task Listener_SilentClientDoesNotBlockLaterClients()
+    {
+        using var first = new SingleInstanceGuard(Path.Combine(_root, "instance.lock"), _pipeName)
+        {
+            ReadTimeout = TimeSpan.FromMilliseconds(200),
+        };
+        var shown = new TaskCompletionSource();
+        first.StartListening(() => shown.TrySetResult());
+
+        using var silent = new NamedPipeClientStream(".", _pipeName, PipeDirection.Out);
+        await silent.ConnectAsync(5000);
+
+        await SendRawAsync(SingleInstanceGuard.ShowMessage);
+
+        await shown.Task.WaitAsync(TimeSpan.FromSeconds(5));
+    }
+
+    [Fact]
     public async Task NotifyExistingInstance_DeliversShowToListener()
     {
         using var first = NewGuard();

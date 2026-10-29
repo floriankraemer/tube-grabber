@@ -32,6 +32,12 @@ public sealed class DesktopNotifierTests
     }
 
     [Fact]
+    public void FreeDesktopNotifier_EscapeMarkup_EscapesReservedCharacters()
+    {
+        Assert.Equal("a &amp; b &lt;i&gt;", FreeDesktopNotifier.EscapeMarkup("a & b <i>"));
+    }
+
+    [Fact]
     public async Task NullDesktopNotifier_CompletesWithoutThrowing()
     {
         await new NullDesktopNotifier().ShowAsync("title", "body");
