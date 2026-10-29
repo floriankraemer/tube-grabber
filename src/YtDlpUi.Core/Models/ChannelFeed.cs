@@ -9,4 +9,6 @@ public sealed class ChannelFeed
     public required string ChannelId { get; init; }
     public required string ChannelName { get; init; }
     public required IReadOnlyList<YouTubeSearchResult> Entries { get; init; }
+
+    public string VideosUrl => $"https://www.youtube.com/channel/{ChannelId}/videos";
 }
