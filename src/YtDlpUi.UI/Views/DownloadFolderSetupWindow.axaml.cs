@@ -13,6 +13,7 @@ public sealed partial class DownloadFolderSetupWindow : Window
     public DownloadFolderSetupWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
     }
 
     public DownloadFolderSetupWindow(string suggestedPath, string? errorMessage = null) : this()

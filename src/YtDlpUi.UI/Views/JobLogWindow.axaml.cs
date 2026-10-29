@@ -12,6 +12,7 @@ public sealed partial class JobLogWindow : Window
     public JobLogWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
     }
 
     public JobLogWindow(string title, string logText) : this()

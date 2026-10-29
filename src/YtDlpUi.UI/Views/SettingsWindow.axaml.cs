@@ -22,6 +22,7 @@ public sealed partial class SettingsWindow : Window
     public SettingsWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
         _viewModel = App.Services.CreateSettingsViewModel();
         DataContext = _viewModel;
         Opened += async (_, _) =>

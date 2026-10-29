@@ -20,10 +20,13 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _columnSaveDebounce;
     private DownloadJobViewModel? _contextMenuJob;
     private SearchWindow? _searchWindow;
+    private bool _initialized;
+    private bool _backgroundHintShown;
 
     public MainWindow()
     {
         InitializeComponent();
+        Icon = App.LoadWindowIcon();
         Opened += OnOpenedAsync;
         Closing += OnClosingAsync;
     }
@@ -32,9 +35,10 @@ public sealed partial class MainWindow : Window
 
     private async void OnOpenedAsync(object? sender, EventArgs e)
     {
-        if (DataContext is not MainWindowViewModel vm)
+        if (DataContext is not MainWindowViewModel vm || _initialized)
             return;
 
+        _initialized = true;
         await vm.InitializeAsync();
 
         if (await vm.RequiresDownloadFolderSetupAsync())
@@ -49,7 +53,32 @@ public sealed partial class MainWindow : Window
 
     private async void OnClosingAsync(object? sender, WindowClosingEventArgs e)
     {
+        if (!App.IsQuitting)
+        {
+            if (App.RunInBackground && App.TrayAvailable)
+            {
+                e.Cancel = true;
+                Hide();
+                ShowBackgroundHint();
+            }
+            else
+            {
+                _ = App.QuitAsync();
+            }
+        }
+
         await SaveColumnWidthsAsync();
+    }
+
+    private void ShowBackgroundHint()
+    {
+        if (_backgroundHintShown)
+            return;
+
+        _backgroundHintShown = true;
+        _ = App.Services.DesktopNotifier.ShowAsync(
+            "Yt-dlp-ui is still running",
+            "Channel subscriptions keep being checked in the background. Use the tray icon to quit.");
     }
 
     private void OnColumnPropertyChanged(object? sender, Avalonia.AvaloniaPropertyChangedEventArgs e)
@@ -255,6 +284,7 @@ public sealed partial class MainWindow : Window
     {
         var window = new SettingsWindow();
         await window.ShowDialog(this);
+        await App.RefreshRunInBackgroundAsync();
         await ViewModel.RefreshProfilesAsync();
     }
 }
