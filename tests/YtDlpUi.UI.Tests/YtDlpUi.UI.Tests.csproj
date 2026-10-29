@@ -16,6 +16,7 @@
     <ExcludeByFile>**/Program.cs</ExcludeByFile>
     <ExcludeByFile>**/App.axaml.cs</ExcludeByFile>
     <ExcludeByFile>**/Services/AppServices.cs</ExcludeByFile>
+    <ExcludeByFile>**/Services/Notifications/*Notifier.cs</ExcludeByFile>
     <ExcludeByFile>**/*MainWindowViewModel.cs</ExcludeByFile>
     <ExcludeByFile>**/*SettingsViewModel.cs</ExcludeByFile>
     <Threshold>85</Threshold>

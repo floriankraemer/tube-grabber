@@ -6,5 +6,6 @@ namespace YtDlpUi.Core.Abstractions;
 
 public interface IDesktopNotifier
 {
+    /// <summary>Shows an OS notification. Implementations never throw.</summary>
     Task ShowAsync(string title, string body, CancellationToken cancellationToken = default);
 }
