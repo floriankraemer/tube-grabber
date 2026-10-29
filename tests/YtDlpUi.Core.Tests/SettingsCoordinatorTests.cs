@@ -66,6 +66,22 @@ public sealed class SettingsCoordinatorTests : IDisposable
         Assert.Equal(Path.GetFullPath(path), resolved);
     }
 
+    [Fact]
+    public async Task SaveAsync_RoundTripsBackgroundSettings()
+    {
+        var (config, profiles) = await _coordinator.LoadAsync();
+        config.RunInBackground = false;
+        config.StartAtLogin = true;
+        config.SubscriptionCheckIntervalMinutes = 90;
+
+        await _coordinator.SaveAsync(config, profiles[0]);
+        var (reloaded, _) = await _coordinator.LoadAsync();
+
+        Assert.False(reloaded.RunInBackground);
+        Assert.True(reloaded.StartAtLogin);
+        Assert.Equal(90, reloaded.SubscriptionCheckIntervalMinutes);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))

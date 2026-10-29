@@ -22,6 +22,7 @@ public sealed class SettingsViewModel : ViewModelBase
     private readonly IBinaryInstaller _denoInstaller;
     private readonly BinaryInstallService _binaryInstallService;
     private readonly IFileSystemLauncher _fileSystemLauncher;
+    private readonly ILoginItemService _loginItemService;
 
     private AppConfiguration _config = new();
     private DownloadProfile _profile = new() { Id = "default", Name = "Default" };
@@ -41,7 +42,8 @@ public sealed class SettingsViewModel : ViewModelBase
         IBinaryInstaller ffmpegInstaller,
         IBinaryInstaller denoInstaller,
         BinaryInstallService binaryInstallService,
-        IFileSystemLauncher fileSystemLauncher)
+        IFileSystemLauncher fileSystemLauncher,
+        ILoginItemService loginItemService)
     {
         _coordinator = coordinator;
         _catalog = catalog;
@@ -52,6 +54,7 @@ public sealed class SettingsViewModel : ViewModelBase
         _denoInstaller = denoInstaller;
         _binaryInstallService = binaryInstallService;
         _fileSystemLauncher = fileSystemLauncher;
+        _loginItemService = loginItemService;
         Profiles = new ObservableCollection<DownloadProfile>();
         OptionSections = new ObservableCollection<OptionSectionViewModel>();
     }
@@ -132,6 +135,36 @@ public sealed class SettingsViewModel : ViewModelBase
         set
         {
             Config.MaxConcurrentDownloads = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool RunInBackground
+    {
+        get => Config.RunInBackground;
+        set
+        {
+            Config.RunInBackground = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool StartAtLogin
+    {
+        get => Config.StartAtLogin;
+        set
+        {
+            Config.StartAtLogin = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public int SubscriptionCheckIntervalMinutes
+    {
+        get => Config.SubscriptionCheckIntervalMinutes;
+        set
+        {
+            Config.SubscriptionCheckIntervalMinutes = value;
             OnPropertyChanged();
         }
     }
@@ -259,6 +292,9 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ResolvedJsRuntimePath));
         OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
         OnPropertyChanged(nameof(ThemePreference));
+        OnPropertyChanged(nameof(RunInBackground));
+        OnPropertyChanged(nameof(StartAtLogin));
+        OnPropertyChanged(nameof(SubscriptionCheckIntervalMinutes));
         OnPropertyChanged(nameof(YtDlpPath));
         OnPropertyChanged(nameof(FfmpegPath));
         OnPropertyChanged(nameof(JsRuntimePath));
@@ -308,6 +344,17 @@ public sealed class SettingsViewModel : ViewModelBase
         ValidationError = null;
         await _coordinator.SaveAsync(Config, Profile);
         ThemeService.Apply(Config.ThemePreference);
+
+        try
+        {
+            SyncStartAtLogin();
+        }
+        catch (Exception ex)
+        {
+            ValidationError = $"Settings saved, but start at login could not be updated: {ex.Message}";
+            return false;
+        }
+
         return true;
     }
 
@@ -437,6 +484,12 @@ public sealed class SettingsViewModel : ViewModelBase
         {
             IsInstalling = false;
         }
+    }
+
+    private void SyncStartAtLogin()
+    {
+        if (Config.StartAtLogin != _loginItemService.IsEnabled())
+            _loginItemService.SetEnabled(Config.StartAtLogin);
     }
 
     private void HandleInstallFailure(BinaryInstallResult result)

@@ -47,6 +47,7 @@ public sealed partial class SettingsWindow : Window
     {
         RegisterSection("Profiles", ProfilesPanel);
         RegisterSection("Appearance", AppearancePanel);
+        RegisterSection("Background", BackgroundPanel);
         RegisterSection("Binaries", BinariesPanel);
         RegisterSection("Queue", QueuePanel);
         BuildOptionSections();

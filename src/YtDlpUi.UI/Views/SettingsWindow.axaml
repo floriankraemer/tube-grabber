@@ -46,6 +46,34 @@
           </StackPanel>
         </ScrollViewer>
 
+        <ScrollViewer x:Name="BackgroundPanel" IsVisible="False">
+          <StackPanel Spacing="16" Margin="8">
+            <StackPanel Spacing="4">
+              <TextBlock Text="Background" FontWeight="SemiBold" FontSize="16" />
+              <TextBlock Text="Keep checking channel subscriptions while the window is closed."
+                         TextWrapping="Wrap"
+                         Opacity="0.8" />
+            </StackPanel>
+            <StackPanel Spacing="8">
+              <CheckBox Content="Keep running in the system tray when the window is closed"
+                        IsChecked="{Binding RunInBackground}" />
+              <CheckBox Content="Start at login (minimized to tray)"
+                        IsChecked="{Binding StartAtLogin}" />
+            </StackPanel>
+            <Grid ColumnDefinitions="160,*" RowDefinitions="Auto" RowSpacing="8">
+              <TextBlock Grid.Row="0" Grid.Column="0" Text="Check subscriptions every" VerticalAlignment="Center" />
+              <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                <NumericUpDown Minimum="15"
+                               Maximum="1440"
+                               Increment="15"
+                               FormatString="0"
+                               Value="{Binding SubscriptionCheckIntervalMinutes}" />
+                <TextBlock Text="minutes" VerticalAlignment="Center" />
+              </StackPanel>
+            </Grid>
+          </StackPanel>
+        </ScrollViewer>
+
         <ScrollViewer x:Name="BinariesPanel" IsVisible="False">
           <StackPanel Spacing="16" Margin="8">
             <StackPanel Spacing="4">
