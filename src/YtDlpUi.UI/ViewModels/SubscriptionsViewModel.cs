@@ -116,11 +116,14 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
         {
             var subscriptions = await _monitor.ListAsync();
             SyncItems(subscriptions);
-            IsChecking = _monitor.IsChecking;
         }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
+        }
+        finally
+        {
+            IsChecking = _monitor.IsChecking;
         }
     }
 
@@ -144,12 +147,15 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
         IsBusy = true;
         try
         {
+            var backlog = (int)BacklogCount;
             var subscription = await _monitor.AddAsync(
                 ChannelUrl.Trim(),
                 SelectedProfile.Id,
-                (int)BacklogCount);
+                backlog);
             ChannelUrl = string.Empty;
-            StatusMessage = $"Subscribed to {subscription.ChannelName}.";
+            StatusMessage = backlog > 0
+                ? $"Subscribed to {subscription.ChannelName}. Downloading the latest {backlog} video(s)."
+                : $"Subscribed to {subscription.ChannelName}. New uploads will be downloaded automatically.";
             await RefreshAsync();
         }
         catch (Exception ex)
@@ -179,7 +185,6 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
         finally
         {
             await RefreshAsync();
-            IsChecking = false;
         }
     }
 

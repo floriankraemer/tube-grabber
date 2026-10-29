@@ -87,7 +87,7 @@ public sealed class SubscriptionsViewModelTests
 
         await _viewModel.SubscribeAsync();
 
-        Assert.Equal("Subscribed to Channel a.", _viewModel.StatusMessage);
+        Assert.Equal("Subscribed to Channel a. Downloading the latest 5 video(s).", _viewModel.StatusMessage);
         Assert.Null(_viewModel.ErrorMessage);
         Assert.Equal(string.Empty, _viewModel.ChannelUrl);
         Assert.False(_viewModel.IsBusy);
@@ -178,6 +178,32 @@ public sealed class SubscriptionsViewModelTests
         await running;
         Assert.False(_viewModel.IsChecking);
         Assert.Equal("Check finished.", _viewModel.StatusMessage);
+    }
+
+    [Fact]
+    public async Task CheckNowAsync_KeepsIsCheckingWhileMonitorStillScanning()
+    {
+        _monitor.IsChecking.Returns(true);
+
+        await _viewModel.CheckNowAsync();
+
+        Assert.True(_viewModel.IsChecking);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_ZeroBacklog_MentionsAutomaticDownloads()
+    {
+        await _viewModel.InitializeAsync();
+        var added = Sub("a");
+        _monitor.AddAsync("https://www.youtube.com/@a", "default", 0, Arg.Any<CancellationToken>()).Returns(added);
+        _viewModel.ChannelUrl = "https://www.youtube.com/@a";
+        _viewModel.BacklogCount = 0;
+
+        await _viewModel.SubscribeAsync();
+
+        Assert.Equal(
+            "Subscribed to Channel a. New uploads will be downloaded automatically.",
+            _viewModel.StatusMessage);
     }
 
     [Fact]

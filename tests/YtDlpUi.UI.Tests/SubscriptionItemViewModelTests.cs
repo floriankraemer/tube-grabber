@@ -131,4 +131,29 @@ public sealed class SubscriptionItemViewModelTests
 
         Assert.Contains("nope", _errors);
     }
+
+    [Fact]
+    public void Enabled_MonitorFailure_RevertsWithoutSecondCall()
+    {
+        _monitor.SetEnabledAsync("a", false, Arg.Any<CancellationToken>()).Throws(new IOException("nope"));
+        var item = Create();
+
+        item.Enabled = false;
+
+        Assert.True(item.Enabled);
+        _monitor.Received(1).SetEnabledAsync("a", Arg.Any<bool>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void SelectedProfile_MonitorFailure_RevertsWithoutSecondCall()
+    {
+        _monitor.SetProfileAsync("a", "audio", Arg.Any<CancellationToken>()).Throws(new IOException("nope"));
+        var item = Create();
+
+        item.SelectedProfile = Audio;
+
+        Assert.Equal(Default, item.SelectedProfile);
+        Assert.Contains("nope", _errors);
+        _monitor.Received(1).SetProfileAsync("a", Arg.Any<string>(), Arg.Any<CancellationToken>());
+    }
 }
