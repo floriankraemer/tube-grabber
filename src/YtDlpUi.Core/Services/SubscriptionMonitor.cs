@@ -28,6 +28,7 @@ public sealed class SubscriptionMonitor : IAsyncDisposable
     private List<ChannelSubscription>? _subscriptions;
     private Task? _loop;
     private volatile bool _isChecking;
+    private int _sweepPending;
 
     public SubscriptionMonitor(
         ISubscriptionStore store,
@@ -264,20 +265,32 @@ public sealed class SubscriptionMonitor : IAsyncDisposable
 
     private void OnJobsChanged(object? sender, EventArgs e)
     {
-        if (_tracked.IsEmpty)
+        // JobsChanged fires on every progress line; coalesce into at most one pending sweep.
+        if (_tracked.IsEmpty || Interlocked.Exchange(ref _sweepPending, 1) == 1)
             return;
 
         _ = Task.Run(async () =>
         {
             try
             {
-                await SweepAsync();
+                Interlocked.Exchange(ref _sweepPending, 0);
+                if (HasFinishedTrackedJob())
+                    await SweepAsync();
             }
             catch (Exception ex)
             {
                 Trace.TraceWarning($"Subscription job sweep failed: {ex.Message}");
             }
         });
+    }
+
+    private bool HasFinishedTrackedJob()
+    {
+        var active = _queue.Jobs
+            .Where(j => j.Status is DownloadStatus.Queued or DownloadStatus.Running)
+            .Select(j => j.Id)
+            .ToHashSet();
+        return _tracked.Keys.Any(id => !active.Contains(id));
     }
 
     private async Task SweepAsync()
