@@ -17,8 +17,22 @@ public sealed class SearchViewModel : ViewModelBase
     private readonly IProfileStore _profileStore;
     private readonly DownloadEnqueueCoordinator _enqueueCoordinator;
     private readonly IThumbnailLoader _thumbnailLoader;
+    private readonly ISubscriptionMonitor _subscriptionMonitor;
+
+    // A page can come back empty once Shorts are filtered out; keep paging a few times before giving up.
+    private const int MaxEmptyPagesInARow = 5;
 
     private string _searchQuery = string.Empty;
+    private bool _isChannelMode;
+    private bool _hideShorts = true;
+    private FilterOption<UploadDateFilter> _selectedUploadDate;
+    private FilterOption<DurationFilter> _selectedDuration;
+    private bool _hasSearched;
+    private string _activeQuery = string.Empty;
+    private bool _activeChannelMode;
+    private SearchFilters _activeFilters = SearchFilters.Default;
+    private int _nextSkip;
+    private CancellationTokenSource? _searchCts;
     private bool _isSearching;
     private bool _isLoadingMore;
     private bool _canLoadMore;
@@ -31,24 +45,102 @@ public sealed class SearchViewModel : ViewModelBase
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
         DownloadEnqueueCoordinator enqueueCoordinator,
-        IThumbnailLoader thumbnailLoader)
+        IThumbnailLoader thumbnailLoader,
+        ISubscriptionMonitor subscriptionMonitor)
     {
         _searchService = searchService;
         _appConfigStore = appConfigStore;
         _profileStore = profileStore;
         _enqueueCoordinator = enqueueCoordinator;
         _thumbnailLoader = thumbnailLoader;
+        _subscriptionMonitor = subscriptionMonitor;
         Results = new ObservableCollection<SearchResultViewModel>();
+        Channels = new ObservableCollection<ChannelResultViewModel>();
         Profiles = new ObservableCollection<DownloadProfile>();
+        _selectedUploadDate = UploadDateOptions[0];
+        _selectedDuration = DurationOptions[0];
     }
 
+    // Upload-date and duration presets are the ones YouTube itself offers; yt-dlp cannot filter by arbitrary ranges.
+    public IReadOnlyList<FilterOption<UploadDateFilter>> UploadDateOptions { get; } =
+    [
+        new("Any time", UploadDateFilter.Any),
+        new("Last hour", UploadDateFilter.LastHour),
+        new("Today", UploadDateFilter.Today),
+        new("This week", UploadDateFilter.ThisWeek),
+        new("This month", UploadDateFilter.ThisMonth),
+        new("This year", UploadDateFilter.ThisYear),
+    ];
+
+    public IReadOnlyList<FilterOption<DurationFilter>> DurationOptions { get; } =
+    [
+        new("Any length", DurationFilter.Any),
+        new("Under 4 minutes", DurationFilter.UnderFourMinutes),
+        new("4–20 minutes", DurationFilter.FourToTwentyMinutes),
+        new("Over 20 minutes", DurationFilter.OverTwentyMinutes),
+    ];
+
     public ObservableCollection<SearchResultViewModel> Results { get; }
+    public ObservableCollection<ChannelResultViewModel> Channels { get; }
     public ObservableCollection<DownloadProfile> Profiles { get; }
 
     public string SearchQuery
     {
         get => _searchQuery;
         set => SetProperty(ref _searchQuery, value);
+    }
+
+    public bool IsChannelMode
+    {
+        get => _isChannelMode;
+        set
+        {
+            if (!SetProperty(ref _isChannelMode, value))
+                return;
+
+            OnPropertyChanged(nameof(IsVideoMode));
+            OnPropertyChanged(nameof(SearchPlaceholder));
+            OnPropertyChanged(nameof(HasResults));
+            SearchAgainIfSearched();
+        }
+    }
+
+    public bool IsVideoMode
+    {
+        get => !_isChannelMode;
+        set => IsChannelMode = !value;
+    }
+
+    public string SearchPlaceholder => IsChannelMode ? "Search YouTube channels" : "Search YouTube videos";
+
+    public FilterOption<UploadDateFilter> SelectedUploadDate
+    {
+        get => _selectedUploadDate;
+        set
+        {
+            if (value is not null && SetProperty(ref _selectedUploadDate, value))
+                SearchAgainIfSearched();
+        }
+    }
+
+    public FilterOption<DurationFilter> SelectedDuration
+    {
+        get => _selectedDuration;
+        set
+        {
+            if (value is not null && SetProperty(ref _selectedDuration, value))
+                SearchAgainIfSearched();
+        }
+    }
+
+    public bool HideShorts
+    {
+        get => _hideShorts;
+        set
+        {
+            if (SetProperty(ref _hideShorts, value))
+                SearchAgainIfSearched();
+        }
     }
 
     public bool IsSearching
@@ -81,7 +173,7 @@ public sealed class SearchViewModel : ViewModelBase
         private set => SetProperty(ref _errorMessage, value);
     }
 
-    public bool HasResults => Results.Count > 0;
+    public bool HasResults => IsChannelMode ? Channels.Count > 0 : Results.Count > 0;
 
     public async Task InitializeAsync()
     {
@@ -100,8 +192,15 @@ public sealed class SearchViewModel : ViewModelBase
 
     public Task LoadMoreAsync() => FetchResultsAsync(reset: false);
 
+    private void SearchAgainIfSearched()
+    {
+        if (_hasSearched && !string.IsNullOrWhiteSpace(SearchQuery))
+            _ = SearchAsync();
+    }
+
     private async Task FetchResultsAsync(bool reset)
     {
+        CancellationToken token;
         if (reset)
         {
             ErrorMessage = null;
@@ -114,47 +213,56 @@ public sealed class SearchViewModel : ViewModelBase
                 return;
             }
 
+            // Supersedes any search or load-more still in flight.
+            _searchCts?.Cancel();
+            _searchCts?.Dispose();
+            _searchCts = new CancellationTokenSource();
+            token = _searchCts.Token;
+
+            _hasSearched = true;
+            _activeQuery = SearchQuery.Trim();
+            _activeChannelMode = IsChannelMode;
+            _activeFilters = new SearchFilters(SelectedUploadDate.Value, SelectedDuration.Value, HideShorts);
+            _nextSkip = 0;
+            IsLoadingMore = false;
             IsSearching = true;
             Results.Clear();
+            Channels.Clear();
             CanLoadMore = false;
             OnPropertyChanged(nameof(HasResults));
         }
         else
         {
-            if (!CanLoadMore || IsSearching || IsLoadingMore)
+            if (!CanLoadMore || IsSearching || IsLoadingMore || _searchCts is null)
                 return;
 
             ErrorMessage = null;
             IsLoadingMore = true;
+            token = _searchCts.Token;
         }
 
         try
         {
-            var skip = reset ? 0 : Results.Count;
-            var page = await _searchService.SearchAsync(SearchQuery, skip);
-            var config = await _appConfigStore.LoadAsync();
+            var config = await _appConfigStore.LoadAsync(token);
             var defaultProfile = Profiles.FirstOrDefault(p => p.Id == config.ActiveProfileId)
                 ?? Profiles.FirstOrDefault();
             var profileList = Profiles.ToList();
-            var existingIds = Results.Select(r => r.Result.VideoId).ToHashSet(StringComparer.Ordinal);
 
-            var newRows = new List<SearchResultViewModel>();
-            foreach (var result in page.Results)
+            List<ThumbnailRowViewModel> newRows;
+            bool hasMore;
+            var emptyPages = 0;
+            do
             {
-                if (!existingIds.Add(result.VideoId))
-                    continue;
-
-                var row = new SearchResultViewModel(
-                    result,
-                    profileList,
-                    defaultProfile,
-                    _enqueueCoordinator,
-                    _thumbnailLoader);
-                newRows.Add(row);
-                Results.Add(row);
+                (newRows, hasMore) = _activeChannelMode
+                    ? await FetchChannelPageAsync(profileList, defaultProfile, token)
+                    : await FetchVideoPageAsync(profileList, defaultProfile, token);
             }
+            while (newRows.Count == 0 && hasMore && ++emptyPages < MaxEmptyPagesInARow && !token.IsCancellationRequested);
 
-            CanLoadMore = page.HasMoreResults && newRows.Count > 0;
+            if (token.IsCancellationRequested)
+                return;
+
+            CanLoadMore = hasMore;
             OnPropertyChanged(nameof(HasResults));
             UpdateStatusMessage();
 
@@ -174,34 +282,101 @@ public sealed class SearchViewModel : ViewModelBase
                 _ = LoadThumbnailsAsync(newRows, _thumbnailLoadCts.Token);
             }
         }
+        catch (OperationCanceledException) when (token.IsCancellationRequested)
+        {
+        }
         catch (Exception ex)
         {
             ErrorMessage = ex.Message;
         }
         finally
         {
-            if (reset)
-                IsSearching = false;
-            else
-                IsLoadingMore = false;
+            // A cancelled call was superseded by a newer search that owns these flags now.
+            if (!token.IsCancellationRequested)
+            {
+                if (reset)
+                    IsSearching = false;
+                else
+                    IsLoadingMore = false;
+            }
         }
+    }
+
+    private async Task<(List<ThumbnailRowViewModel> NewRows, bool HasMore)> FetchVideoPageAsync(
+        List<DownloadProfile> profiles,
+        DownloadProfile? defaultProfile,
+        CancellationToken token)
+    {
+        var page = await _searchService.SearchAsync(_activeQuery, _activeFilters, _nextSkip, token);
+        if (token.IsCancellationRequested)
+            return ([], false);
+
+        _nextSkip = page.NextSkip;
+        var existingIds = Results.Select(r => r.Result.VideoId).ToHashSet(StringComparer.Ordinal);
+        var newRows = new List<ThumbnailRowViewModel>();
+        foreach (var result in page.Results.Where(r => existingIds.Add(r.VideoId)))
+        {
+            var row = new SearchResultViewModel(
+                result,
+                profiles,
+                defaultProfile,
+                _enqueueCoordinator,
+                _thumbnailLoader);
+            newRows.Add(row);
+            Results.Add(row);
+        }
+
+        return (newRows, page.HasMoreResults);
+    }
+
+    private async Task<(List<ThumbnailRowViewModel> NewRows, bool HasMore)> FetchChannelPageAsync(
+        List<DownloadProfile> profiles,
+        DownloadProfile? defaultProfile,
+        CancellationToken token)
+    {
+        var page = await _searchService.SearchChannelsAsync(_activeQuery, _nextSkip, token);
+        var subscribedIds = (await _subscriptionMonitor.ListAsync(token))
+            .Select(s => s.ChannelId)
+            .ToHashSet(StringComparer.Ordinal);
+        if (token.IsCancellationRequested)
+            return ([], false);
+
+        _nextSkip = page.NextSkip;
+        var existingIds = Channels.Select(c => c.Result.ChannelId).ToHashSet(StringComparer.Ordinal);
+        var newRows = new List<ThumbnailRowViewModel>();
+        foreach (var result in page.Results.Where(r => existingIds.Add(r.ChannelId)))
+        {
+            var row = new ChannelResultViewModel(
+                result,
+                profiles,
+                defaultProfile,
+                subscribedIds.Contains(result.ChannelId),
+                _subscriptionMonitor,
+                _thumbnailLoader);
+            newRows.Add(row);
+            Channels.Add(row);
+        }
+
+        return (newRows, page.HasMoreResults);
     }
 
     private void UpdateStatusMessage()
     {
-        if (Results.Count == 0)
+        var count = _activeChannelMode ? Channels.Count : Results.Count;
+        var noun = _activeChannelMode ? "channel" : "video";
+        if (count == 0)
         {
-            StatusMessage = CanLoadMore ? null : "No videos found.";
+            StatusMessage = CanLoadMore ? null : $"No {noun}s found.";
             return;
         }
 
         StatusMessage = CanLoadMore
-            ? Results.Count == 1 ? "1 loaded" : $"{Results.Count} loaded"
-            : Results.Count == 1 ? "1 video found." : $"{Results.Count} videos found.";
+            ? $"{count} loaded"
+            : count == 1 ? $"1 {noun} found." : $"{count} {noun}s found.";
     }
 
     private async Task LoadThumbnailsAsync(
-        IReadOnlyList<SearchResultViewModel> rows,
+        IReadOnlyList<ThumbnailRowViewModel> rows,
         CancellationToken cancellationToken)
     {
         foreach (var row in rows)

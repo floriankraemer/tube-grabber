@@ -17,7 +17,7 @@ public sealed class SearchViewModelTests
     public async Task SearchAsync_PopulatesResults()
     {
         var searchService = Substitute.For<IYtDlpSearchService>();
-        searchService.SearchAsync(Arg.Any<string>(), 0, Arg.Any<CancellationToken>())
+        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<SearchFilters>(), 0, Arg.Any<CancellationToken>())
             .Returns(new SearchResultPage
             {
                 Query = "cats",
@@ -47,7 +47,8 @@ public sealed class SearchViewModelTests
             appConfig,
             profileStore,
             CreateEnqueueCoordinator(),
-            Substitute.For<IThumbnailLoader>());
+            Substitute.For<IThumbnailLoader>(),
+            Substitute.For<ISubscriptionMonitor>());
 
         await vm.InitializeAsync();
         vm.SearchQuery = "cats";
@@ -64,19 +65,21 @@ public sealed class SearchViewModelTests
     public async Task LoadMoreAsync_AppendsNextPage()
     {
         var searchService = Substitute.For<IYtDlpSearchService>();
-        searchService.SearchAsync(Arg.Any<string>(), 0, Arg.Any<CancellationToken>())
+        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<SearchFilters>(), 0, Arg.Any<CancellationToken>())
             .Returns(new SearchResultPage
             {
                 Query = "cats",
                 Results = CreateResults("v", 1, 20),
+                NextSkip = 20,
                 HasMoreResults = true,
             });
-        searchService.SearchAsync(Arg.Any<string>(), 20, Arg.Any<CancellationToken>())
+        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<SearchFilters>(), 20, Arg.Any<CancellationToken>())
             .Returns(new SearchResultPage
             {
                 Query = "cats",
                 Results = CreateResults("v", 21, 20),
                 Skip = 20,
+                NextSkip = 40,
                 HasMoreResults = true,
             });
 
@@ -93,7 +96,8 @@ public sealed class SearchViewModelTests
             appConfig,
             profileStore,
             CreateEnqueueCoordinator(),
-            Substitute.For<IThumbnailLoader>());
+            Substitute.For<IThumbnailLoader>(),
+            Substitute.For<ISubscriptionMonitor>());
 
         await vm.InitializeAsync();
         vm.SearchQuery = "cats";
@@ -106,18 +110,19 @@ public sealed class SearchViewModelTests
 
         Assert.Equal(40, vm.Results.Count);
         Assert.Equal("40 loaded", vm.StatusMessage);
-        await searchService.Received(1).SearchAsync("cats", 20, Arg.Any<CancellationToken>());
+        await searchService.Received(1).SearchAsync("cats", Arg.Any<SearchFilters>(), 20, Arg.Any<CancellationToken>());
     }
 
     [Fact]
     public async Task SearchAsync_FullPage_ShowsLoadedCount()
     {
         var searchService = Substitute.For<IYtDlpSearchService>();
-        searchService.SearchAsync(Arg.Any<string>(), 0, Arg.Any<CancellationToken>())
+        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<SearchFilters>(), 0, Arg.Any<CancellationToken>())
             .Returns(new SearchResultPage
             {
                 Query = "cats",
                 Results = CreateResults("v", 1, 20),
+                NextSkip = 20,
                 HasMoreResults = true,
             });
 
@@ -134,7 +139,8 @@ public sealed class SearchViewModelTests
             appConfig,
             profileStore,
             CreateEnqueueCoordinator(),
-            Substitute.For<IThumbnailLoader>());
+            Substitute.For<IThumbnailLoader>(),
+            Substitute.For<ISubscriptionMonitor>());
 
         await vm.InitializeAsync();
         vm.SearchQuery = "cats";
@@ -149,7 +155,7 @@ public sealed class SearchViewModelTests
     public async Task SearchAsync_ServiceError_SetsErrorMessage()
     {
         var searchService = Substitute.For<IYtDlpSearchService>();
-        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
+        searchService.SearchAsync(Arg.Any<string>(), Arg.Any<SearchFilters>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
             .Returns<Task<SearchResultPage>>(_ => throw new InvalidOperationException("Search failed"));
 
         var vm = new SearchViewModel(
@@ -157,7 +163,8 @@ public sealed class SearchViewModelTests
             Substitute.For<IAppConfigStore>(),
             Substitute.For<IProfileStore>(),
             CreateEnqueueCoordinator(),
-            Substitute.For<IThumbnailLoader>());
+            Substitute.For<IThumbnailLoader>(),
+            Substitute.For<ISubscriptionMonitor>());
 
         vm.SearchQuery = "test";
         await vm.SearchAsync();

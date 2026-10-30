@@ -60,5 +60,16 @@ public sealed partial class SearchWindow : Window
         await row.AddToQueueAsync();
     }
 
+    private async void Subscribe_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: ChannelResultViewModel row })
+            return;
+
+        await row.SubscribeAsync();
+    }
+
+    private async void LoadMore_Click(object? sender, RoutedEventArgs e) =>
+        await _viewModel.LoadMoreAsync();
+
     private void Close_Click(object? sender, RoutedEventArgs e) => Close();
 }
