@@ -134,8 +134,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
                 cts.Dispose();
             }
 
-            job.Status = DownloadStatus.Cancelled;
             job.Error = CancelHint;
+            job.Status = DownloadStatus.Cancelled;
             job.CompletedAt = DateTimeOffset.UtcNow;
             NotifyJobsChanged();
         }
@@ -200,8 +200,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
         {
             if (!_jobCancellation.TryGetValue(job.Id, out var jobCts))
             {
-                job.Status = DownloadStatus.Failed;
                 job.Error = "Could not start the download worker. Remove the item and add it again.";
+                job.Status = DownloadStatus.Failed;
                 job.CompletedAt = DateTimeOffset.UtcNow;
                 NotifyJobsChanged();
                 return;
@@ -270,8 +270,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
 
                 if (job.Status == DownloadStatus.Cancelled || result.WasCancelled)
                 {
-                    job.Status = DownloadStatus.Cancelled;
                     job.Error ??= CancelHint;
+                    job.Status = DownloadStatus.Cancelled;
                 }
                 else if (result.ExitCode == 0)
                 {
@@ -283,8 +283,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
                 }
                 else
                 {
-                    job.Status = DownloadStatus.Failed;
                     job.Error = YtDlpFailureMessageBuilder.Build(result);
+                    job.Status = DownloadStatus.Failed;
                 }
 
                 job.CompletedAt = DateTimeOffset.UtcNow;
@@ -294,8 +294,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
             {
                 if (job.Status != DownloadStatus.Cancelled)
                 {
-                    job.Status = DownloadStatus.Cancelled;
                     job.Error ??= CancelHint;
+                    job.Status = DownloadStatus.Cancelled;
                 }
 
                 job.CompletedAt = DateTimeOffset.UtcNow;
@@ -305,8 +305,8 @@ public sealed class DownloadQueueService : IDownloadQueueService
             {
                 if (job.Status != DownloadStatus.Cancelled)
                 {
-                    job.Status = DownloadStatus.Failed;
                     job.Error = ex.Message;
+                    job.Status = DownloadStatus.Failed;
                     job.LogOutput = invocation is null
                         ? ex.ToString()
                         : YtDlpLogFormatter.Format(invocation, ex);
