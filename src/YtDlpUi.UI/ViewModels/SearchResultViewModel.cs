@@ -2,20 +2,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE for details.
 
-using Avalonia.Media.Imaging;
 using YtDlpUi.Core.Models;
 using YtDlpUi.Core.Services;
 using YtDlpUi.UI.Services;
 
 namespace YtDlpUi.UI.ViewModels;
 
-public sealed class SearchResultViewModel : ViewModelBase
+public sealed class SearchResultViewModel : ThumbnailRowViewModel
 {
     private readonly DownloadEnqueueCoordinator _enqueueCoordinator;
-    private readonly IThumbnailLoader _thumbnailLoader;
     private DownloadProfile? _selectedProfile;
-    private Bitmap? _thumbnail;
-    private bool _isLoadingThumbnail;
     private bool _isAdding;
     private string? _statusMessage;
 
@@ -25,6 +21,7 @@ public sealed class SearchResultViewModel : ViewModelBase
         DownloadProfile? defaultProfile,
         DownloadEnqueueCoordinator enqueueCoordinator,
         IThumbnailLoader thumbnailLoader)
+        : base(result.ThumbnailUrl, thumbnailLoader)
     {
         Result = result;
         Title = result.Title;
@@ -33,7 +30,6 @@ public sealed class SearchResultViewModel : ViewModelBase
         DurationDisplay = DurationFormatter.Format(result.DurationSeconds);
         Profiles = profiles;
         _enqueueCoordinator = enqueueCoordinator;
-        _thumbnailLoader = thumbnailLoader;
         _selectedProfile = defaultProfile ?? profiles.FirstOrDefault();
     }
 
@@ -50,18 +46,6 @@ public sealed class SearchResultViewModel : ViewModelBase
         set => SetProperty(ref _selectedProfile, value);
     }
 
-    public Bitmap? Thumbnail
-    {
-        get => _thumbnail;
-        private set => SetProperty(ref _thumbnail, value);
-    }
-
-    public bool IsLoadingThumbnail
-    {
-        get => _isLoadingThumbnail;
-        private set => SetProperty(ref _isLoadingThumbnail, value);
-    }
-
     public bool IsAdding
     {
         get => _isAdding;
@@ -75,24 +59,6 @@ public sealed class SearchResultViewModel : ViewModelBase
     }
 
     public bool CanAdd => !IsAdding && SelectedProfile is not null;
-
-    public async Task LoadThumbnailAsync(CancellationToken cancellationToken = default)
-    {
-        if (string.IsNullOrWhiteSpace(Result.ThumbnailUrl))
-            return;
-
-        IsLoadingThumbnail = true;
-        try
-        {
-            var bitmap = await _thumbnailLoader.LoadAsync(Result.ThumbnailUrl, cancellationToken);
-            Thumbnail = bitmap;
-        }
-        finally
-        {
-            IsLoadingThumbnail = false;
-            OnPropertyChanged(nameof(CanAdd));
-        }
-    }
 
     public async Task AddToQueueAsync()
     {

@@ -128,7 +128,8 @@ public sealed class AppServices
         AppConfigStore,
         ProfileStore,
         EnqueueCoordinator,
-        ThumbnailLoader);
+        ThumbnailLoader,
+        SubscriptionMonitor);
 
     public SubscriptionsViewModel CreateSubscriptionsViewModel() => new(
         SubscriptionMonitor,

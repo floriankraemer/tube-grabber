@@ -49,7 +49,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        var page = await service.SearchAsync("test query", TestContext.Current.CancellationToken);
+        var page = await service.SearchAsync("test query", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal("test query", page.Query);
         Assert.Single(page.Results);
@@ -65,7 +65,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   ", TestContext.Current.CancellationToken));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   ", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken));
     }
 
     [Fact]
@@ -80,7 +80,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         Assert.Contains("1", args);
         Assert.Contains("--playlist-end", args);
         Assert.Contains("20", args);
-        Assert.Equal($"ytsearch{YtDlpSearchService.PageSize}:hello world", args[^1]);
+        Assert.Equal("https://www.youtube.com/results?search_query=hello+world&sp=EgIQAQ%3D%3D", args[^1]);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         Assert.Contains("21", args);
         Assert.Contains("--playlist-end", args);
         Assert.Contains("40", args);
-        Assert.Equal("ytsearch40:hello world", args[^1]);
+        Assert.Equal("https://www.youtube.com/results?search_query=hello+world&sp=EgIQAQ%3D%3D", args[^1]);
     }
 
     [Fact]
@@ -121,10 +121,81 @@ public sealed class YtDlpSearchServiceTests : IDisposable
             new BinaryLocator(_root),
             new JsRuntimeLocator());
 
-        var page = await service.SearchAsync("query", TestContext.Current.CancellationToken);
+        var page = await service.SearchAsync("query", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken);
 
         Assert.Equal(20, page.Results.Count);
         Assert.True(page.HasMoreResults);
+    }
+
+    [Fact]
+    public async Task SearchAsync_HideShorts_DropsShortVideosButCountsThemForPaging()
+    {
+        const string json = """
+            { "entries": [
+              { "id": "short", "title": "Short", "duration": 45 },
+              { "id": "edge", "title": "Edge", "duration": 60 },
+              { "id": "long", "title": "Long", "duration": 61 },
+              { "id": "live", "title": "Live" }
+            ] }
+            """;
+        var service = await CreateServiceAsync(json);
+
+        var page = await service.SearchAsync("q", new SearchFilters(HideShorts: true), skip: 20, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["long", "live"], page.Results.Select(r => r.VideoId));
+        Assert.Equal(24, page.NextSkip);
+    }
+
+    [Fact]
+    public async Task SearchAsync_ShowShorts_KeepsEverything()
+    {
+        const string json = """
+            { "entries": [ { "id": "short", "title": "Short", "duration": 45 } ] }
+            """;
+        var service = await CreateServiceAsync(json);
+
+        var page = await service.SearchAsync("q", new SearchFilters(HideShorts: false), cancellationToken: TestContext.Current.CancellationToken);
+
+        Assert.Single(page.Results);
+    }
+
+    [Fact]
+    public async Task SearchChannelsAsync_ParsesChannelsAndAdvancesSkip()
+    {
+        const string json = """
+            { "entries": [ { "id": "UCone", "title": "One" }, { "id": "UCtwo", "title": "Two" } ] }
+            """;
+        var service = await CreateServiceAsync(json);
+
+        var page = await service.SearchChannelsAsync("one", skip: 20, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["UCone", "UCtwo"], page.Results.Select(r => r.ChannelId));
+        Assert.Equal(22, page.NextSkip);
+        Assert.False(page.HasMoreResults);
+    }
+
+    [Fact]
+    public async Task SearchChannelsAsync_EmptyQuery_Throws()
+    {
+        var service = await CreateServiceAsync("{}");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.SearchChannelsAsync(" ", cancellationToken: TestContext.Current.CancellationToken));
+    }
+
+    private async Task<YtDlpSearchService> CreateServiceAsync(string json)
+    {
+        var appConfig = new AppConfigStore(_root, new ProfileStore(_root));
+        await appConfig.EnsureBootstrapAsync(TestContext.Current.CancellationToken);
+        var config = await appConfig.LoadAsync(TestContext.Current.CancellationToken);
+        config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
+        await appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
+
+        return new YtDlpSearchService(
+            new SearchRunner(json),
+            appConfig,
+            new BinaryLocator(_root),
+            new JsRuntimeLocator());
     }
 
     public void Dispose()

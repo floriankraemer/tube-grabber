@@ -14,6 +14,7 @@ Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, pro
 - **Binaries** — set or browse yt-dlp/ffmpeg paths, test each, or install from the main window
 - **Settings** — tabbed editors for common yt-dlp flags (subs, metadata, SponsorBlock, and more)
 - **Job logs** — view yt-dlp output for failed (or finished) jobs
+- **YouTube search** — find videos (filter by upload date and length, Shorts hidden by default) or channels, then queue a download or subscribe straight from the results
 - **Channel subscriptions** — follow YouTube channels and queue their new uploads automatically
 - **Background mode and notifications** — keep checking while the window is closed, and get an OS notification when a download finishes or fails
 
