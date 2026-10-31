@@ -1,12 +1,12 @@
-# Yt-dlp-ui — Makefile (same targets as make.ps1)
+# Tube Grabber — Makefile (same targets as make.ps1)
 #
 # All targets execute inside the dev container (bind-mounts this repo at /src).
 # Escape hatch: IN_CONTAINER=1 make <target>
 
-SLN := YtDlpUi.slnx
-UI := src/YtDlpUi.UI/YtDlpUi.UI.csproj
+SLN := TubeGrabber.slnx
+UI := src/TubeGrabber.UI/TubeGrabber.UI.csproj
 COV_DIR := $(CURDIR)/artifacts/coverage
-UI_APP_NAME := YtDlpUi
+UI_APP_NAME := TubeGrabber
 
 _DOTNET_RID := $(shell dotnet --info 2>/dev/null | sed -n 's/^[[:space:]]*RID:[[:space:]]*//p' | head -1)
 PUBLISH_RID = $(if $(strip $(RID)),$(strip $(RID)),$(if $(strip $(_DOTNET_RID)),$(_DOTNET_RID),linux-x64))
@@ -29,9 +29,9 @@ _CONTAINER_RUN = $(CONTAINER_RUNNER) run --rm dev make $@ RID="$(RID)" IN_CONTAI
 publish-ui-win: RID=win-x64
 
 help:
-	@echo "Yt-dlp-ui — Makefile"
+	@echo "Tube Grabber — Makefile"
 	@echo "  make build-release     compile Release DLLs (not a standalone app)"
-	@echo "  make publish-ui        self-contained app -> artifacts/publish-ui-<RID>/YtDlpUi"
+	@echo "  make publish-ui        self-contained app -> artifacts/publish-ui-<RID>/TubeGrabber"
 	@echo "  make publish-ui-win    same, RID=win-x64"
 	@echo "  make ci | test | coverage"
 
@@ -77,7 +77,7 @@ publish-ui:
 		/p:IncludeNativeLibrariesForSelfExtract=true
 	@ui_ext=""; case "$(PUBLISH_RID)" in win*) ui_ext=".exe";; esac; \
 	output_dir="artifacts/publish-ui-$(PUBLISH_RID)"; \
-	source_path="$$output_dir/YtDlpUi.UI$$ui_ext"; \
+	source_path="$$output_dir/TubeGrabber.UI$$ui_ext"; \
 	target_path="$$output_dir/$(UI_APP_NAME)$$ui_ext"; \
 	if [ -f "$$source_path" ] && [ "$$source_path" != "$$target_path" ]; then mv "$$source_path" "$$target_path"; fi
 
@@ -90,11 +90,11 @@ coverage:
 	dotnet test $(SLN) -c Release --verbosity minimal \
 		-p:Coverage=true
 	@# coverlet.mtp appends a timestamp to report names; normalise to <Project>.cobertura.xml
-	for p in YtDlpUi.Core.Tests YtDlpUi.UI.Tests; do \
+	for p in TubeGrabber.Core.Tests TubeGrabber.UI.Tests; do \
 		mv $(COV_DIR)/$$p.coverage.cobertura.*.xml $(COV_DIR)/$$p.cobertura.xml; \
 	done
-	test -f $(COV_DIR)/YtDlpUi.Core.Tests.cobertura.xml
-	test -f $(COV_DIR)/YtDlpUi.UI.Tests.cobertura.xml
+	test -f $(COV_DIR)/TubeGrabber.Core.Tests.cobertura.xml
+	test -f $(COV_DIR)/TubeGrabber.UI.Tests.cobertura.xml
 	rm -rf $(COV_DIR)/html
 	dotnet tool run reportgenerator -- \
 		-reports:artifacts/coverage/*.cobertura.xml \
@@ -103,7 +103,7 @@ coverage:
 
 mutation-test:
 	dotnet tool restore
-	cd tests/YtDlpUi.Core.Tests && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker -f ../../src/YtDlpUi.Core/stryker-config.json -t mtp || dotnet tool run dotnet-stryker -f ../../src/YtDlpUi.Core/stryker-config.json -t mtp)
+	cd tests/TubeGrabber.Core.Tests && (command -v dotnet-stryker >/dev/null 2>&1 && dotnet-stryker -f ../../src/TubeGrabber.Core/stryker-config.json -t mtp || dotnet tool run dotnet-stryker -f ../../src/TubeGrabber.Core/stryker-config.json -t mtp)
 
 else
 

@@ -1,0 +1,188 @@
+<!--
+  Global look of the standard controls ("Fluent native", Windows 11 / Fluent 2): overrides Fluent's resource keys with the
+  App*Brush tokens from Theme.axaml, and adds the few style rules that resources cannot express.
+  Consume tokens with {DynamicResource ...}; never hard-code colours in views.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+
+      <!-- Control themes shared by both variants. -->
+      <ControlTheme x:Key="AppListBoxItem" TargetType="ListBoxItem">
+        <Setter Property="MinHeight" Value="32" />
+        <Setter Property="Margin" Value="0,1" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Panel>
+              <Border x:Name="PART_Pill"
+                      Background="Transparent"
+                      BorderBrush="Transparent"
+                      BorderThickness="2"
+                      CornerRadius="{DynamicResource ControlCornerRadius}">
+                <ContentPresenter x:Name="PART_ContentPresenter"
+                                  Padding="{TemplateBinding Padding}"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Foreground="{TemplateBinding Foreground}"
+                                  VerticalContentAlignment="Center" />
+              </Border>
+              <Border x:Name="PART_Indicator"
+                      Width="3"
+                      Height="16"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      CornerRadius="2"
+                      Background="{DynamicResource AppAccentBrush}"
+                      IsVisible="False" />
+            </Panel>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+        </Style>
+        <Style Selector="^:selected:pointerover /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Indicator">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Pill">
+          <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+        </Style>
+        <Style Selector="^:disabled">
+          <Setter Property="Opacity" Value="0.4" />
+        </Style>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- Component styles that resources cannot express. -->
+  <Style Selector="Button">
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="12,5" />
+    <Setter Property="FontSize" Value="14" />
+  </Style>
+  <Style Selector="Button.accent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppAccentDisabledBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextDisabledBrush}" />
+  </Style>
+  <Style Selector="Button:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+  <Style Selector="Button.icon:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderThickness" Value="2" />
+  </Style>
+
+  <Style Selector="TextBox, ComboBox, NumericUpDown, DatePicker, TimePicker, CalendarDatePicker, AutoCompleteBox">
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <!-- NumericUpDown: compact inline chevrons (like the Win11 NumberBox) instead of two bulky boxes. -->
+  <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton">
+    <Setter Property="Width" Value="22" />
+    <Setter Property="MinWidth" Value="0" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Margin" Value="0,3,2,3" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="CornerRadius" Value="3" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+  </Style>
+  <Style Selector="NumericUpDown /template/ ButtonSpinner /template/ RepeatButton PathIcon, NumericUpDown /template/ ButtonSpinner /template/ RepeatButton Path">
+    <Setter Property="Width" Value="8" />
+    <Setter Property="Height" Value="8" />
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="Padding" Value="10,5" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ComboBox">
+    <Setter Property="Padding" Value="10,5" />
+  </Style>
+
+  <!-- Generic list: subtle fill and a 3px accent pill on the selected row, like the sidebar. -->
+  <Style Selector="ListBox">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource AppListBoxItem}" />
+  </Style>
+
+  <!-- Tabs: text tabs with an accent underline (selector bar). -->
+  <Style Selector="TabItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="MinHeight" Value="36" />
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TabItem:selected">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+  </Style>
+  <Style Selector="TabItem:pointerover">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+  </Style>
+
+  <!-- Filter chip: when on, a light accent tint with accent text and border instead of a solid accent fill. -->
+  <Style Selector="ToggleButton.chip">
+    <Setter Property="Padding" Value="12,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="ToggleButton.chip:checked /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.chip:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppAccentSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+  </Style>
+
+
+  <Style Selector="ProgressBar">
+    <Setter Property="MinHeight" Value="4" />
+    <Setter Property="Height" Value="4" />
+    <Setter Property="CornerRadius" Value="2" />
+    <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="Background" Value="{DynamicResource AppBorderBrush}" />
+  </Style>
+  <Style Selector="ProgressBar /template/ Border#PART_Indicator">
+    <Setter Property="CornerRadius" Value="2" />
+  </Style>
+
+  <Style Selector="ToolTip">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+  <Style Selector="MenuItem">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+
+  <!-- DataGrid base look: caption headers, no heavy borders, subtle hover and selection. -->
+  <Style Selector="DataGrid">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="GridLinesVisibility" Value="None" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{DynamicResource AppDividerBrush}" />
+    <Setter Property="RowBackground" Value="Transparent" />
+  </Style>
+  <Style Selector="DataGridColumnHeader">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="SeparatorBrush" Value="Transparent" />
+    <Setter Property="AreSeparatorsVisible" Value="False" />
+    <Setter Property="MinHeight" Value="32" />
+  </Style>
+  <Style Selector="DataGridRow:selected DataGridCell">
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+  </Style>
+</Styles>

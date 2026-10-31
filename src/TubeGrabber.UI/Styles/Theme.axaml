@@ -1,0 +1,531 @@
+<!--
+  App-wide look ("Fluent native"): own brushes per theme variant, radii, text styles, card and icon-button styles,
+  and the sidebar item theme. Consume brushes with {DynamicResource ...} only, so theme switches apply live.
+  Icon geometries live in Icons.axaml.
+-->
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#EEF0F4" />
+          <SolidColorBrush x:Key="AppLayerBrush" Color="#F9F9F9" />
+          <SolidColorBrush x:Key="AppCardBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#E5E5E5" />
+          <SolidColorBrush x:Key="AppDividerBrush" Color="#EBEBEB" />
+          <SolidColorBrush x:Key="AppTextBrush" Color="#1A1A1A" />
+          <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#5C5C5C" />
+          <SolidColorBrush x:Key="AppTextTertiaryBrush" Color="#6E6E6E" />
+          <SolidColorBrush x:Key="AppAccentBrush" Color="#005FB8" />
+          <SolidColorBrush x:Key="AppOnAccentBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppSuccessBrush" Color="#0F7B0F" />
+          <SolidColorBrush x:Key="AppErrorBrush" Color="#C42B1C" />
+          <SolidColorBrush x:Key="AppErrorBackgroundBrush" Color="#FDE7E9" />
+          <SolidColorBrush x:Key="AppSubtleBrush" Color="#0B000000" />
+          <SolidColorBrush x:Key="AppSubtlePressedBrush" Color="#13000000" />
+          <SolidColorBrush x:Key="AppFocusBrush" Color="#1A1A1A" />
+          <!-- Control fills and borders. The border is a vertical gradient so the bottom edge is slightly darker, like Windows 11. -->
+          <SolidColorBrush x:Key="AppControlBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppControlHoverBrush" Color="#F6F6F6" />
+          <SolidColorBrush x:Key="AppControlPressedBrush" Color="#EFEFEF" />
+          <SolidColorBrush x:Key="AppControlDisabledBrush" Color="#F3F3F3" />
+          <SolidColorBrush x:Key="AppTextDisabledBrush" Color="#9A9A9A" />
+          <SolidColorBrush x:Key="AppPlaceholderBrush" Color="#6E6E6E" />
+          <SolidColorBrush x:Key="AppStrokeStrongBrush" Color="#8A8A8A" />
+          <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#1A6BBF" />
+          <SolidColorBrush x:Key="AppAccentSubtleBrush" Color="#1A005FB8" />
+          <SolidColorBrush x:Key="AppAccentPressedBrush" Color="#3A80C9" />
+          <SolidColorBrush x:Key="AppAccentDisabledBrush" Color="#C8C8C8" />
+          <SolidColorBrush x:Key="AppFlyoutBrush" Color="#FCFCFC" />
+          <SolidColorBrush x:Key="AppCardHoverBrush" Color="#F6F6F6" />
+          <SolidColorBrush x:Key="AppWarningBrush" Color="#9D5D00" />
+          <SolidColorBrush x:Key="AppDangerBrush" Color="#C42B1C" />
+          <SolidColorBrush x:Key="AppDangerHoverBrush" Color="#AB2518" />
+          <SolidColorBrush x:Key="AppDangerPressedBrush" Color="#8F1F14" />
+          <SolidColorBrush x:Key="AppOnDangerBrush" Color="#FFFFFF" />
+          <LinearGradientBrush x:Key="AppControlBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#E3E3E3" Offset="0" />
+            <GradientStop Color="#E3E3E3" Offset="0.88" />
+            <GradientStop Color="#C9C9C9" Offset="1" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AppInputBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#E0E0E0" Offset="0" />
+            <GradientStop Color="#E0E0E0" Offset="0.88" />
+            <GradientStop Color="#8A8A8A" Offset="1" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AppInputFocusBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#E0E0E0" Offset="0" />
+            <GradientStop Color="#E0E0E0" Offset="0.93" />
+            <GradientStop Color="#005FB8" Offset="0.94" />
+            <GradientStop Color="#005FB8" Offset="1" />
+          </LinearGradientBrush>
+
+          <!-- Fluent key overrides: standard controls pick these up. -->
+          <StaticResource x:Key="ButtonBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ToggleButtonForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="AccentButtonBackground" ResourceKey="AppAccentBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="AppAccentHoverBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="AppAccentPressedBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundDisabled" ResourceKey="AppAccentDisabledBrush" />
+          <StaticResource x:Key="AccentButtonForeground" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrush" ResourceKey="AppAccentBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushPointerOver" ResourceKey="AppAccentHoverBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushPressed" ResourceKey="AppAccentPressedBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushDisabled" ResourceKey="AppAccentDisabledBrush" />
+
+          <StaticResource x:Key="TextControlBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="AppInputBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="AppInputBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="AppInputFocusBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="AppPlaceholderBrush" />
+
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ComboBoxForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="AppBorderBrush" />
+
+          <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="AppTextBrush" />
+
+          <StaticResource x:Key="ToolTipBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="ToolTipForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="AppTextBrush" />
+
+          <StaticResource x:Key="TabItemHeaderForegroundUnselected" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundUnselectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundUnselectedPressed" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelected" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelectedPressed" ResourceKey="AppTextBrush" />
+          <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="Transparent" />
+          <StaticResource x:Key="TabItemHeaderBackgroundUnselectedPointerOver" ResourceKey="AppSubtleBrush" />
+          <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="Transparent" />
+          <StaticResource x:Key="TabItemHeaderBackgroundSelectedPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="TabItemHeaderSelectedPipeFill" ResourceKey="AppAccentBrush" />
+
+          <StaticResource x:Key="ScrollBarThumbFill" ResourceKey="AppStrokeStrongBrush" />
+          <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="AppStrokeStrongBrush" />
+          <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="AppStrokeStrongBrush" />
+          <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent" />
+
+
+          <!-- DataGrid: subtle hover and selection fills instead of Fluent's accent block. -->
+          <SolidColorBrush x:Key="DataGridColumnHeaderBackgroundBrush" Color="Transparent" />
+          <StaticResource x:Key="DataGridColumnHeaderHoveredBackgroundBrush" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridColumnHeaderPressedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowHoveredBackgroundColor" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridRowSelectedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowSelectedHoveredBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <x:Double x:Key="DataGridRowSelectedBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedHoveredBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedUnfocusedBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundOpacity">1</x:Double>
+        </ResourceDictionary>
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppWindowBackgroundBrush" Color="#1C1F26" />
+          <SolidColorBrush x:Key="AppLayerBrush" Color="#232528" />
+          <SolidColorBrush x:Key="AppCardBrush" Color="#2B2D30" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#383A3D" />
+          <SolidColorBrush x:Key="AppDividerBrush" Color="#333538" />
+          <SolidColorBrush x:Key="AppTextBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppTextSecondaryBrush" Color="#C9C9C9" />
+          <SolidColorBrush x:Key="AppTextTertiaryBrush" Color="#A8A8A8" />
+          <SolidColorBrush x:Key="AppAccentBrush" Color="#60CDFF" />
+          <SolidColorBrush x:Key="AppOnAccentBrush" Color="#000000" />
+          <SolidColorBrush x:Key="AppSuccessBrush" Color="#6CCB5F" />
+          <SolidColorBrush x:Key="AppErrorBrush" Color="#FF99A4" />
+          <SolidColorBrush x:Key="AppErrorBackgroundBrush" Color="#442726" />
+          <SolidColorBrush x:Key="AppSubtleBrush" Color="#0FFFFFFF" />
+          <SolidColorBrush x:Key="AppSubtlePressedBrush" Color="#17FFFFFF" />
+          <SolidColorBrush x:Key="AppFocusBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppControlBrush" Color="#373A3E" />
+          <SolidColorBrush x:Key="AppControlHoverBrush" Color="#414448" />
+          <SolidColorBrush x:Key="AppControlPressedBrush" Color="#2E3033" />
+          <SolidColorBrush x:Key="AppControlDisabledBrush" Color="#2A2C2F" />
+          <SolidColorBrush x:Key="AppTextDisabledBrush" Color="#7A7A7A" />
+          <SolidColorBrush x:Key="AppPlaceholderBrush" Color="#A8A8A8" />
+          <SolidColorBrush x:Key="AppStrokeStrongBrush" Color="#9A9A9A" />
+          <SolidColorBrush x:Key="AppAccentHoverBrush" Color="#53BDEA" />
+          <SolidColorBrush x:Key="AppAccentSubtleBrush" Color="#2660CDFF" />
+          <SolidColorBrush x:Key="AppAccentPressedBrush" Color="#47A5CF" />
+          <SolidColorBrush x:Key="AppAccentDisabledBrush" Color="#4A4C4F" />
+          <SolidColorBrush x:Key="AppFlyoutBrush" Color="#2C2E31" />
+          <SolidColorBrush x:Key="AppCardHoverBrush" Color="#323437" />
+          <SolidColorBrush x:Key="AppWarningBrush" Color="#FCE100" />
+          <SolidColorBrush x:Key="AppDangerBrush" Color="#D13438" />
+          <SolidColorBrush x:Key="AppDangerHoverBrush" Color="#E0474B" />
+          <SolidColorBrush x:Key="AppDangerPressedBrush" Color="#B92B2F" />
+          <SolidColorBrush x:Key="AppOnDangerBrush" Color="#FFFFFF" />
+          <LinearGradientBrush x:Key="AppControlBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#4A4D51" Offset="0" />
+            <GradientStop Color="#44474B" Offset="0.88" />
+            <GradientStop Color="#3A3D40" Offset="1" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AppInputBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#4A4D51" Offset="0" />
+            <GradientStop Color="#4A4D51" Offset="0.88" />
+            <GradientStop Color="#9A9A9A" Offset="1" />
+          </LinearGradientBrush>
+          <LinearGradientBrush x:Key="AppInputFocusBorderBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+            <GradientStop Color="#4A4D51" Offset="0" />
+            <GradientStop Color="#4A4D51" Offset="0.93" />
+            <GradientStop Color="#60CDFF" Offset="0.94" />
+            <GradientStop Color="#60CDFF" Offset="1" />
+          </LinearGradientBrush>
+
+          <!-- Fluent key overrides: standard controls pick these up. -->
+          <StaticResource x:Key="ButtonBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ButtonBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ButtonBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ButtonBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ButtonForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ButtonForegroundPressed" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="ButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ButtonBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushPressed" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ButtonBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ToggleButtonBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ToggleButtonForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundPressed" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="ToggleButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushPressed" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ToggleButtonBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="AccentButtonBackground" ResourceKey="AppAccentBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundPointerOver" ResourceKey="AppAccentHoverBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundPressed" ResourceKey="AppAccentPressedBrush" />
+          <StaticResource x:Key="AccentButtonBackgroundDisabled" ResourceKey="AppAccentDisabledBrush" />
+          <StaticResource x:Key="AccentButtonForeground" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundPointerOver" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundPressed" ResourceKey="AppOnAccentBrush" />
+          <StaticResource x:Key="AccentButtonForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrush" ResourceKey="AppAccentBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushPointerOver" ResourceKey="AppAccentHoverBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushPressed" ResourceKey="AppAccentPressedBrush" />
+          <StaticResource x:Key="AccentButtonBorderBrushDisabled" ResourceKey="AppAccentDisabledBrush" />
+
+          <StaticResource x:Key="TextControlBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="TextControlBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="TextControlBackgroundFocused" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="TextControlBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="TextControlForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundFocused" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TextControlForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="TextControlBorderBrush" ResourceKey="AppInputBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushPointerOver" ResourceKey="AppInputBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushFocused" ResourceKey="AppInputFocusBorderBrush" />
+          <StaticResource x:Key="TextControlBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="TextControlPlaceholderForeground" ResourceKey="AppPlaceholderBrush" />
+
+          <StaticResource x:Key="ComboBoxBackground" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPointerOver" ResourceKey="AppControlHoverBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundPressed" ResourceKey="AppControlPressedBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundDisabled" ResourceKey="AppControlDisabledBrush" />
+          <StaticResource x:Key="ComboBoxBackgroundUnfocused" ResourceKey="AppControlBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrush" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPointerOver" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushPressed" ResourceKey="AppControlBorderBrush" />
+          <StaticResource x:Key="ComboBoxBorderBrushDisabled" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="ComboBoxForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxForegroundDisabled" ResourceKey="AppTextDisabledBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="ComboBoxDropDownBorderBrush" ResourceKey="AppBorderBrush" />
+
+          <StaticResource x:Key="ComboBoxItemBackgroundPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelected" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPointerOver" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemBackgroundSelectedPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelected" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundSelectedPressed" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ComboBoxItemForegroundPressed" ResourceKey="AppTextBrush" />
+
+          <StaticResource x:Key="ToolTipBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="ToolTipForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="ToolTipBorderBrush" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBackground" ResourceKey="AppFlyoutBrush" />
+          <StaticResource x:Key="MenuFlyoutPresenterBorderBrush" ResourceKey="AppBorderBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="MenuFlyoutItemBackgroundPressed" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForeground" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="MenuFlyoutItemForegroundPressed" ResourceKey="AppTextBrush" />
+
+          <StaticResource x:Key="TabItemHeaderForegroundUnselected" ResourceKey="AppTextSecondaryBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundUnselectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundUnselectedPressed" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelected" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelectedPointerOver" ResourceKey="AppTextBrush" />
+          <StaticResource x:Key="TabItemHeaderForegroundSelectedPressed" ResourceKey="AppTextBrush" />
+          <SolidColorBrush x:Key="TabItemHeaderBackgroundUnselected" Color="Transparent" />
+          <StaticResource x:Key="TabItemHeaderBackgroundUnselectedPointerOver" ResourceKey="AppSubtleBrush" />
+          <SolidColorBrush x:Key="TabItemHeaderBackgroundSelected" Color="Transparent" />
+          <StaticResource x:Key="TabItemHeaderBackgroundSelectedPointerOver" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="TabItemHeaderSelectedPipeFill" ResourceKey="AppAccentBrush" />
+
+          <StaticResource x:Key="ScrollBarThumbFill" ResourceKey="AppStrokeStrongBrush" />
+          <StaticResource x:Key="ScrollBarThumbFillPointerOver" ResourceKey="AppStrokeStrongBrush" />
+          <StaticResource x:Key="ScrollBarThumbFillPressed" ResourceKey="AppStrokeStrongBrush" />
+          <SolidColorBrush x:Key="ScrollBarTrackFill" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackFillPointerOver" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackStroke" Color="Transparent" />
+          <SolidColorBrush x:Key="ScrollBarTrackStrokePointerOver" Color="Transparent" />
+
+
+          <!-- DataGrid: subtle hover and selection fills instead of Fluent's accent block. -->
+          <SolidColorBrush x:Key="DataGridColumnHeaderBackgroundBrush" Color="Transparent" />
+          <StaticResource x:Key="DataGridColumnHeaderHoveredBackgroundBrush" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridColumnHeaderPressedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowHoveredBackgroundColor" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridRowSelectedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowSelectedHoveredBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <StaticResource x:Key="DataGridRowSelectedUnfocusedBackgroundBrush" ResourceKey="AppSubtleBrush" />
+          <StaticResource x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundBrush" ResourceKey="AppSubtlePressedBrush" />
+          <x:Double x:Key="DataGridRowSelectedBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedHoveredBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedUnfocusedBackgroundOpacity">1</x:Double>
+          <x:Double x:Key="DataGridRowSelectedHoveredUnfocusedBackgroundOpacity">1</x:Double>
+        </ResourceDictionary>
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- Fluent defaults are 3 / 8; the design uses 4 for controls. OverlayCornerRadius (8) is used for cards and the page layer. -->
+      <CornerRadius x:Key="ControlCornerRadius">4</CornerRadius>
+      <CornerRadius x:Key="OverlayCornerRadius">8</CornerRadius>
+      <Thickness x:Key="TextControlBorderThemeThicknessFocused">1,1,1,2</Thickness>
+
+      <!-- Sidebar item: 36px row, subtle pill when hovered or selected, accent bar when selected, focus ring for keyboard. -->
+      <ControlTheme x:Key="NavListBoxItem" TargetType="ListBoxItem">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Margin" Value="4,1" />
+        <Setter Property="Padding" Value="12,0" />
+        <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+        <Setter Property="Template">
+          <ControlTemplate>
+            <Panel>
+              <Border x:Name="PART_Pill"
+                      Background="Transparent"
+                      BorderBrush="Transparent"
+                      BorderThickness="2"
+                      CornerRadius="{DynamicResource ControlCornerRadius}">
+                <ContentPresenter x:Name="PART_ContentPresenter"
+                                  Padding="{TemplateBinding Padding}"
+                                  Content="{TemplateBinding Content}"
+                                  ContentTemplate="{TemplateBinding ContentTemplate}"
+                                  Foreground="{TemplateBinding Foreground}"
+                                  VerticalContentAlignment="Center" />
+              </Border>
+              <Border x:Name="PART_Indicator"
+                      Width="3"
+                      Height="16"
+                      HorizontalAlignment="Left"
+                      VerticalAlignment="Center"
+                      CornerRadius="2"
+                      Background="{DynamicResource AppAccentBrush}"
+                      IsVisible="False" />
+            </Panel>
+          </ControlTemplate>
+        </Setter>
+        <Style Selector="^:pointerover /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+        </Style>
+        <Style Selector="^:selected:pointerover /template/ Border#PART_Pill">
+          <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+        </Style>
+        <Style Selector="^:selected /template/ Border#PART_Indicator">
+          <Setter Property="IsVisible" Value="True" />
+        </Style>
+        <Style Selector="^:focus-visible /template/ Border#PART_Pill">
+          <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+        </Style>
+      </ControlTheme>
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- Text: 28 page title, 14 row title, 13 meta, 12 caption. Body is the Fluent default (14). -->
+  <Style Selector="TextBlock.pageTitle">
+    <Setter Property="FontSize" Value="28" />
+    <Setter Property="LineHeight" Value="36" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.rowTitle">
+    <Setter Property="FontSize" Value="14" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.meta">
+    <Setter Property="FontSize" Value="13" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.caption">
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.success">
+    <Setter Property="Foreground" Value="{DynamicResource AppSuccessBrush}" />
+  </Style>
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource AppErrorBrush}" />
+  </Style>
+
+  <!-- Surfaces. Border.layer is the rounded page layer owned by MainWindow; Border.card is for content blocks inside pages. -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource AppCardBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+  </Style>
+  <!-- Small status pill ("Built-in", "Unsaved", "3 changed"). -->
+  <Style Selector="Border.pill">
+    <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+    <Setter Property="CornerRadius" Value="9" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="MinHeight" Value="18" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Border.pill > TextBlock">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="LineHeight" Value="18" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+  </Style>
+  <Style Selector="Border.pill.accent">
+    <Setter Property="Background" Value="{DynamicResource AppAccentSubtleBrush}" />
+  </Style>
+  <Style Selector="Border.pill.accent > TextBlock">
+    <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+  </Style>
+
+  <Style Selector="Border.divider">
+    <Setter Property="BorderBrush" Value="{DynamicResource AppDividerBrush}" />
+    <Setter Property="BorderThickness" Value="0,1,0,0" />
+  </Style>
+
+  <!-- Small icon-only button (32x32). Always give it ToolTip.Tip and AutomationProperties.Name. -->
+  <Style Selector="Button.icon">
+    <Setter Property="Width" Value="32" />
+    <Setter Property="Height" Value="32" />
+    <Setter Property="MinWidth" Value="32" />
+    <Setter Property="MinHeight" Value="32" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="2" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+  <Style Selector="Button.icon:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+  </Style>
+  <Style Selector="Button.icon:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+  </Style>
+  <Style Selector="Button.icon:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+  </Style>
+  <Style Selector="Button.icon:disabled">
+    <Setter Property="Opacity" Value="0.4" />
+  </Style>
+
+  <!-- Destructive primary action (Delete): white text on red, never the pink error text colour. -->
+  <Style Selector="Button.danger /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppDangerBrush}" />
+    <Setter Property="BorderBrush" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppOnDangerBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppDangerHoverBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppOnDangerBrush}" />
+  </Style>
+  <Style Selector="Button.danger:pressed /template/ ContentPresenter#PART_ContentPresenter">
+    <Setter Property="Background" Value="{DynamicResource AppDangerPressedBrush}" />
+    <Setter Property="Foreground" Value="{DynamicResource AppOnDangerBrush}" />
+  </Style>
+
+  <!-- Transparent list used for the sidebar. -->
+  <Style Selector="ListBox.nav">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ItemContainerTheme" Value="{StaticResource NavListBoxItem}" />
+  </Style>
+</Styles>

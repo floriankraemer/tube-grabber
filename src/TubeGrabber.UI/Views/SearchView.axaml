@@ -1,0 +1,327 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
+             xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+             xmlns:models="clr-namespace:TubeGrabber.Core.Models;assembly=TubeGrabber.Core"
+             x:Class="TubeGrabber.UI.Views.SearchView"
+             x:DataType="vm:SearchViewModel">
+  <UserControl.Styles>
+    <!-- All command-row controls share one height so the row reads as a single bar. -->
+    <Style Selector="Grid.commandRow > :is(Control), StackPanel.filterRow > :is(Control)">
+      <Setter Property="Height" Value="36" />
+    </Style>
+
+    <!-- Videos / Channels switch: two radio buttons dressed as a segmented control. -->
+    <Style Selector="RadioButton.segment">
+      <Setter Property="Theme" Value="{StaticResource {x:Type ToggleButton}}" />
+      <Setter Property="MinWidth" Value="84" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segment /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segment:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segment:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="RadioButton.segment:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+    </Style>
+
+    <!-- Secondary row action: accent text and outline, no fill. -->
+    <Style Selector="Button.outlineAccent">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.outlineAccent /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="Button.outlineAccent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="Button.outlineAccent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+    </Style>
+    <Style Selector="Button.outlineAccent:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextTertiaryBrush}" />
+    </Style>
+
+    <Style Selector="Border.thumb">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.centerState">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Spacing" Value="8" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,Auto,*" Margin="32,28,32,16">
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock Classes="pageTitle" Text="Search" />
+      <TextBlock Classes="meta" Text="Find videos or channels on YouTube, then queue them or subscribe." />
+    </StackPanel>
+
+    <Grid Grid.Row="1" Classes="commandRow" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,20,0,12">
+      <TextBox Grid.Column="0"
+               PlaceholderText="{Binding SearchPlaceholder}"
+               Text="{Binding SearchQuery}"
+               VerticalContentAlignment="Center"
+               KeyDown="SearchQuery_KeyDown">
+        <TextBox.InnerLeftContent>
+          <ui:Icon Data="{DynamicResource IconSearch}" Width="16" Height="16" Margin="10,0,0,0"
+                   Foreground="{DynamicResource AppTextTertiaryBrush}" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+      <Border Grid.Column="1"
+              Height="36"
+              Padding="3"
+              Background="{DynamicResource AppSubtleBrush}"
+              CornerRadius="{DynamicResource ControlCornerRadius}">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+          <RadioButton Classes="segment" GroupName="SearchMode" Content="Videos"
+                       IsChecked="{Binding IsVideoMode}" Height="30" />
+          <RadioButton Classes="segment" GroupName="SearchMode" Content="Channels"
+                       IsChecked="{Binding IsChannelMode}" Height="30" />
+        </StackPanel>
+      </Border>
+      <Button Grid.Column="2"
+              Classes="accent"
+              Padding="16,0"
+              VerticalContentAlignment="Center"
+              Click="Search_Click">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ui:Icon Data="{DynamicResource IconSearch}" Width="16" Height="16" />
+          <TextBlock Text="Search" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <Grid Grid.Row="2" ColumnDefinitions="Auto,*">
+      <StackPanel Grid.Column="0"
+                  Classes="filterRow"
+                  Orientation="Horizontal"
+                  Spacing="8"
+                  IsVisible="{Binding IsVideoMode}">
+        <ComboBox ItemsSource="{Binding UploadDateOptions}"
+                  SelectedItem="{Binding SelectedUploadDate}"
+                  MinWidth="150"
+                  VerticalContentAlignment="Center"
+                  AutomationProperties.Name="Upload date" />
+        <ComboBox ItemsSource="{Binding DurationOptions}"
+                  SelectedItem="{Binding SelectedDuration}"
+                  MinWidth="170"
+                  VerticalContentAlignment="Center"
+                  AutomationProperties.Name="Length" />
+        <ToggleButton Classes="chip"
+                      IsChecked="{Binding HideShorts}"
+                      ToolTip.Tip="Hides videos of 60 seconds or less">
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <ui:Icon Data="{DynamicResource IconCheckCircle}" Width="14" Height="14"
+                     IsVisible="{Binding HideShorts}" VerticalAlignment="Center" />
+            <TextBlock Text="Hide Shorts" VerticalAlignment="Center" />
+          </StackPanel>
+        </ToggleButton>
+      </StackPanel>
+      <TextBlock Grid.Column="1"
+                 Classes="caption"
+                 HorizontalAlignment="Right"
+                 VerticalAlignment="Center"
+                 Text="{Binding StatusMessage}" />
+    </Grid>
+
+    <Border Grid.Row="3"
+            Margin="0,12,0,0"
+            Padding="12,10"
+            Background="{DynamicResource AppErrorBackgroundBrush}"
+            CornerRadius="{DynamicResource ControlCornerRadius}"
+            IsVisible="{Binding HasError}">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ui:Icon Data="{DynamicResource IconError}" Width="16" Height="16"
+                 Foreground="{DynamicResource AppErrorBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+        <TextBlock Classes="error" Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Grid Grid.Row="4" Margin="0,12,0,0">
+      <!-- The viewer extends 12px past the content edge so its scrollbar sits outside the cards. -->
+      <ScrollViewer x:Name="ResultsScrollViewer"
+                    Margin="0,0,-12,0"
+                    IsVisible="{Binding HasResults}"
+                    ScrollChanged="ResultsScrollViewer_ScrollChanged">
+        <StackPanel Margin="0,0,12,8">
+        <ItemsControl ItemsSource="{Binding Results}"
+                      IsVisible="{Binding IsVideoMode}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:SearchResultViewModel">
+              <Border Classes="card" Padding="12" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                  <Border Grid.Column="0" Classes="thumb" Width="160" Height="90">
+                    <Grid>
+                      <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                      <Border HorizontalAlignment="Right"
+                              VerticalAlignment="Bottom"
+                              Margin="6"
+                              Padding="4,1"
+                              Background="#CC000000"
+                              CornerRadius="3"
+                              IsVisible="{Binding DurationDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                        <TextBlock Text="{Binding DurationDisplay}" FontSize="12" Foreground="White" />
+                      </Border>
+                    </Grid>
+                  </Border>
+
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Classes="rowTitle"
+                               Text="{Binding Title}"
+                               TextWrapping="Wrap"
+                               TextTrimming="CharacterEllipsis"
+                               MaxLines="2" />
+                    <TextBlock Classes="meta"
+                               Text="{Binding Channel}"
+                               TextTrimming="CharacterEllipsis"
+                               IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="caption"
+                               Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8" Width="190">
+                    <ComboBox HorizontalAlignment="Stretch" Height="32"
+                              ItemsSource="{Binding Profiles}"
+                              SelectedItem="{Binding SelectedProfile}"
+                              PlaceholderText="Profile"
+                              AutomationProperties.Name="Download profile">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:DownloadProfile">
+                          <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Classes="outlineAccent"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            IsEnabled="{Binding CanAdd}"
+                            Click="AddToQueue_Click">
+                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <ui:Icon Data="{DynamicResource IconAdd}" Width="16" Height="16" />
+                        <TextBlock Text="Add to queue" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <ItemsControl ItemsSource="{Binding Channels}"
+                      IsVisible="{Binding IsChannelMode}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:ChannelResultViewModel">
+              <Border Classes="card" Padding="12" Margin="0,0,0,8">
+                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                  <Border Grid.Column="0"
+                          Classes="thumb"
+                          Width="64"
+                          Height="64"
+                          CornerRadius="32">
+                    <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                  </Border>
+
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Classes="rowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Classes="meta"
+                               Text="{Binding Subtitle}"
+                               TextTrimming="CharacterEllipsis"
+                               IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <TextBlock Classes="caption"
+                               Text="{Binding StatusMessage}"
+                               TextWrapping="Wrap"
+                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                  </StackPanel>
+
+                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8" Width="190">
+                    <ComboBox HorizontalAlignment="Stretch" Height="32"
+                              ItemsSource="{Binding Profiles}"
+                              SelectedItem="{Binding SelectedProfile}"
+                              PlaceholderText="Profile"
+                              AutomationProperties.Name="Download profile">
+                      <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:DownloadProfile">
+                          <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                      </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Button Classes="outlineAccent"
+                            HorizontalAlignment="Stretch"
+                            HorizontalContentAlignment="Center"
+                            IsEnabled="{Binding CanSubscribe}"
+                            Click="Subscribe_Click">
+                      <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                        <ui:Icon Data="{DynamicResource IconSubscriptions}" Width="16" Height="16" />
+                        <TextBlock Text="Subscribe" VerticalAlignment="Center" />
+                      </StackPanel>
+                    </Button>
+                  </StackPanel>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <Button Classes="outlineAccent"
+                Content="Load more"
+                HorizontalAlignment="Center"
+                IsVisible="{Binding CanLoadMore}"
+                IsEnabled="{Binding !IsLoadingMore}"
+                Click="LoadMore_Click" />
+
+        <ProgressBar Width="160"
+                     IsIndeterminate="True"
+                     IsVisible="{Binding IsLoadingMore}" />
+        </StackPanel>
+      </ScrollViewer>
+
+      <StackPanel Classes="centerState" IsVisible="{Binding ShowInitialLoading}">
+        <ProgressBar Width="200" IsIndeterminate="True" />
+        <TextBlock Classes="meta" Text="Searching…" HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel Classes="centerState" IsVisible="{Binding ShowNoResults}">
+        <ui:Icon Data="{DynamicResource IconSearch}" Width="32" Height="32"
+                 Foreground="{DynamicResource AppTextTertiaryBrush}" HorizontalAlignment="Center" />
+        <TextBlock Classes="rowTitle" Text="No results" HorizontalAlignment="Center" />
+        <TextBlock Classes="meta" Text="Try different keywords or loosen the filters." HorizontalAlignment="Center" />
+      </StackPanel>
+
+      <StackPanel Classes="centerState" IsVisible="{Binding ShowIntro}">
+        <ui:Icon Data="{DynamicResource IconSearch}" Width="32" Height="32"
+                 Foreground="{DynamicResource AppTextTertiaryBrush}" HorizontalAlignment="Center" />
+        <TextBlock Classes="rowTitle" Text="Search YouTube" HorizontalAlignment="Center" />
+        <TextBlock Classes="meta" Text="Type a query above and press Enter." HorizontalAlignment="Center" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+</UserControl>

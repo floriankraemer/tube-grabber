@@ -3,7 +3,7 @@
 #   docker compose build
 #   docker compose run --rm dev make ci
 #
-# Projects target net10.0; YtDlpUi.slnx requires .NET SDK 9.0.200+ (MSBuild slnx support).
+# Projects target net10.0; TubeGrabber.slnx requires .NET SDK 9.0.200+ (MSBuild slnx support).
 FROM mcr.microsoft.com/dotnet/sdk:10.0
 
 ENV DEBIAN_FRONTEND=noninteractive

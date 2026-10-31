@@ -1,0 +1,36 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+        x:Class="TubeGrabber.UI.Views.ConfirmWindow"
+        Width="440"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppLayerBrush}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource AppCardBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,1,0,0" Padding="24,20">
+      <Grid x:Name="ActionsHost" ColumnSpacing="8" />
+    </Border>
+
+    <StackPanel Margin="24" Spacing="12">
+      <TextBlock x:Name="HeadingText" FontSize="20" LineHeight="28" FontWeight="SemiBold" TextWrapping="Wrap" />
+      <TextBlock x:Name="BodyText" FontSize="14" TextWrapping="Wrap" />
+      <ItemsControl x:Name="WarningList">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate><StackPanel Spacing="8" /></ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="x:String">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <ui:Icon Data="{DynamicResource IconError}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0"
+                       Foreground="{DynamicResource AppWarningBrush}" />
+              <TextBlock Classes="meta" TextWrapping="Wrap" MaxWidth="360" Text="{Binding}" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </DockPanel>
+</Window>

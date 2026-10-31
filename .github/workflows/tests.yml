@@ -20,7 +20,7 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Run tests
-        run: dotnet test YtDlpUi.slnx -c Release --verbosity normal
+        run: dotnet test TubeGrabber.slnx -c Release --verbosity normal
 
   coverage:
     name: Coverage gate
@@ -39,4 +39,4 @@ jobs:
 
       - name: Test with coverage
         run: |
-          dotnet test YtDlpUi.slnx -c Release --verbosity minimal -p:Coverage=true
+          dotnet test TubeGrabber.slnx -c Release --verbosity minimal -p:Coverage=true

@@ -1,0 +1,142 @@
+<!--
+  Caption buttons for the main window, drawn by Avalonia wherever the client area is extended into the title bar
+  (Windows, and Linux with client-side decorations; macOS keeps its native traffic lights).
+  Replaces the Fluent default so the buttons match Windows 11: no full-screen button, no duplicate title text
+  (the window paints its own icon and title), 46px wide buttons spanning the whole title bar, Windows 11 glyphs
+  and hover colours. The PART_ names and element roles are what Avalonia wires the window actions and
+  the native hit-testing to. Only the maximize button reports its role to the OS (HTMAXBUTTON), which is what
+  opens Snap Layouts on hover. Minimize and close stay ordinary client buttons: as HTMINBUTTON/HTCLOSE, Windows'
+  own caption tracking swallows the pointer-over state, so they never showed a hover background.
+-->
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <ControlTheme x:Key="AppCaptionButton" TargetType="Button">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    <Setter Property="Width" Value="46" />
+    <Setter Property="VerticalAlignment" Value="Stretch" />
+    <Setter Property="IsTabStop" Value="False" />
+    <Setter Property="WindowDecorationProperties.ElementRole" Value="DecorationsElement" />
+    <Setter Property="Template">
+      <ControlTemplate>
+        <ContentPresenter Name="PART_ContentPresenter"
+                          Background="{TemplateBinding Background}"
+                          Foreground="{TemplateBinding Foreground}"
+                          Content="{TemplateBinding Content}"
+                          HorizontalContentAlignment="Center"
+                          VerticalContentAlignment="Center" />
+      </ControlTemplate>
+    </Setter>
+    <Style Selector="^:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+    </Style>
+    <Style Selector="^:pressed">
+      <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="^.close:pointerover">
+      <Setter Property="Background" Value="#C42B1C" />
+      <Setter Property="Foreground" Value="#FFFFFF" />
+    </Style>
+    <Style Selector="^.close:pressed">
+      <Setter Property="Background" Value="#E6C42B1C" />
+      <Setter Property="Foreground" Value="#B3FFFFFF" />
+    </Style>
+  </ControlTheme>
+
+  <ControlTheme x:Key="AppWindowDecorations" TargetType="WindowDrawnDecorations">
+    <Setter Property="DefaultTitleBarHeight" Value="44" />
+    <Setter Property="DefaultFrameThickness" Value="1" />
+    <Setter Property="DefaultShadowThickness" Value="8" />
+    <Setter Property="Template">
+      <WindowDrawnDecorationsTemplate>
+        <WindowDrawnDecorationsContent>
+
+          <WindowDrawnDecorationsContent.Underlay>
+            <Panel x:Name="PART_UnderlayWrapper">
+              <Border x:Name="PART_WindowBorder"
+                      BorderThickness="{TemplateBinding FrameThickness}"
+                      BorderBrush="{DynamicResource AppBorderBrush}"
+                      IsHitTestVisible="False" />
+              <!-- Transparent so Mica shows through; the window paints its own title row on top. -->
+              <Panel x:Name="PART_TitleBar"
+                     VerticalAlignment="Top"
+                     Height="{TemplateBinding TitleBarHeight}"
+                     Background="Transparent"
+                     IsVisible="{TemplateBinding HasTitleBar}"
+                     WindowDecorationProperties.ElementRole="TitleBar" />
+            </Panel>
+          </WindowDrawnDecorationsContent.Underlay>
+
+          <WindowDrawnDecorationsContent.Overlay>
+            <Panel x:Name="PART_OverlayWrapper">
+              <StackPanel x:Name="PART_OverlayPanel"
+                          VerticalAlignment="Top"
+                          HorizontalAlignment="Right"
+                          Height="{TemplateBinding TitleBarHeight}"
+                          IsVisible="{TemplateBinding HasTitleBar}"
+                          Orientation="Horizontal">
+                <Button x:Name="PART_MinimizeButton"
+                        Theme="{StaticResource AppCaptionButton}"
+                        ToolTip.Tip="Minimize">
+                  <Path Width="10" Height="10" StrokeThickness="1" Stroke="{Binding $parent[Button].Foreground}" Data="M0,5.5 H10" />
+                </Button>
+                <Button x:Name="PART_MaximizeButton"
+                        Theme="{StaticResource AppCaptionButton}"
+                        WindowDecorationProperties.ElementRole="MaximizeButton">
+                  <Path x:Name="MaximizeGlyph"
+                        Width="10" Height="10" StrokeThickness="1" Stroke="{Binding $parent[Button].Foreground}"
+                        Data="M1.5,0.5 H8.5 A1,1 0 0 1 9.5,1.5 V8.5 A1,1 0 0 1 8.5,9.5 H1.5 A1,1 0 0 1 0.5,8.5 V1.5 A1,1 0 0 1 1.5,0.5 Z" />
+                </Button>
+                <Button x:Name="PART_CloseButton"
+                        Classes="close"
+                        Theme="{StaticResource AppCaptionButton}"
+                        ToolTip.Tip="Close">
+                  <Path Width="10" Height="10" StrokeThickness="1" Stroke="{Binding $parent[Button].Foreground}" Data="M0.5,0.5 L9.5,9.5 M9.5,0.5 L0.5,9.5" />
+                </Button>
+              </StackPanel>
+            </Panel>
+          </WindowDrawnDecorationsContent.Overlay>
+
+        </WindowDrawnDecorationsContent>
+      </WindowDrawnDecorationsTemplate>
+    </Setter>
+
+    <Style Selector="^:has-shadow /template/ Panel#PART_UnderlayWrapper">
+      <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+    </Style>
+    <Style Selector="^:has-shadow /template/ Border#PART_WindowBorder">
+      <Setter Property="BoxShadow" Value="0 2 10 2 #80000000" />
+    </Style>
+    <Style Selector="^:has-shadow /template/ Panel#PART_OverlayWrapper">
+      <Setter Property="Margin" Value="{TemplateBinding ShadowThickness}" />
+    </Style>
+    <Style Selector="^:has-border /template/ Panel#PART_TitleBar">
+      <Setter Property="Margin" Value="1,1,1,0" />
+    </Style>
+    <Style Selector="^:has-border /template/ StackPanel#PART_OverlayPanel">
+      <Setter Property="Margin" Value="0,1,1,0" />
+    </Style>
+
+    <Style Selector="^:maximized /template/ Path#MaximizeGlyph">
+      <Setter Property="Data" Value="M2.5,2.5 V1.5 A1,1 0 0 1 3.5,0.5 H8.5 A1,1 0 0 1 9.5,1.5 V6.5 A1,1 0 0 1 8.5,7.5 H7.5 M1.5,2.5 H6.5 A1,1 0 0 1 7.5,3.5 V8.5 A1,1 0 0 1 6.5,9.5 H1.5 A1,1 0 0 1 0.5,8.5 V3.5 A1,1 0 0 1 1.5,2.5 Z" />
+    </Style>
+
+    <Style Selector="^ /template/ Button:disabled">
+      <Setter Property="Opacity" Value="0.4" />
+    </Style>
+    <Style Selector="^:not(:has-minimize) /template/ Button#PART_MinimizeButton">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:not(:has-maximize) /template/ Button#PART_MaximizeButton">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:fullscreen /template/ StackPanel#PART_OverlayPanel">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+    <Style Selector="^:fullscreen /template/ Panel#PART_TitleBar">
+      <Setter Property="IsVisible" Value="False" />
+    </Style>
+  </ControlTheme>
+</ResourceDictionary>

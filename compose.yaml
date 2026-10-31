@@ -11,7 +11,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: yt-dlp-ui-dev:latest
+    image: tube-grabber-dev:latest
     # Avoid creating a project bridge network (exhausts Docker address pools when many compose projects exist).
     network_mode: host
     working_dir: /src

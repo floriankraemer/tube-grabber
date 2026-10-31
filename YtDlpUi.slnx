@@ -1,6 +1,0 @@
-<Solution>
-  <Project Path="src/YtDlpUi.Core/YtDlpUi.Core.csproj" />
-  <Project Path="src/YtDlpUi.UI/YtDlpUi.UI.csproj" />
-  <Project Path="tests/YtDlpUi.Core.Tests/YtDlpUi.Core.Tests.csproj" />
-  <Project Path="tests/YtDlpUi.UI.Tests/YtDlpUi.UI.Tests.csproj" />
-</Solution>
