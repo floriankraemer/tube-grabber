@@ -1,6 +1,10 @@
-# Tube Grabber
+<p align="center">
+  <img src="docs/tube-grabber-logo.png" alt="Tube Grabber" width="220">
+</p>
 
-Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, profile-based settings, and optional yt-dlp/ffmpeg setup—without living on the command line.
+<p align="center">
+  Desktop UI for <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>: a download queue, profile-based settings, and optional yt-dlp/ffmpeg setup—without living on the command line.
+</p>
 
 ![Tube Grabber main window](docs/screenshot.png)
 
