@@ -6,7 +6,7 @@
   Desktop UI for <a href="https://github.com/yt-dlp/yt-dlp">yt-dlp</a>: a download queue, profile-based settings, and optional yt-dlp/ffmpeg setup—without living on the command line.
 </p>
 
-![Tube Grabber main window](docs/screenshot.png)
+![Tube Grabber main window](docs/tube-grabber-main-window.png)
 
 ## Features
 
