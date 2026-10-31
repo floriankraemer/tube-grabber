@@ -429,3 +429,6 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# Windows "downloaded from the internet" markers that WSL exposes as files
+*:Zone.Identifier
