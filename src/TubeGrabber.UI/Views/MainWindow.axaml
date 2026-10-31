@@ -1,0 +1,136 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
+        xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+        xmlns:views="clr-namespace:TubeGrabber.UI.Views"
+        x:Class="TubeGrabber.UI.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="Tube Grabber"
+        Width="1100"
+        Height="720"
+        MinWidth="800"
+        MinHeight="520"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="44"
+        TransparencyLevelHint="Mica, AcrylicBlur, None"
+        WindowDecorationsTheme="{StaticResource AppWindowDecorations}">
+  <Window.Styles>
+    <!-- Translucent backdrop (Mica / acrylic) shows through only when the platform grants it; otherwise paint the solid token. -->
+    <Style Selector="Window">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Window.solid">
+      <Setter Property="Background" Value="{DynamicResource AppWindowBackgroundBrush}" />
+    </Style>
+  </Window.Styles>
+
+  <!-- Margin keeps clear of drawn window frames and shadows (Linux client-side decorations); see MainWindow.axaml.cs. -->
+  <Grid x:Name="RootGrid" RowDefinitions="44,*" ColumnDefinitions="220,*">
+    <!-- Title row: the platform drags, snaps and maximizes the window from it; caption buttons are drawn over its right end. -->
+    <Border x:Name="TitleBar"
+            Grid.Row="0"
+            Grid.ColumnSpan="2"
+            Background="Transparent"
+            WindowDecorationProperties.ElementRole="TitleBar">
+      <StackPanel x:Name="TitleContent" Orientation="Horizontal" Spacing="12" Margin="16,0,0,0" VerticalAlignment="Center">
+        <Image Source="avares://TubeGrabber.UI/Assets/app-icon.png" Width="18" Height="18" />
+        <TextBlock Classes="caption" Text="Tube Grabber" Foreground="{DynamicResource AppTextBrush}" VerticalAlignment="Center" />
+      </StackPanel>
+    </Border>
+
+    <!-- Sidebar. Settings is docked to the bottom of the same ListBox, so there is a single selection and tab stop. -->
+    <ListBox x:Name="NavList"
+             Grid.Row="1"
+             Grid.Column="0"
+             Classes="nav"
+             Margin="0,4,0,12"
+             SelectionMode="AlwaysSelected"
+             AutomationProperties.Name="Main navigation"
+             SelectionChanged="NavList_SelectionChanged">
+      <ListBox.ItemsPanel>
+        <ItemsPanelTemplate>
+          <DockPanel LastChildFill="False" />
+        </ItemsPanelTemplate>
+      </ListBox.ItemsPanel>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Downloads}" DockPanel.Dock="Top">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
+          <ui:Icon Grid.Column="0" Data="{DynamicResource IconDownload}" Width="18" Height="18" />
+          <TextBlock Grid.Column="1" Text="Downloads" VerticalAlignment="Center" />
+          <Border Grid.Column="2"
+                  MinWidth="20"
+                  Height="16"
+                  Padding="5,0"
+                  CornerRadius="8"
+                  VerticalAlignment="Center"
+                  Background="{DynamicResource AppAccentBrush}"
+                  IsVisible="{Binding HasActiveJobs}"
+                  ToolTip.Tip="Active downloads">
+            <TextBlock Text="{Binding ActiveJobCount}"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Foreground="{DynamicResource AppOnAccentBrush}" />
+          </Border>
+        </Grid>
+      </ListBoxItem>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Search}" DockPanel.Dock="Top">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <ui:Icon Data="{DynamicResource IconSearch}" Width="18" Height="18" />
+          <TextBlock Text="Search" VerticalAlignment="Center" />
+        </StackPanel>
+      </ListBoxItem>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Subscriptions}" DockPanel.Dock="Top">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <ui:Icon Data="{DynamicResource IconSubscriptions}" Width="18" Height="18" />
+          <TextBlock Text="Subscriptions" VerticalAlignment="Center" />
+        </StackPanel>
+      </ListBoxItem>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Settings}" DockPanel.Dock="Bottom">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <ui:Icon Data="{DynamicResource IconSettings}" Width="18" Height="18" />
+          <TextBlock Text="Settings" VerticalAlignment="Center" />
+        </StackPanel>
+      </ListBoxItem>
+    </ListBox>
+
+    <!-- Page layer. Each page is its own view and stays alive (hidden) while another page is shown. -->
+    <Border Grid.Row="1"
+            Grid.Column="1"
+            Background="{DynamicResource AppLayerBrush}"
+            BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="1,1,0,0"
+            CornerRadius="8,0,0,0"
+            ClipToBounds="True">
+      <DockPanel>
+        <Border DockPanel.Dock="Bottom"
+                Height="40"
+                Padding="32,0"
+                IsVisible="{Binding ShowStatusBar}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="20">
+            <TextBlock Grid.Column="0"
+                       Classes="caption error"
+                       Text="{Binding ErrorMessage}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding ErrorMessage}" />
+            <TextBlock Grid.Column="1"
+                       Classes="caption"
+                       Text="{Binding StatusMessage}"
+                       VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"
+                       ToolTip.Tip="{Binding StatusMessage}" />
+          </Grid>
+        </Border>
+
+        <Panel>
+          <!-- Wrapped in plain panels because Search, Subscriptions and Settings own their DataContext. -->
+          <Panel IsVisible="{Binding IsDownloadsPage}"><views:DownloadsView x:Name="DownloadsPage" /></Panel>
+          <Panel IsVisible="{Binding IsSearchPage}"><views:SearchView x:Name="SearchPage" /></Panel>
+          <Panel IsVisible="{Binding IsSubscriptionsPage}"><views:SubscriptionsView x:Name="SubscriptionsPage" /></Panel>
+          <Panel IsVisible="{Binding IsSettingsPage}"><views:SettingsView x:Name="SettingsPage" /></Panel>
+        </Panel>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

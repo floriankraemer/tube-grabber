@@ -1,0 +1,25 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="TubeGrabber.UI.App"
+             RequestedThemeVariant="Default">
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://TubeGrabber.UI/Styles/Icons.axaml" />
+        <ResourceInclude Source="avares://TubeGrabber.UI/Styles/WindowDecorations.axaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+  <Application.Styles>
+    <FluentTheme>
+      <FluentTheme.Palettes>
+        <ColorPaletteResources x:Key="Light" Accent="#005FB8" RegionColor="#F9F9F9" ErrorText="#C42B1C" />
+        <ColorPaletteResources x:Key="Dark" Accent="#60CDFF" RegionColor="#232528" ErrorText="#FF99A4" />
+      </FluentTheme.Palettes>
+    </FluentTheme>
+    <StyleInclude Source="avares://Avalonia.Controls.DataGrid/Themes/Fluent.xaml" />
+    <StyleInclude Source="avares://TubeGrabber.UI/Styles/Theme.axaml" />
+    <StyleInclude Source="avares://TubeGrabber.UI/Styles/Controls.axaml" />
+  </Application.Styles>
+</Application>
+

@@ -30,8 +30,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
-$Sln = Join-Path $PSScriptRoot "YtDlpUi.slnx"
-$UiProj = Join-Path $PSScriptRoot "src\YtDlpUi.UI\YtDlpUi.UI.csproj"
+$Sln = Join-Path $PSScriptRoot "TubeGrabber.slnx"
+$UiProj = Join-Path $PSScriptRoot "src\TubeGrabber.UI\TubeGrabber.UI.csproj"
 
 function Invoke-DotNet {
     param([Parameter(Mandatory = $true)] [string[]] $Arguments)
@@ -70,7 +70,7 @@ function Get-DefaultRuntimeIdentifier {
 
 function Show-Help {
     @"
-Yt-dlp-ui — make.ps1
+Tube Grabber — make.ps1
 
 Usage:
   .\make.ps1 <target> [runtime-identifier]
@@ -147,7 +147,7 @@ switch ($Target.ToLowerInvariant()) {
     "coverage" {
         $coverageDir = Join-Path $PSScriptRoot (Join-Path "artifacts" "coverage")
         New-Item -ItemType Directory -Force -Path $coverageDir | Out-Null
-        $coberturaPaths = @("YtDlpUi.Core.Tests", "YtDlpUi.UI.Tests") |
+        $coberturaPaths = @("TubeGrabber.Core.Tests", "TubeGrabber.UI.Tests") |
             ForEach-Object { Join-Path $coverageDir "$_.cobertura.xml" }
         $htmlDir = Join-Path $coverageDir "html"
 
@@ -167,7 +167,7 @@ switch ($Target.ToLowerInvariant()) {
             )
 
             # coverlet.mtp appends a timestamp to report names; normalise to <Project>.cobertura.xml
-            foreach ($project in @("YtDlpUi.Core.Tests", "YtDlpUi.UI.Tests")) {
+            foreach ($project in @("TubeGrabber.Core.Tests", "TubeGrabber.UI.Tests")) {
                 $raw = Get-ChildItem $coverageDir -Filter "$project.coverage.cobertura.*.xml" | Select-Object -First 1
                 if ($raw) { Move-Item -Force $raw.FullName (Join-Path $coverageDir "$project.cobertura.xml") }
             }
@@ -211,9 +211,9 @@ switch ($Target.ToLowerInvariant()) {
         try {
             Invoke-DotNet @("tool", "restore")
             $hasGlobalStryker = $null -ne (Get-Command dotnet-stryker -ErrorAction SilentlyContinue)
-            Push-Location (Join-Path $PSScriptRoot "tests\YtDlpUi.Core.Tests")
+            Push-Location (Join-Path $PSScriptRoot "tests\TubeGrabber.Core.Tests")
             try {
-                if ($hasGlobalStryker) { & dotnet-stryker -f "..\..\src\YtDlpUi.Core\stryker-config.json" -t mtp } else { Invoke-DotNet @("tool", "run", "dotnet-stryker", "-f", "..\..\src\YtDlpUi.Core\stryker-config.json", "-t", "mtp") }
+                if ($hasGlobalStryker) { & dotnet-stryker -f "..\..\src\TubeGrabber.Core\stryker-config.json" -t mtp } else { Invoke-DotNet @("tool", "run", "dotnet-stryker", "-f", "..\..\src\TubeGrabber.Core\stryker-config.json", "-t", "mtp") }
                 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
             }
             finally { Pop-Location }
@@ -221,7 +221,7 @@ switch ($Target.ToLowerInvariant()) {
         finally { Pop-Location }
         Write-Host ""
         Write-Host "Mutation testing complete." -ForegroundColor Green
-        Write-Host "  Core HTML: tests/YtDlpUi.Core.Tests/StrykerOutput/<run>/reports/mutation-report.html"
+        Write-Host "  Core HTML: tests/TubeGrabber.Core.Tests/StrykerOutput/<run>/reports/mutation-report.html"
     }
     default {
         Write-Host "Unknown target: $Target" -ForegroundColor Red

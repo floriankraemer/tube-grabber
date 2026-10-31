@@ -24,16 +24,16 @@ jobs:
         run: |
           set -euxo pipefail
           for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
-            dotnet publish src/YtDlpUi.UI/YtDlpUi.UI.csproj \
+            dotnet publish src/TubeGrabber.UI/TubeGrabber.UI.csproj \
               -c Release \
               -r "$rid" \
               --self-contained true \
               -o "dist/$rid" \
               /p:PublishSingleFile=true
-            ui_name=YtDlpUi
-            if [ "$rid" = "win-x64" ]; then ui_name=YtDlpUi.exe; fi
-            if [ -f "dist/$rid/YtDlpUi.UI" ]; then mv "dist/$rid/YtDlpUi.UI" "dist/$rid/$ui_name"; fi
-            if [ -f "dist/$rid/YtDlpUi.UI.exe" ]; then mv "dist/$rid/YtDlpUi.UI.exe" "dist/$rid/$ui_name"; fi
+            ui_name=TubeGrabber
+            if [ "$rid" = "win-x64" ]; then ui_name=TubeGrabber.exe; fi
+            if [ -f "dist/$rid/TubeGrabber.UI" ]; then mv "dist/$rid/TubeGrabber.UI" "dist/$rid/$ui_name"; fi
+            if [ -f "dist/$rid/TubeGrabber.UI.exe" ]; then mv "dist/$rid/TubeGrabber.UI.exe" "dist/$rid/$ui_name"; fi
           done
 
       - name: Package archives
@@ -42,15 +42,15 @@ jobs:
         run: |
           set -euxo pipefail
           mkdir -p release
-          (cd dist/win-x64 && zip -r "../../release/YtDlpUi-${TAG}-win-x64.zip" .)
-          tar -czvf "release/YtDlpUi-${TAG}-linux-x64.tar.gz" -C dist/linux-x64 .
-          tar -czvf "release/YtDlpUi-${TAG}-osx-x64.tar.gz" -C dist/osx-x64 .
-          tar -czvf "release/YtDlpUi-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
+          (cd dist/win-x64 && zip -r "../../release/TubeGrabber-${TAG}-win-x64.zip" .)
+          tar -czvf "release/TubeGrabber-${TAG}-linux-x64.tar.gz" -C dist/linux-x64 .
+          tar -czvf "release/TubeGrabber-${TAG}-osx-x64.tar.gz" -C dist/osx-x64 .
+          tar -czvf "release/TubeGrabber-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
 
       - uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ github.ref_name }}
-          name: Yt-dlp-ui ${{ github.ref_name }}
+          name: Tube Grabber ${{ github.ref_name }}
           files: release/*
           generate_release_notes: true
           fail_on_unmatched_files: true

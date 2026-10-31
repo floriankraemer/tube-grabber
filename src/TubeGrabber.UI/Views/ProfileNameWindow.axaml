@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+        x:Class="TubeGrabber.UI.Views.ProfileNameWindow"
+        Width="440"
+        SizeToContent="Height"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource AppLayerBrush}">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Background="{DynamicResource AppCardBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
+            BorderThickness="0,1,0,0" Padding="24,20">
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
+        <Button x:Name="ConfirmButton" Classes="accent" IsDefault="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                FontWeight="SemiBold" Click="Confirm_Click" />
+        <Button Grid.Column="1" IsCancel="True" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" Content="Cancel" Click="Cancel_Click" />
+      </Grid>
+    </Border>
+
+    <StackPanel Margin="24" Spacing="12">
+      <TextBlock x:Name="HeadingText" FontSize="20" LineHeight="28" FontWeight="SemiBold" />
+      <StackPanel Spacing="6">
+        <TextBlock FontSize="13" Text="Name" />
+        <TextBox x:Name="NameBox" AutomationProperties.Name="Profile name" />
+        <StackPanel x:Name="ErrorRow" Orientation="Horizontal" Spacing="6" IsVisible="False">
+          <ui:Icon Data="{DynamicResource IconError}" Width="14" Height="14" Foreground="{DynamicResource AppErrorBrush}" VerticalAlignment="Top" Margin="0,1,0,0" />
+          <TextBlock x:Name="ErrorText" Classes="caption error" TextWrapping="Wrap" MaxWidth="370" />
+        </StackPanel>
+      </StackPanel>
+      <StackPanel x:Name="SourcePanel" Spacing="6">
+        <TextBlock FontSize="13" Text="Start from" />
+        <ComboBox x:Name="SourceBox" HorizontalAlignment="Stretch" AutomationProperties.Name="Start from" />
+        <TextBlock Classes="caption" TextWrapping="Wrap"
+                   Text="Copies all options and extra arguments. Choose “yt-dlp defaults” to start empty." />
+      </StackPanel>
+    </StackPanel>
+  </DockPanel>
+</Window>

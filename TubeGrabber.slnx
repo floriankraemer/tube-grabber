@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="src/TubeGrabber.Core/TubeGrabber.Core.csproj" />
+  <Project Path="src/TubeGrabber.UI/TubeGrabber.UI.csproj" />
+  <Project Path="tests/TubeGrabber.Core.Tests/TubeGrabber.Core.Tests.csproj" />
+  <Project Path="tests/TubeGrabber.UI.Tests/TubeGrabber.UI.Tests.csproj" />
+</Solution>

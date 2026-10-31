@@ -1,0 +1,723 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
+             xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+             xmlns:models="clr-namespace:TubeGrabber.Core.Constants;assembly=TubeGrabber.Core"
+             xmlns:core="clr-namespace:TubeGrabber.Core.Models;assembly=TubeGrabber.Core"
+             x:Class="TubeGrabber.UI.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+  <UserControl.Resources>
+    <!-- Tab: secondary text, primary when selected, 2px accent underline, focus ring for keyboard. -->
+    <ControlTheme x:Key="SettingsTabItem" TargetType="ListBoxItem">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Panel>
+            <Border x:Name="PART_Ring" BorderThickness="2" BorderBrush="Transparent" CornerRadius="{DynamicResource ControlCornerRadius}">
+              <ContentPresenter Padding="{TemplateBinding Padding}" Content="{TemplateBinding Content}"
+                                Foreground="{TemplateBinding Foreground}" />
+            </Border>
+            <Border x:Name="PART_Underline" Height="2" Margin="12,0" CornerRadius="1" VerticalAlignment="Bottom"
+                    Background="{DynamicResource AppAccentBrush}" IsVisible="False" />
+          </Panel>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:pointerover"><Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" /></Style>
+      <Style Selector="^:selected"><Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" /></Style>
+      <Style Selector="^:selected /template/ Border#PART_Underline"><Setter Property="IsVisible" Value="True" /></Style>
+      <Style Selector="^:focus-visible /template/ Border#PART_Ring"><Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" /></Style>
+    </ControlTheme>
+  </UserControl.Resources>
+
+  <UserControl.Styles>
+    <Style Selector="Border.setting"><Setter Property="Padding" Value="16,12" /></Style>
+    <Style Selector="StackPanel.cards"><Setter Property="Spacing" Value="8" /></Style>
+    <Style Selector="TextBox.mono">
+      <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" />
+    </Style>
+    <Style Selector="SelectableTextBlock.mono">
+      <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" />
+    </Style>
+    <Style Selector="TextBlock.flag">
+      <Setter Property="FontFamily" Value="Cascadia Mono,Consolas,Menlo,DejaVu Sans Mono,monospace" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Breadcrumb "Profiles" button: reads like the page title it replaces, in secondary colour. -->
+    <Style Selector="Button.crumb">
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="4,0" />
+      <Setter Property="Margin" Value="-4,0,0,0" />
+      <Setter Property="FontSize" Value="28" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Button.crumb /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="Button.crumb:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+
+    <!-- A profile in the list: the whole card is one button; the more-actions button sits on top of it. -->
+    <Style Selector="Button.profileCard">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="16,14,12,14" />
+      <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="Button.profileCard /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppCardBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="Button.profileCard:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.profileCard:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppCardHoverBrush}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="Button.profileCard:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- Section header of the profile detail page: full-width toggle with name, count pill and chevron. -->
+    <Style Selector="ToggleButton.sectionHeader">
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="MinHeight" Value="48" />
+      <Setter Property="Padding" Value="16,0,8,0" />
+      <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+    </Style>
+    <Style Selector="ToggleButton.sectionHeader /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.sectionHeader:checked /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.sectionHeader:pointerover /template/ ContentPresenter#PART_ContentPresenter, ToggleButton.sectionHeader:checked:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.sectionHeader:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.sectionHeader ui|Icon.chev">
+      <Setter Property="RenderTransform" Value="none" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="ToggleButton.sectionHeader:checked ui|Icon.chev">
+      <Setter Property="RenderTransform" Value="rotate(180deg)" />
+    </Style>
+
+    <!-- Narrow windows: the header actions collapse to icons and the per-card subscription note disappears. -->
+    <Style Selector="Button.compact"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=":is(UserControl).narrow Button.compact"><Setter Property="IsVisible" Value="True" /></Style>
+    <Style Selector=":is(UserControl).narrow Button.wide"><Setter Property="IsVisible" Value="False" /></Style>
+    <Style Selector=":is(UserControl).narrow Border.hideNarrow"><Setter Property="IsVisible" Value="False" /></Style>
+
+    <Style Selector="Button.linkError">
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.linkError /template/ ContentPresenter#PART_ContentPresenter, Button.linkError:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource AppErrorBrush}" />
+    </Style>
+
+    <Style Selector="Border.tile">
+      <Setter Property="Width" Value="36" />
+      <Setter Property="Height" Value="36" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.tile > ui|Icon">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.groupTitle">
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+    <Style Selector="TextBlock.intro">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="MaxWidth" Value="720" />
+      <Setter Property="HorizontalAlignment" Value="Left" />
+    </Style>
+    <Style Selector="ListBox.tabs">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="ItemContainerTheme" Value="{StaticResource SettingsTabItem}" />
+      <Setter Property="ItemsPanel"><ItemsPanelTemplate><StackPanel Orientation="Horizontal" /></ItemsPanelTemplate></Setter>
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="*,Auto">
+    <Grid Grid.Row="0" RowDefinitions="Auto,Auto,*" Margin="32,28,32,0">
+      <TextBlock Grid.Row="0" Classes="pageTitle" Text="Settings" Margin="0,0,0,16"
+                 IsVisible="{Binding !Profiles.IsEditing}" />
+      <!-- Profile detail replaces the page title and the tab strip with a breadcrumb. -->
+      <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6" Margin="0,0,0,16"
+            IsVisible="{Binding Profiles.IsEditing}">
+        <Button Grid.Column="0" Classes="crumb" Content="Profiles" Click="Back_Click"
+                ToolTip.Tip="Back to all profiles (Alt+Left)" AutomationProperties.Name="Back to all profiles" />
+        <ui:Icon Grid.Column="1" Data="{DynamicResource IconChevronRight}" Width="16" Height="16" StrokeThickness="2"
+                 Foreground="{DynamicResource AppTextSecondaryBrush}" VerticalAlignment="Center" />
+        <TextBlock Grid.Column="2" Classes="pageTitle"
+                   DataContext="{Binding Profiles.EditingProfile}" x:DataType="vm:ProfileCardViewModel"
+                   Text="{Binding Name}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Name}" />
+      </Grid>
+
+      <Border Grid.Row="1" BorderThickness="0,0,0,1" BorderBrush="{DynamicResource AppDividerBrush}" Margin="0,0,0,16"
+              IsVisible="{Binding !Profiles.IsEditing}">
+        <ListBox x:Name="TabList" Classes="tabs" SelectedIndex="0" AutomationProperties.Name="Settings sections">
+          <ListBoxItem Content="Profiles" />
+          <ListBoxItem Content="Appearance" />
+          <ListBoxItem Content="Background" />
+          <ListBoxItem Content="Binaries" />
+          <ListBoxItem Content="Queue" />
+        </ListBox>
+      </Border>
+
+      <Panel Grid.Row="2">
+        <!-- Profiles: a list of profile cards; opening one swaps the list for its detail page (Profiles.EditingProfile). -->
+        <Panel x:Name="ProfilesPanel">
+
+          <!-- List mode -->
+          <Grid RowDefinitions="Auto,*" IsVisible="{Binding Profiles.IsListMode}">
+            <Grid Grid.Row="0" ColumnDefinitions="*,Auto" ColumnSpacing="16" Margin="0,0,0,12">
+              <TextBlock Classes="intro" VerticalAlignment="Center"
+                         Text="A profile is a reusable set of yt-dlp options. You pick one when you download, search or subscribe." />
+              <Button Grid.Column="1" Classes="accent" Click="NewProfile_Click" AutomationProperties.Name="New profile">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <ui:Icon Data="{DynamicResource IconAdd}" Width="16" Height="16" StrokeThickness="2" />
+                  <TextBlock Text="New profile" FontWeight="SemiBold" />
+                </StackPanel>
+              </Button>
+            </Grid>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Margin="0,0,-12,0">
+              <ItemsControl ItemsSource="{Binding Profiles.Cards}" Margin="0,0,12,16" AutomationProperties.Name="Profiles">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate><StackPanel Spacing="4" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ProfileCardViewModel">
+                    <Grid>
+                      <Button Classes="profileCard" Click="OpenProfile_Click" KeyDown="Card_KeyDown" AutomationProperties.Name="{Binding AutomationName}">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="16">
+                          <Border Classes="tile" Width="40" Height="40" CornerRadius="6" VerticalAlignment="Center">
+                            <Panel>
+                              <ui:Icon Data="{DynamicResource IconDownload}" Width="20" Height="20" IsVisible="{Binding IsDownloadIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <ui:Icon Data="{DynamicResource IconMusic}" Width="20" Height="20" IsVisible="{Binding IsMusicIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              <ui:Icon Data="{DynamicResource IconFilm}" Width="20" Height="20" IsVisible="{Binding IsFilmIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            </Panel>
+                          </Border>
+                          <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <TextBlock Classes="rowTitle" Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                              <Border Classes="pill" IsVisible="{Binding IsBuiltIn}"><TextBlock Text="Built-in" /></Border>
+                              <Border Classes="pill accent" IsVisible="{Binding IsDirty}"><TextBlock Text="Unsaved" /></Border>
+                            </StackPanel>
+                            <TextBlock Classes="meta" Text="{Binding Summary}" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding Summary}" />
+                          </StackPanel>
+                          <Border Grid.Column="2" Classes="hideNarrow" VerticalAlignment="Center" Margin="0,0,40,0">
+                            <TextBlock Classes="caption" Text="{Binding UsedByText}" IsVisible="{Binding HasSubscriptions}" />
+                          </Border>
+                          <!-- Room for the more-actions button and the chevron; the button itself lies on top of the card. -->
+                          <Panel Grid.Column="3" Width="72">
+                            <ui:Icon Data="{DynamicResource IconChevronRight}" Width="16" Height="16" HorizontalAlignment="Right" Margin="0,0,8,0"
+                                     Foreground="{DynamicResource AppTextSecondaryBrush}" />
+                          </Panel>
+                        </Grid>
+                      </Button>
+                      <Button Classes="icon" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,44,0"
+                              ToolTip.Tip="More actions" AutomationProperties.Name="{Binding MoreActionsName}">
+                        <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
+                        <Button.Flyout>
+                          <MenuFlyout Placement="BottomEdgeAlignedRight">
+                            <MenuItem Header="Edit" Click="EditProfileMenu_Click">
+                              <MenuItem.Icon><ui:Icon Data="{DynamicResource IconPencil}" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Duplicate" Click="DuplicateProfileMenu_Click">
+                              <MenuItem.Icon><ui:Icon Data="{DynamicResource IconCopy}" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Reset to built-in settings" IsVisible="{Binding IsBuiltIn}" Click="ResetProfileMenu_Click">
+                              <MenuItem.Icon><ui:Icon Data="{DynamicResource IconUndo}" /></MenuItem.Icon>
+                            </MenuItem>
+                            <Separator />
+                            <MenuItem Header="Delete…" IsEnabled="{Binding IsCustom}" Click="DeleteProfileMenu_Click">
+                              <MenuItem.Icon><ui:Icon Data="{DynamicResource IconTrash}" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem IsEnabled="False" IsVisible="{Binding IsBuiltIn}">
+                              <MenuItem.Header>
+                                <TextBlock Classes="caption" TextWrapping="Wrap" MaxWidth="190"
+                                           Text="Built-in profiles can’t be deleted. Duplicate it to make your own variant." />
+                              </MenuItem.Header>
+                            </MenuItem>
+                          </MenuFlyout>
+                        </Button.Flyout>
+                      </Button>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Grid>
+
+          <!-- Detail mode -->
+          <Grid RowDefinitions="Auto,Auto,*" IsVisible="{Binding Profiles.IsEditing}">
+            <Border Grid.Row="0" Classes="card" Padding="16" Margin="0,0,0,12">
+              <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <!-- Header bindings use the edited card as their data context so nothing binds through a null path in list mode. -->
+                <Border Classes="tile" Width="40" Height="40" CornerRadius="6" VerticalAlignment="Center"
+                        DataContext="{Binding Profiles.EditingProfile}" x:DataType="vm:ProfileCardViewModel">
+                  <Panel>
+                    <ui:Icon Data="{DynamicResource IconDownload}" Width="20" Height="20" IsVisible="{Binding IsDownloadIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <ui:Icon Data="{DynamicResource IconMusic}" Width="20" Height="20" IsVisible="{Binding IsMusicIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    <ui:Icon Data="{DynamicResource IconFilm}" Width="20" Height="20" IsVisible="{Binding IsFilmIcon}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Panel>
+                </Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4"
+                            DataContext="{Binding Profiles.EditingProfile}" x:DataType="vm:ProfileCardViewModel">
+                  <TextBlock Classes="rowTitle" Text="{Binding HeaderSummary}" TextTrimming="CharacterEllipsis"
+                             ToolTip.Tip="{Binding HeaderSummary}" />
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <Border Classes="pill" IsVisible="{Binding IsBuiltIn}"><TextBlock Text="Built-in" /></Border>
+                    <Border Classes="pill accent" IsVisible="{Binding IsDirty}"><TextBlock Text="Unsaved" /></Border>
+                    <TextBlock Classes="meta" VerticalAlignment="Center" Text="{Binding ChangedCountText}" />
+                    <Border Classes="hideNarrow" VerticalAlignment="Center">
+                      <TextBlock Classes="meta" Text="{Binding DetailUsedByText}"
+                                 IsVisible="{Binding HasSubscriptions}" />
+                    </Border>
+                  </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+                  <Button Classes="wide" Click="RenameProfile_Click" IsEnabled="{Binding Profiles.CanRename}"
+                          ToolTip.ShowOnDisabled="True" ToolTip.Tip="{Binding Profiles.RenameTip}" AutomationProperties.Name="Rename">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ui:Icon Data="{DynamicResource IconPencil}" Width="16" Height="16" />
+                      <TextBlock Text="Rename" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="compact" Width="34" Padding="0" HorizontalContentAlignment="Center" Click="RenameProfile_Click" IsEnabled="{Binding Profiles.CanRename}"
+                          ToolTip.ShowOnDisabled="True" ToolTip.Tip="{Binding Profiles.RenameTip}" AutomationProperties.Name="Rename">
+                    <ui:Icon Data="{DynamicResource IconPencil}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="wide" Click="DuplicateFromDetail_Click" AutomationProperties.Name="Duplicate">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <ui:Icon Data="{DynamicResource IconCopy}" Width="16" Height="16" />
+                      <TextBlock Text="Duplicate" />
+                    </StackPanel>
+                  </Button>
+                  <Button Classes="compact" Width="34" Padding="0" HorizontalContentAlignment="Center" Click="DuplicateFromDetail_Click" ToolTip.Tip="Duplicate" AutomationProperties.Name="Duplicate">
+                    <ui:Icon Data="{DynamicResource IconCopy}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More actions">
+                    <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem Header="Reset to built-in settings" IsVisible="{Binding Profiles.IsEditingBuiltIn}" Click="ResetFromDetail_Click">
+                          <MenuItem.Icon><ui:Icon Data="{DynamicResource IconUndo}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <Separator IsVisible="{Binding Profiles.IsEditingBuiltIn}" />
+                        <MenuItem Header="Delete…" IsEnabled="{Binding Profiles.CanDelete}" Click="DeleteFromDetail_Click">
+                          <MenuItem.Icon><ui:Icon Data="{DynamicResource IconTrash}" /></MenuItem.Icon>
+                        </MenuItem>
+                        <MenuItem IsEnabled="False" IsVisible="{Binding Profiles.IsEditingBuiltIn}">
+                          <MenuItem.Header>
+                            <TextBlock Classes="caption" TextWrapping="Wrap" MaxWidth="190"
+                                       Text="Built-in profiles can’t be deleted. Duplicate it to make your own variant." />
+                          </MenuItem.Header>
+                        </MenuItem>
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </StackPanel>
+              </Grid>
+            </Border>
+
+            <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,0,0,12">
+              <TextBox x:Name="OptionSearchBox" Grid.Column="0" Text="{Binding Profiles.SearchText}"
+                       PlaceholderText="Find an option, e.g. subtitles, proxy, -f"
+                       AutomationProperties.Name="Find an option">
+                <TextBox.InnerLeftContent>
+                  <ui:Icon Data="{DynamicResource IconSearch}" Width="16" Height="16" Margin="10,0,0,0"
+                           Foreground="{DynamicResource AppTextSecondaryBrush}" />
+                </TextBox.InnerLeftContent>
+                <TextBox.InnerRightContent>
+                  <TextBlock Classes="caption" Margin="0,0,12,0" VerticalAlignment="Center"
+                             IsVisible="{Binding Profiles.HasQuery}" Text="{Binding Profiles.MatchText}" />
+                </TextBox.InnerRightContent>
+              </TextBox>
+              <ToggleButton Grid.Column="1" Classes="chip" IsChecked="{Binding Profiles.ShowChangedOnly}" Height="32"
+                            AutomationProperties.Name="Changed only" ToolTip.Tip="Show only options that differ from the defaults">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="Changed only" VerticalAlignment="Center" />
+                  <Border Classes="pill" MinWidth="18" Padding="5,0"><TextBlock Text="{Binding Profiles.ChangedCount}" HorizontalAlignment="Center" /></Border>
+                </StackPanel>
+              </ToggleButton>
+            </Grid>
+
+            <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" Margin="0,0,-12,0">
+              <StackPanel Margin="0,0,12,16">
+                <!-- Hidden sections keep their (empty) item container, so the gap is a margin of the card, not panel spacing. -->
+                <ItemsControl ItemsSource="{Binding Profiles.OptionSections}" AutomationProperties.Name="Option sections">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:OptionSectionViewModel">
+                      <Border Classes="card" ClipToBounds="True" Margin="0,0,0,4" IsVisible="{Binding IsVisible}">
+                        <StackPanel>
+                          <ToggleButton Classes="sectionHeader" IsChecked="{Binding IsExpanded}" AutomationProperties.Name="{Binding Name}">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="12">
+                              <TextBlock Classes="rowTitle" Text="{Binding Name}" VerticalAlignment="Center" />
+                              <Border Grid.Column="1" Classes="pill accent" IsVisible="{Binding HasChanges}"><TextBlock Text="{Binding ChangedText}" /></Border>
+                              <TextBlock Grid.Column="1" Classes="caption" VerticalAlignment="Center" IsVisible="{Binding ShowCount}" Text="{Binding CountText}" />
+                              <ui:Icon Grid.Column="2" Classes="chev" Data="{DynamicResource IconChevronDown}" Width="16" Height="16" Margin="0,0,8,0" />
+                            </Grid>
+                          </ToggleButton>
+                          <ItemsControl ItemsSource="{Binding Options}" IsVisible="{Binding IsExpanded}">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:OptionItemViewModel">
+                                <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource AppDividerBrush}" IsVisible="{Binding IsVisible}">
+                                  <Panel>
+                                    <Border Width="3" HorizontalAlignment="Left" Margin="0,12" CornerRadius="2"
+                                            Background="{DynamicResource AppAccentBrush}" IsVisible="{Binding IsChanged}" />
+
+                                    <!-- Switch and choice: control beside the text. -->
+                                    <Grid ColumnDefinitions="*,Auto,32" ColumnSpacing="12" Margin="16,10,8,10" MinHeight="40"
+                                          IsVisible="{Binding !IsStringOption}">
+                                      <StackPanel VerticalAlignment="Center" Spacing="2">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                          <TextBlock Classes="rowTitle" Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" />
+                                          <TextBlock Classes="flag" Text="{Binding Flag}" />
+                                        </StackPanel>
+                                        <TextBlock Classes="caption" Text="{Binding Tooltip}" TextWrapping="Wrap" />
+                                      </StackPanel>
+                                      <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center" Margin="0,0,-8,0"
+                                                    AutomationProperties.Name="{Binding AutomationName}" AutomationProperties.HelpText="{Binding ChangedHelp}"
+                                                    IsVisible="{Binding IsBool}" IsChecked="{Binding BoolValue}" />
+                                      <ComboBox Grid.Column="1" Width="160" VerticalAlignment="Center"
+                                                AutomationProperties.Name="{Binding AutomationName}" AutomationProperties.HelpText="{Binding ChangedHelp}"
+                                                IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}" SelectedItem="{Binding StringValue}">
+                                        <ComboBox.ItemTemplate>
+                                          <DataTemplate x:DataType="x:String"><TextBlock Text="{Binding, Converter={x:Static vm:OptionConverters.NotSet}}" /></DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                      </ComboBox>
+                                      <Button Grid.Column="2" Classes="icon" Width="28" Height="28" MinWidth="28" MinHeight="28" VerticalAlignment="Center"
+                                              Click="ResetOption_Click" IsVisible="{Binding IsChanged}" ToolTip.Tip="Reset to default"
+                                              AutomationProperties.Name="{Binding ResetName}">
+                                        <ui:Icon Data="{DynamicResource IconUndo}" Width="16" Height="16" />
+                                      </Button>
+                                    </Grid>
+
+                                    <!-- Text and number: the input spans the card below the text. -->
+                                    <Grid ColumnDefinitions="*,32" RowDefinitions="Auto,Auto" ColumnSpacing="4" RowSpacing="6" Margin="16,10,8,10"
+                                          IsVisible="{Binding IsStringOption}">
+                                      <StackPanel Grid.ColumnSpan="2" Spacing="2">
+                                        <StackPanel Orientation="Horizontal" Spacing="8">
+                                          <TextBlock Classes="rowTitle" Text="{Binding Label}" FontSize="13" VerticalAlignment="Center" />
+                                          <TextBlock Classes="flag" Text="{Binding Flag}" />
+                                        </StackPanel>
+                                        <TextBlock Classes="caption" Text="{Binding Tooltip}" TextWrapping="Wrap" />
+                                      </StackPanel>
+                                      <TextBox Grid.Row="1" Classes="mono" FontSize="13" AutomationProperties.Name="{Binding AutomationName}"
+                                               AutomationProperties.HelpText="{Binding ChangedHelp}" Text="{Binding StringValue}" />
+                                      <Button Grid.Row="1" Grid.Column="1" Classes="icon" Width="28" Height="28" MinWidth="28" MinHeight="28" VerticalAlignment="Center"
+                                              Click="ResetOption_Click" IsVisible="{Binding IsChanged}" ToolTip.Tip="Reset to default"
+                                              AutomationProperties.Name="{Binding ResetName}">
+                                        <ui:Icon Data="{DynamicResource IconUndo}" Width="16" Height="16" />
+                                      </Button>
+                                    </Grid>
+                                  </Panel>
+                                </Border>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Border Classes="card" IsVisible="{Binding Profiles.CommandLineVisible}">
+                  <StackPanel>
+                    <TextBlock Classes="rowTitle" Text="Command line" Margin="16,14,16,12" />
+                    <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource AppDividerBrush}" Padding="16,10,16,12">
+                      <StackPanel Spacing="6">
+                        <TextBlock Classes="rowTitle" FontSize="13" Text="Extra arguments" />
+                        <TextBlock Classes="caption" TextWrapping="Wrap"
+                                   Text="Added after the options above. Quote-aware; use it for flags not listed here. Malformed arguments can break downloads." />
+                        <TextBox Classes="mono" FontSize="13" AcceptsReturn="True" MinHeight="64" TextWrapping="Wrap"
+                                 PlaceholderText="e.g. --embed-chapters" AutomationProperties.Name="Extra arguments" Text="{Binding Profiles.ExtraArgs}" />
+                      </StackPanel>
+                    </Border>
+                    <Border BorderThickness="0,1,0,0" BorderBrush="{DynamicResource AppDividerBrush}" Padding="16,10,16,12"
+                            IsVisible="{Binding Profiles.ShowCliPreview}">
+                      <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Classes="rowTitle" FontSize="13" Text="Preview" VerticalAlignment="Center" />
+                          <Button Grid.Column="1" Click="CopyPreview_Click" AutomationProperties.Name="Copy command line">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                              <ui:Icon Data="{DynamicResource IconCopy}" Width="16" Height="16" />
+                              <TextBlock x:Name="CopyPreviewText" Text="Copy" />
+                            </StackPanel>
+                          </Button>
+                        </Grid>
+                        <Border Background="{DynamicResource AppControlDisabledBrush}" BorderBrush="{DynamicResource AppBorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="10,8">
+                          <SelectableTextBlock Classes="mono" FontSize="12.5" TextWrapping="Wrap" Text="{Binding Profiles.CliPreview}"
+                                               AutomationProperties.Name="Command line preview" />
+                        </Border>
+                      </StackPanel>
+                    </Border>
+                  </StackPanel>
+                </Border>
+
+                <StackPanel Spacing="4" HorizontalAlignment="Center" Margin="0,48" IsVisible="{Binding Profiles.NoResults}">
+                  <TextBlock HorizontalAlignment="Center" FontWeight="SemiBold" Text="{Binding Profiles.EmptyTitle}" TextWrapping="Wrap" TextAlignment="Center" />
+                  <TextBlock Classes="meta" HorizontalAlignment="Center" Text="{Binding Profiles.EmptyDetail}" TextAlignment="Center"
+                             IsVisible="{Binding Profiles.HasEmptyDetail}" />
+                  <Button HorizontalAlignment="Center" Margin="0,12,0,0" Content="{Binding Profiles.EmptyActionText}" Click="EmptyAction_Click" />
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Grid>
+        </Panel>
+
+        <ScrollViewer x:Name="AppearancePanel" IsVisible="False" Margin="0,0,-12,0">
+          <StackPanel Classes="cards" Margin="0,0,12,16">
+            <TextBlock Classes="intro" Text="Choose light, dark, or follow your operating system theme." />
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Theme" />
+                  <TextBlock Classes="caption" Text="Applies immediately; saved with the other settings." />
+                </StackPanel>
+                <ComboBox Grid.Column="1" Width="200" VerticalAlignment="Center" AutomationProperties.Name="Theme"
+                          ItemsSource="{Binding ThemePreferenceOptions}" SelectedItem="{Binding ThemePreference}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="BackgroundPanel" IsVisible="False" Margin="0,0,-12,0">
+          <StackPanel Classes="cards" Margin="0,0,12,16">
+            <TextBlock Classes="intro" Text="Keep checking channel subscriptions while the window is closed." />
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Keep running in the system tray" />
+                  <TextBlock Classes="caption" Text="Closing the window hides it to the tray instead of quitting." TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center"
+                              AutomationProperties.Name="Keep running in the system tray when the window is closed"
+                              IsChecked="{Binding RunInBackground}" />
+              </Grid>
+            </Border>
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Start at login" />
+                  <TextBlock Classes="caption" Text="Starts minimized to the tray when you sign in." TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center"
+                              AutomationProperties.Name="Start at login (minimized to tray)"
+                              IsChecked="{Binding StartAtLogin}" />
+              </Grid>
+            </Border>
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Check subscriptions every" />
+                  <TextBlock Classes="caption" Text="In minutes, between 15 and 1440." />
+                </StackPanel>
+                <NumericUpDown Grid.Column="1" Width="160" VerticalAlignment="Center" AutomationProperties.Name="Check subscriptions every (minutes)"
+                               Minimum="15" Maximum="1440" ClipValueToMinMax="True" Increment="15" FormatString="0"
+                               Value="{Binding SubscriptionCheckIntervalMinutes}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="BinariesPanel" IsVisible="False" Margin="0,0,-12,0">
+          <StackPanel Classes="cards" Margin="0,0,12,16">
+            <TextBlock Classes="intro"
+                       Text="Leave a path empty to use the tool found on your PATH. Install downloads the latest build for this system; the more menu opens GitHub if you prefer to pick a version or install manually." />
+            <ProgressBar Height="4" IsIndeterminate="True" IsVisible="{Binding IsInstalling}" />
+
+          <Border Classes="card setting">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Classes="tile"><ui:Icon Data="{DynamicResource IconDownload}" Width="16" Height="16" /></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="yt-dlp" />
+                  <TextBlock Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResolvedYtDlpPath}">
+                    <Run Text="Resolved: " /><Run Text="{Binding ResolvedYtDlpPath}" />
+                  </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <Button Content="Browse…" Click="BrowseYtDlp_Click" />
+                  <Button Content="Test" Click="TestYtDlp_Click" />
+                  <Button Content="Install" Click="InstallYtDlp_Click" />
+                  <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More yt-dlp actions">
+                    <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem Header="Open releases page" Click="OpenYtDlpReleases_Click" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </StackPanel>
+              </Grid>
+              <TextBox Grid.Row="1" Margin="0,12,0,0" AutomationProperties.Name="yt-dlp path" PlaceholderText="{Binding YtDlpPathPlaceholder}" Text="{Binding YtDlpPath}" />
+              <TextBlock Grid.Row="2" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding YtDlpStatus.IsError}" Classes.success="{Binding !YtDlpStatus.IsError}"
+                         IsVisible="{Binding YtDlpStatus.HasText}" Text="{Binding YtDlpStatus.Text}" TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+          <Border Classes="card setting">
+            <Grid RowDefinitions="Auto,Auto,Auto">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Classes="tile"><ui:Icon Data="{DynamicResource IconLayers}" Width="16" Height="16" /></Border>
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="ffmpeg" />
+                  <TextBlock Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResolvedFfmpegPath}">
+                    <Run Text="Resolved: " /><Run Text="{Binding ResolvedFfmpegPath}" />
+                  </TextBlock>
+                </StackPanel>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <Button Content="Browse…" Click="BrowseFfmpeg_Click" />
+                  <Button Content="Test" Click="TestFfmpeg_Click" />
+                  <Button Content="Install" Click="InstallFfmpeg_Click" />
+                  <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More ffmpeg actions">
+                    <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem Header="Open releases page" Click="OpenFfmpegReleases_Click" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </StackPanel>
+              </Grid>
+              <TextBox Grid.Row="1" Margin="0,12,0,0" AutomationProperties.Name="ffmpeg path" PlaceholderText="{Binding FfmpegPathPlaceholder}" Text="{Binding FfmpegPath}" />
+              <TextBlock Grid.Row="2" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding FfmpegStatus.IsError}" Classes.success="{Binding !FfmpegStatus.IsError}"
+                         IsVisible="{Binding FfmpegStatus.HasText}" Text="{Binding FfmpegStatus.Text}" TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+          <Border Classes="card setting">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+              <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
+                <Border Classes="tile"><ui:Icon Data="{DynamicResource IconTerminal}" Width="16" Height="16" /></Border>
+                <TextBlock Grid.Column="1" Classes="rowTitle" VerticalAlignment="Center" Text="JavaScript runtime (YouTube)" TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                  <Button Content="Browse…" IsEnabled="{Binding IsJsRuntimePathEnabled}" Click="BrowseJsRuntime_Click" />
+                  <Button Content="Test" IsEnabled="{Binding IsJsRuntimePathEnabled}" Click="TestJsRuntime_Click" />
+                  <Button Content="Install Deno" IsEnabled="{Binding IsDenoInstallEnabled}" Click="InstallDeno_Click" />
+                  <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More JavaScript runtime actions">
+                    <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
+                    <Button.Flyout>
+                      <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuItem Header="Open Deno releases page" IsEnabled="{Binding IsDenoInstallEnabled}" Click="OpenDenoReleases_Click" />
+                      </MenuFlyout>
+                    </Button.Flyout>
+                  </Button>
+                </StackPanel>
+              </Grid>
+              <TextBlock Grid.Row="1" Margin="0,12,0,0" Classes="caption" Text="{Binding JsRuntimeDescription}" TextWrapping="Wrap" />
+              <Grid Grid.Row="2" Margin="0,12,0,0" ColumnDefinitions="300,*" ColumnSpacing="8">
+                <ComboBox Grid.Column="0" HorizontalAlignment="Stretch" AutomationProperties.Name="JavaScript runtime"
+                          ItemsSource="{Binding JsRuntimeEngineOptions}" SelectedItem="{Binding SelectedJsRuntimeEngine}">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="models:JsRuntimeEngineDefinition"><TextBlock Text="{Binding DisplayName}" /></DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <TextBox Grid.Column="1" AutomationProperties.Name="JavaScript runtime path"
+                         IsEnabled="{Binding IsJsRuntimePathEnabled}"
+                         PlaceholderText="{Binding JsRuntimePathPlaceholder}" Text="{Binding JsRuntimePath}" />
+              </Grid>
+              <TextBlock Grid.Row="3" Margin="0,12,0,0" Classes="caption" TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding ResolvedJsRuntimePath}">
+                <Run Text="Resolved: " /><Run Text="{Binding ResolvedJsRuntimePath}" /><Run Text="   yt-dlp argument: " /><Run Text="{Binding JsRuntimesArgumentPreview}" />
+              </TextBlock>
+              <TextBlock Grid.Row="4" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding JsRuntimeStatus.IsError}" Classes.success="{Binding !JsRuntimeStatus.IsError}"
+                         IsVisible="{Binding JsRuntimeStatus.HasText}" Text="{Binding JsRuntimeStatus.Text}" TextWrapping="Wrap" />
+            </Grid>
+          </Border>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="QueuePanel" IsVisible="False" Margin="0,0,-12,0">
+          <StackPanel Classes="cards" Margin="0,0,12,16">
+            <TextBlock Classes="intro" Text="Default folder for new downloads. Profile option -P overrides this when set." />
+            <Border Classes="card setting">
+              <Grid RowDefinitions="Auto,Auto" RowSpacing="12">
+                <StackPanel Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Download folder" />
+                  <TextBlock Classes="caption" Text="Required before the first download." />
+                </StackPanel>
+                <Grid Grid.Row="1" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                  <TextBox AutomationProperties.Name="Download folder" PlaceholderText="{Binding DownloadFolderPlaceholder}" Text="{Binding DownloadFolder}" />
+                  <Button Grid.Column="1" Content="Browse…" Click="BrowseDownloadFolder_Click" />
+                </Grid>
+              </Grid>
+            </Border>
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Max concurrent downloads" />
+                  <TextBlock Classes="caption" Text="Between 1 and 8." />
+                </StackPanel>
+                <NumericUpDown Grid.Column="1" Width="160" VerticalAlignment="Center" AutomationProperties.Name="Max concurrent downloads"
+                               Minimum="1" Maximum="8" ClipValueToMinMax="True" Value="{Binding MaxConcurrentDownloads}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+      </Panel>
+    </Grid>
+
+    <!-- Sticky footer: save feedback on the left, Discard / Save changes on the right. -->
+    <Border Grid.Row="1" Classes="divider" Padding="32,14" Background="{DynamicResource AppLayerBrush}">
+      <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+        <Panel Grid.Column="0" VerticalAlignment="Center">
+          <!-- One message at a time: a validation error beats the unsaved summary, which beats the last status. -->
+          <Button Classes="linkError" Click="OpenFailingProfile_Click" IsVisible="{Binding HasValidationError}"
+                  ToolTip.Tip="{Binding ValidationError}">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <ui:Icon Data="{DynamicResource IconError}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0" Foreground="{DynamicResource AppErrorBrush}" />
+              <TextBlock Classes="error" Text="{Binding ValidationError}" TextWrapping="Wrap" MaxHeight="64" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+          </Button>
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowUnsavedSummary}">
+            <Ellipse Width="8" Height="8" Fill="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
+            <TextBlock Classes="meta" Text="{Binding UnsavedSummary}" TextTrimming="CharacterEllipsis" />
+          </StackPanel>
+          <TextBlock Classes="meta" IsVisible="{Binding ShowStatusMessage}" Text="{Binding StatusMessage}"
+                     TextTrimming="CharacterEllipsis" ToolTip.Tip="{Binding StatusMessage}" />
+        </Panel>
+        <Button Grid.Column="1" Content="Discard" Click="Discard_Click" />
+        <Button Grid.Column="2" Classes="accent" Content="Save changes" Click="Save_Click" />
+      </Grid>
+    </Border>
+  </Grid>
+</UserControl>

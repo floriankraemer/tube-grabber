@@ -1,0 +1,258 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
+             xmlns:svc="clr-namespace:TubeGrabber.UI.Services"
+             xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+             xmlns:models="clr-namespace:TubeGrabber.Core.Models;assembly=TubeGrabber.Core"
+             x:Class="TubeGrabber.UI.Views.DownloadsView"
+             x:DataType="vm:MainWindowViewModel">
+  <UserControl.Styles>
+    <!-- Command row: URL box, profile picker and button share one height. -->
+    <Style Selector="Grid.addRow > :is(Control)">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="MinHeight" Value="36" />
+    </Style>
+
+    <!-- Status cell: the Tag carries DownloadJobViewModel.StatusKind and picks icon and colour. -->
+    <Style Selector="StackPanel.status ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconClock}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AppTextSecondaryBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=active] ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconArrowDownCircle}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=active] TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=processing] ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconProcessing}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=processing] TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=failed] ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconError}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppErrorBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=failed] TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AppErrorBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=completed] ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconCheckCircle}" />
+      <Setter Property="Foreground" Value="{DynamicResource AppSuccessBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=completed] TextBlock">
+      <Setter Property="Foreground" Value="{DynamicResource AppSuccessBrush}" />
+    </Style>
+    <Style Selector="StackPanel.status[Tag=cancelled] ui|Icon">
+      <Setter Property="Data" Value="{DynamicResource IconCancel}" />
+    </Style>
+
+    <Style Selector="ProgressBar.rowProgress">
+      <Setter Property="MinWidth" Value="0" />
+      <Setter Property="Height" Value="4" />
+      <Setter Property="MinHeight" Value="4" />
+      <Setter Property="ShowProgressText" Value="False" />
+    </Style>
+    <Style Selector="StackPanel.progressCell[Tag=failed] ProgressBar">
+      <Setter Property="Foreground" Value="{DynamicResource AppErrorBrush}" />
+    </Style>
+    <Style Selector="StackPanel.progressCell[Tag=completed] ProgressBar">
+      <Setter Property="Foreground" Value="{DynamicResource AppSuccessBrush}" />
+    </Style>
+    <Style Selector="StackPanel.progressCell[Tag=cancelled] ProgressBar">
+      <Setter Property="Foreground" Value="{DynamicResource AppTextTertiaryBrush}" />
+    </Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,*" Margin="32,28,32,24">
+    <StackPanel Grid.Row="0" Spacing="2">
+      <TextBlock Classes="pageTitle" Text="Downloads" />
+      <TextBlock Classes="meta"
+                 Text="{Binding DownloadsSubtitle}"
+                 TextTrimming="CharacterEllipsis"
+                 ToolTip.Tip="{Binding DownloadsSubtitle}" />
+    </StackPanel>
+
+    <Grid Grid.Row="1" Classes="addRow" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8" Margin="0,20,0,16">
+      <TextBox Grid.Column="0"
+               PlaceholderText="Paste YouTube or video URL"
+               Text="{Binding UrlInput}"
+               VerticalContentAlignment="Center"
+               AutomationProperties.Name="Video or playlist URL"
+               KeyDown="UrlInput_KeyDown">
+        <TextBox.InnerLeftContent>
+          <ui:Icon Data="{DynamicResource IconLink}"
+                   Margin="10,0,0,0"
+                   Foreground="{DynamicResource AppTextTertiaryBrush}" />
+        </TextBox.InnerLeftContent>
+      </TextBox>
+      <ComboBox Grid.Column="1"
+                MinWidth="200"
+                MaxWidth="280"
+                ItemsSource="{Binding Profiles}"
+                SelectedItem="{Binding SelectedProfile}"
+                PlaceholderText="Profile"
+                AutomationProperties.Name="Download profile"
+                VerticalContentAlignment="Center">
+        <ComboBox.ItemTemplate>
+          <DataTemplate x:DataType="models:DownloadProfile">
+            <TextBlock Text="{Binding Name}" />
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
+      <Button Grid.Column="2"
+              Classes="accent"
+              VerticalContentAlignment="Center"
+              Click="Add_Click">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ui:Icon Data="{DynamicResource IconAdd}" Width="16" Height="16" />
+          <TextBlock Text="Add to queue" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </Grid>
+
+    <Grid Grid.Row="2" MinHeight="200">
+      <Border Classes="card" ClipToBounds="True" IsVisible="{Binding HasJobs}">
+        <DataGrid x:Name="JobsDataGrid"
+                  ItemsSource="{Binding Jobs}"
+                  AutoGenerateColumns="False"
+                  CanUserReorderColumns="False"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True"
+                  IsReadOnly="True"
+                  RowHeight="60"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  BorderThickness="0"
+                  Background="Transparent"
+                  PointerReleased="JobsDataGrid_PointerReleased">
+        <DataGrid.ContextMenu>
+          <ContextMenu x:Name="JobContextMenu" Opening="JobContextMenu_Opening">
+            <MenuItem x:Name="OpenOutputMenuItem" Click="OpenOutput_Click" />
+            <Separator x:Name="OpenOutputSeparator" />
+            <MenuItem x:Name="StartJobMenuItem" Header="Start" Click="StartJob_Click" />
+            <MenuItem x:Name="ViewLogMenuItem" Header="Log" Click="ViewLog_Click" />
+            <MenuItem x:Name="CancelJobMenuItem" Header="Cancel" Click="CancelJob_Click" />
+            <MenuItem x:Name="RemoveJobMenuItem" Header="Remove" Click="RemoveJob_Click" />
+          </ContextMenu>
+        </DataGrid.ContextMenu>
+        <DataGrid.Columns>
+          <DataGridTemplateColumn Header="Status" Width="120" MinWidth="110"
+                                  SortMemberPath="StatusText"
+                                  svc:QueueColumnLayout.LayoutKey="status">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:DownloadJobViewModel">
+                <StackPanel Classes="status"
+                            Tag="{Binding StatusKind}"
+                            Orientation="Horizontal"
+                            Spacing="8"
+                            Margin="12,0"
+                            VerticalAlignment="Center">
+                  <ui:Icon Width="16" Height="16" />
+                  <TextBlock Text="{Binding StatusText}" VerticalAlignment="Center" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Title" Width="*" MinWidth="160"
+                                  SortMemberPath="Title"
+                                  svc:QueueColumnLayout.LayoutKey="title">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:DownloadJobViewModel">
+                <StackPanel Margin="12,0" Spacing="2" VerticalAlignment="Center">
+                  <TextBlock Classes="rowTitle"
+                             Text="{Binding Title}"
+                             TextTrimming="CharacterEllipsis"
+                             ToolTip.Tip="{Binding Title}" />
+                  <TextBlock Classes="meta"
+                             Classes.error="{Binding IsDetailError}"
+                             Text="{Binding Detail}"
+                             TextTrimming="CharacterEllipsis"
+                             ToolTip.Tip="{Binding Detail}" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Progress" Width="190" MinWidth="140"
+                                  SortMemberPath="Progress"
+                                  svc:QueueColumnLayout.LayoutKey="progress">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:DownloadJobViewModel">
+                <StackPanel Classes="progressCell"
+                            Tag="{Binding StatusKind}"
+                            Margin="12,0"
+                            Spacing="6"
+                            VerticalAlignment="Center">
+                  <ProgressBar Classes="rowProgress"
+                               Minimum="0"
+                               Maximum="100"
+                               Value="{Binding Progress}"
+                               IsIndeterminate="{Binding IsProgressIndeterminate}" />
+                  <TextBlock Classes="caption"
+                             Text="{Binding ProgressDetail}"
+                             TextTrimming="CharacterEllipsis"
+                             ToolTip.Tip="{Binding ProgressToolTip}" />
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Actions" Width="120" MinWidth="110"
+                                  svc:QueueColumnLayout.LayoutKey="actions">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:DownloadJobViewModel">
+                <StackPanel Orientation="Horizontal" Spacing="2" Margin="8,0" VerticalAlignment="Center">
+                  <Button Classes="icon" IsVisible="{Binding CanPlay}" Click="StartJob_Click"
+                          ToolTip.Tip="Start" AutomationProperties.Name="Start">
+                    <ui:Icon Data="{DynamicResource IconPlay}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" IsVisible="{Binding CanRetry}" Click="StartJob_Click"
+                          ToolTip.Tip="Retry" AutomationProperties.Name="Retry">
+                    <ui:Icon Data="{DynamicResource IconRefresh}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" IsVisible="{Binding CanViewLog}" Click="ViewLog_Click"
+                          ToolTip.Tip="View log" AutomationProperties.Name="View log">
+                    <ui:Icon Data="{DynamicResource IconLog}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" IsVisible="{Binding CanOpenOutput}" Click="OpenOutput_Click"
+                          ToolTip.Tip="{Binding OpenOutputMenuLabel}" AutomationProperties.Name="{Binding OpenOutputMenuLabel}">
+                    <ui:Icon Data="{DynamicResource IconFolder}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" IsVisible="{Binding CanCancel}" Click="CancelJob_Click"
+                          ToolTip.Tip="Cancel" AutomationProperties.Name="Cancel">
+                    <ui:Icon Data="{DynamicResource IconClose}" Width="16" Height="16" />
+                  </Button>
+                  <Button Classes="icon" IsVisible="{Binding CanRemove}" Click="RemoveJob_Click"
+                          ToolTip.Tip="Remove" AutomationProperties.Name="Remove">
+                    <ui:Icon Data="{DynamicResource IconTrash}" Width="16" Height="16" />
+                  </Button>
+                </StackPanel>
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
+        </DataGrid.Columns>
+        </DataGrid>
+      </Border>
+
+      <Border Classes="card"
+              IsVisible="{Binding !HasJobs}"
+              Padding="24">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8">
+          <ui:Icon Data="{DynamicResource IconDownload}"
+                   Width="32" Height="32"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource AppTextTertiaryBrush}" />
+          <TextBlock Classes="rowTitle" Text="No downloads yet" HorizontalAlignment="Center" />
+          <TextBlock Classes="meta"
+                     Text="Paste a video or playlist URL above and choose Add to queue."
+                     TextAlignment="Center"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

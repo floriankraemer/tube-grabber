@@ -1,8 +1,8 @@
-# Yt-dlp-ui
+# Tube Grabber
 
 Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, profile-based settings, and optional yt-dlp/ffmpeg setup—without living on the command line.
 
-![Yt-dlp-ui main window](docs/screenshot.png)
+![Tube Grabber main window](docs/screenshot.png)
 
 ## Features
 
@@ -11,7 +11,7 @@ Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, pro
 - **Download folder** — choose on first launch; change anytime in settings
 - **Profiles** — named yt-dlp option sets with a built-in option catalog, CLI preview, and quote-aware extra arguments
 - **Built-in profiles** — Default (single MP4), Download Audio as mp3, Download HQ Video (see below)
-- **Binaries** — set or browse yt-dlp/ffmpeg paths, test each, or install from the main window
+- **Binaries** — set or browse yt-dlp/ffmpeg paths, test each, or install from the Settings page
 - **Settings** — tabbed editors for common yt-dlp flags (subs, metadata, SponsorBlock, and more)
 - **Job logs** — view yt-dlp output for failed (or finished) jobs
 - **YouTube search** — find videos (filter by upload date and length, Shorts hidden by default) or channels, then queue a download or subscribe straight from the results
@@ -20,7 +20,7 @@ Desktop UI for [yt-dlp](https://github.com/yt-dlp/yt-dlp): a download queue, pro
 
 ## Built-in profiles
 
-Created under `~/.yt-dlp-ui/profiles/` on first run (missing profiles are added without overwriting existing ones):
+Created under `~/.tube-grabber/profiles/` on first run (missing profiles are added without overwriting existing ones):
 
 | Profile | Purpose |
 |---------|---------|
@@ -34,10 +34,11 @@ Pick the active profile in **Settings → Profiles**. Details: [docs/settings.md
 
 1. Build or download a self-contained app (see [Build](#build-and-test) below).
 2. On first launch, choose a download folder.
-3. Install or point to **yt-dlp** and **ffmpeg** (main window or **Settings → Binaries**).
+3. Install or point to **yt-dlp** and **ffmpeg** (**Settings → Binaries** in the sidebar).
 4. Paste a URL, add to the queue, and start downloads.
 
-Config and profiles live in `~/.yt-dlp-ui/` (`app.json`, `profiles/*.json`).
+Config and profiles live in `~/.tube-grabber/` (`app.json`, `profiles/*.json`).
+Data from the former `~/.yt-dlp-ui/` folder is copied there on first start (see [docs/settings.md](docs/settings.md)).
 
 ## Build and test
 
@@ -46,8 +47,8 @@ Requires **Docker** for default `make` targets (dev container), **or** .NET 8 SD
 ```bash
 make ci              # restore, Release build, tests
 make coverage        # tests + HTML report in artifacts/coverage/html/
-make publish-ui-win  # Windows x64 → artifacts/publish-ui-win-x64/YtDlpUi.exe
-make publish-ui      # host RID → artifacts/publish-ui-<RID>/YtDlpUi
+make publish-ui-win  # Windows x64 → artifacts/publish-ui-win-x64/TubeGrabber.exe
+make publish-ui      # host RID → artifacts/publish-ui-<RID>/TubeGrabber
 ```
 
 `make build-release` compiles Release assemblies only; use **`make publish-ui`** (or `publish-ui-win`) for a runnable app.
@@ -64,13 +65,13 @@ More: [docs/build.md](docs/build.md).
 ## Project structure
 
 ```
-YtDlpUi.slnx
+TubeGrabber.slnx
 ├── src/
-│   ├── YtDlpUi.Core/       Queue, yt-dlp invocation, profiles, config, installers
-│   └── YtDlpUi.UI/         Avalonia desktop UI
+│   ├── TubeGrabber.Core/       Queue, yt-dlp invocation, profiles, config, installers
+│   └── TubeGrabber.UI/         Avalonia desktop UI
 └── tests/
-    ├── YtDlpUi.Core.Tests/
-    └── YtDlpUi.UI.Tests/
+    ├── TubeGrabber.Core.Tests/
+    └── TubeGrabber.UI.Tests/
 ```
 
 ## Documentation

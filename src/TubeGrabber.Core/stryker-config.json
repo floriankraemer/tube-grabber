@@ -1,0 +1,13 @@
+{
+  "stryker-config": {
+    "project": "TubeGrabber.Core.csproj",
+    "mutate": [
+      "Services/YtDlpCommandBuilder.cs",
+      "Services/YouTubeUrlNormalizer.cs",
+      "Services/DownloadQueueService.cs",
+      "Services/YtDlpProgressParser.cs",
+      "Services/ProfileStore.cs",
+      "Services/ExtraArgsTokenizer.cs"
+    ]
+  }
+}
