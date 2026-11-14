@@ -116,17 +116,18 @@ public sealed class YtDlpCommentsParserTests
     [InlineData("{ \"comments\": [] }")]
     [InlineData("{ \"comments\": \"disabled\" }")]
     [InlineData("{ \"title\": \"no comments key\" }")]
-    [InlineData("")]
-    [InlineData("   ")]
-    [InlineData("[1, 2, 3]")]
     public void Parse_NoUsableComments_ReturnsEmpty(string output)
     {
         Assert.Empty(_parser.Parse(output));
     }
 
-    [Fact]
-    public void Parse_MalformedJson_ReturnsEmpty()
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("[1, 2, 3]")]
+    [InlineData("{ \"comments\": [ { \"id\": ")]
+    public void Parse_EmptyOrMalformedOutput_Throws(string output)
     {
-        Assert.Empty(_parser.Parse("{ \"comments\": [ { \"id\": "));
+        Assert.Throws<InvalidOperationException>(() => _parser.Parse(output));
     }
 }

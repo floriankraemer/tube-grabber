@@ -35,6 +35,7 @@ public sealed class YtDlpVideoCommentsServiceTests : IDisposable
                 "--write-comments",
                 "--extractor-args",
                 "youtube:max_comments=100,all,0,0;comment_sort=top",
+                "--",
                 WatchUrl,
             ],
             args);
@@ -51,6 +52,7 @@ public sealed class YtDlpVideoCommentsServiceTests : IDisposable
         Assert.True(index > 0);
         Assert.Equal("deno:/opt/deno", args[index + 1]);
         Assert.Equal(WatchUrl, args[^1]);
+        Assert.Equal("--", args[^2]);
     }
 
     [Fact]

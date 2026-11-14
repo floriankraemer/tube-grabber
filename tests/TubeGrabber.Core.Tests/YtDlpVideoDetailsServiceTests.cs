@@ -37,6 +37,7 @@ public sealed class YtDlpVideoDetailsServiceTests : IDisposable
         Assert.NotNull(captured);
         Assert.Equal(["-J", "--skip-download", "--ignore-config"], captured.Arguments.Take(3));
         Assert.Equal(WatchUrl, captured.Arguments[^1]);
+        Assert.Equal("--", captured.Arguments[^2]);
     }
 
     [Fact]

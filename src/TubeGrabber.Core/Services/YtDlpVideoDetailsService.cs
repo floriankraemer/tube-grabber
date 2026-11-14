@@ -72,6 +72,8 @@ public sealed class YtDlpVideoDetailsService : IVideoDetailsService
             args.Add(jsRuntimes);
         }
 
+        // "--" so a URL can never be parsed as an option.
+        args.Add("--");
         args.Add(watchUrl);
         return args;
     }

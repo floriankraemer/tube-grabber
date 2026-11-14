@@ -16,16 +16,14 @@ public sealed class YtDlpCommentsParser
 
     /// <summary>
     /// Parses yt-dlp's single JSON document and keeps top-level comments only.
-    /// Comments disabled (<c>comments</c> missing or null) and malformed output both yield an empty list.
+    /// Comments disabled (<c>comments</c> missing or null) yields an empty list.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The output is not a yt-dlp JSON document.</exception>
     public IReadOnlyList<VideoComment> Parse(string output)
     {
-        if (string.IsNullOrWhiteSpace(output))
-            return [];
-
-        var trimmed = output.Trim();
-        if (!trimmed.StartsWith('{'))
-            return [];
+        var trimmed = output?.Trim();
+        if (string.IsNullOrEmpty(trimmed) || !trimmed.StartsWith('{'))
+            throw new InvalidOperationException("yt-dlp returned no comment data.");
 
         try
         {
@@ -36,9 +34,9 @@ public sealed class YtDlpCommentsParser
 
             return ParseComments(comments);
         }
-        catch (JsonException)
+        catch (JsonException ex)
         {
-            return [];
+            throw new InvalidOperationException("yt-dlp returned comment data that could not be read.", ex);
         }
     }
 
