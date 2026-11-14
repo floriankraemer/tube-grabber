@@ -462,11 +462,17 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         if (availableAt is null)
             return;
 
-        var wait = availableAt.Value - DateTimeOffset.UtcNow;
-        if (wait > MaxStreamWait)
-            wait = MaxStreamWait;
-        if (wait > TimeSpan.Zero)
-            await Task.Delay(wait, token);
+        var deadline = availableAt.Value;
+        var cap = DateTimeOffset.UtcNow + MaxStreamWait;
+        if (deadline > cap)
+            deadline = cap;
+
+        // Task.Delay can return a few milliseconds early on coarse timers, so re-check the wall clock.
+        for (var remaining = deadline - DateTimeOffset.UtcNow; remaining > TimeSpan.Zero;
+             remaining = deadline - DateTimeOffset.UtcNow)
+        {
+            await Task.Delay(remaining, token);
+        }
     }
 
     private async Task LoadCommentsAsync(CancellationToken pageToken)
