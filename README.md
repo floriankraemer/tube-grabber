@@ -18,6 +18,9 @@
 - **Binaries** — set or browse yt-dlp/ffmpeg paths, test each, or install from the Settings page
 - **Settings** — tabbed editors for common yt-dlp flags (subs, metadata, SponsorBlock, and more)
 - **Job logs** — view yt-dlp output for failed (or finished) jobs
+- **Browse** — the start page: the latest videos from your subscribed channels, with a search box on top
+- **Watch page** — play a video in the app, read its top comments, and queue it with any download profile
+- **SponsorBlock** — sponsor segments are skipped while you watch, and shown as marks on the seek bar
 - **YouTube search** — find videos (filter by upload date and length, Shorts hidden by default) or channels, then queue a download or subscribe straight from the results
 - **Channel subscriptions** — follow YouTube channels and queue their new uploads automatically
 - **Background mode and notifications** — keep checking while the window is closed, and get an OS notification when a download finishes or fails
@@ -44,9 +47,25 @@ Pick the active profile in **Settings → Profiles**. Details: [docs/settings.md
 Config and profiles live in `~/.tube-grabber/` (`app.json`, `profiles/*.json`).
 Data from the former `~/.yt-dlp-ui/` folder is copied there on first start (see [docs/settings.md](docs/settings.md)).
 
+## Video playback
+
+The watch page plays videos with libVLC through LibVLCSharp.
+Windows and macOS builds include libVLC.
+On Linux, install libVLC from your package manager first:
+
+```bash
+sudo apt install libvlc5 vlc-plugin-base vlc-plugin-video-output   # Debian/Ubuntu
+```
+
+On Fedora, install `vlc-libs` and `vlc` from RPM Fusion.
+
+Without libVLC, the watch page still shows the video details, comments, and the **Download** button.
+It also offers an **Open in browser** button.
+Playback settings, including SponsorBlock, are described in [docs/settings.md](docs/settings.md#playback-and-sponsorblock).
+
 ## Build and test
 
-Requires **Docker** for default `make` targets (dev container), **or** .NET 8 SDK on the host with `IN_CONTAINER=1`.
+Requires **Docker** for default `make` targets (dev container), **or** .NET 10 SDK on the host with `IN_CONTAINER=1`.
 
 ```bash
 make ci              # restore, Release build, tests
@@ -81,7 +100,7 @@ TubeGrabber.slnx
 ## Documentation
 
 - [docs/build.md](docs/build.md) — solution layout, coverage gates, publish options
-- [docs/settings.md](docs/settings.md) — config paths, binaries, download folder, profiles, subscriptions, background mode, security
+- [docs/settings.md](docs/settings.md) — config paths, binaries, download folder, profiles, subscriptions, background mode, playback and SponsorBlock, security
 
 ## Legal
 

@@ -14,8 +14,12 @@ TubeGrabber.slnx
 
 ## Prerequisites
 
-- Docker (for the dev container via `make`), or .NET 8 SDK on the host with `IN_CONTAINER=1`
+- Docker (for the dev container via `make`), or .NET 10 SDK on the host with `IN_CONTAINER=1`
 - `yt-dlp` and `ffmpeg` on PATH or installed via the UI
+- libVLC for video playback on Linux (see [Video playback](../README.md#video-playback)); Windows and macOS builds bundle it
+
+The dev container image is based on `mcr.microsoft.com/dotnet/sdk:10.0`.
+It also installs the libVLC packages `libvlc-dev`, `vlc-plugin-base`, and `vlc-plugin-video-output`.
 
 ## Commands
 

@@ -263,6 +263,30 @@ It also stores the IDs of up to 500 recently handled videos per channel, so the 
 For videos that failed but are not yet handled, it stores the number of failed attempts.
 On Linux and macOS, the app restricts the file permissions, as it does for other config files.
 
+## Playback and SponsorBlock
+
+The watch page plays videos in the app.
+The libVLC requirements per platform are listed in the [README](../README.md#video-playback).
+
+### Skipping sponsor segments
+
+Open **Settings → Playback** and turn on **Skip sponsor segments while watching**.
+The option is on by default.
+It is stored in `app.json` as `SponsorBlockEnabled`.
+
+While a video plays, the app skips the sponsor segments it finds for that video.
+A short notice appears each time it skips one.
+The seek bar shows the segments as green marks.
+If the SponsorBlock lookup fails or times out, playback continues without skipping.
+
+Segment data comes from the public SponsorBlock API at [sponsor.ajay.app](https://sponsor.ajay.app).
+The app sends only the first four hex characters of the SHA-256 hash of the video ID.
+That prefix matches many videos, so the server cannot tell which exact video you watch.
+Segment data from [SponsorBlock](https://sponsor.ajay.app) is licensed under CC BY-NC-SA 4.0.
+
+This setting affects playback only.
+To remove segments from downloaded files, add the `--sponsorblock-remove` option to a profile.
+
 ## Security
 
 Profiles may contain cookies or passwords. Files are stored only on your machine. On Linux/macOS the app sets restrictive permissions where supported.
