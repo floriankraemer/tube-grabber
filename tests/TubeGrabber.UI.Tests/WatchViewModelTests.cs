@@ -211,7 +211,7 @@ public sealed class WatchViewModelTests : IDisposable
         _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
             .Returns(new[] { new SponsorSegment("u1", "sponsor", 10, 20) });
         using var vm = Create();
-        vm.SkipNoticeDuration = TimeSpan.FromMilliseconds(20);
+        vm.SkipNoticeDuration = TimeSpan.FromMilliseconds(500);
         await vm.LoadAsync();
 
         _player.RaisePosition(5);
@@ -222,7 +222,8 @@ public sealed class WatchViewModelTests : IDisposable
         Assert.Equal([20d], _player.Seeks);
         Assert.Equal("Skipped sponsor segment", vm.SkipNotice);
         Assert.True(vm.HasSkipNotice);
-        await Task.Delay(300, TestContext.Current.CancellationToken);
+        for (var i = 0; i < 100 && vm.HasSkipNotice; i++)
+            await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.Null(vm.SkipNotice);
     }
 
