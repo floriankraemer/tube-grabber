@@ -18,6 +18,9 @@ public interface IVideoPlayer : IDisposable
 
     event Action<bool>? IsPlayingChanged;
 
+    /// <summary>True while the player waits for data (initial load or after a seek); false once playback can continue.</summary>
+    event Action<bool>? BufferingChanged;
+
     /// <summary>Playback failed; the argument is a user-facing message.</summary>
     event Action<string>? Failed;
 
