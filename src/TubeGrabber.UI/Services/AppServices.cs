@@ -153,7 +153,7 @@ public sealed class AppServices
         EnqueueCoordinator,
         AppConfigStore,
         ProfileStore,
-        PlaybackEngine.CreatePlayer());
+        PlaybackEngine.CreatePlayerAsync());
 
     public SearchViewModel CreateSearchViewModel() => new(
         SearchService,

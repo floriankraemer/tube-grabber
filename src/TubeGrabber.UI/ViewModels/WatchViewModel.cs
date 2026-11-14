@@ -13,6 +13,8 @@ namespace TubeGrabber.UI.ViewModels;
 /// <summary>
 /// One opened video: resolves stream details and starts playback, loads comments and SponsorBlock segments in
 /// parallel, and offers the profile-picking Download action. Disposing cancels everything and stops the player.
+/// The player arrives asynchronously (the playback engine starts up off the UI thread), so the page is usable
+/// while it is still pending.
 /// </summary>
 public sealed class WatchViewModel : ViewModelBase, IDisposable
 {
@@ -26,7 +28,9 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     private readonly DownloadEnqueueCoordinator _enqueueCoordinator;
     private readonly IAppConfigStore _appConfigStore;
     private readonly IProfileStore _profileStore;
-    private readonly IVideoPlayer? _player;
+    private readonly Task<IVideoPlayer?> _playerReady;
+    private IVideoPlayer? _player;
+    private bool _playerResolved;
     private readonly HashSet<string> _skipped = new(StringComparer.Ordinal);
     private CancellationTokenSource _cts = new();
     private CancellationTokenSource? _noticeCts;
@@ -65,7 +69,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         DownloadEnqueueCoordinator enqueueCoordinator,
         IAppConfigStore appConfigStore,
         IProfileStore profileStore,
-        IVideoPlayer? player)
+        Task<IVideoPlayer?> player)
     {
         _result = result;
         _detailsService = detailsService;
@@ -74,17 +78,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         _enqueueCoordinator = enqueueCoordinator;
         _appConfigStore = appConfigStore;
         _profileStore = profileStore;
-        _player = player;
         _lengthSeconds = result.DurationSeconds ?? 0;
-
-        if (player is not null)
-        {
-            player.PositionChanged += OnPositionChanged;
-            player.LengthChanged += OnLengthChanged;
-            player.IsPlayingChanged += OnIsPlayingChanged;
-            player.BufferingChanged += OnBufferingChanged;
-            player.Failed += OnPlayerFailed;
-        }
+        _playerReady = AttachPlayerAsync(player);
     }
 
     /// <summary>yt-dlp can hang on a bad network or extractor; the page then shows an error with Retry.</summary>
@@ -99,8 +94,11 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     /// <summary>Upper bound for waiting until fresh stream URLs become valid; guards against a skewed clock.</summary>
     public TimeSpan MaxStreamWait { get; set; } = TimeSpan.FromSeconds(30);
 
+    /// <summary>Null until the player arrived, and for good when playback is unavailable.</summary>
     public IVideoPlayer? Player => _player;
-    public bool IsPlaybackAvailable => _player is not null;
+
+    /// <summary>False only once it is known that there is no player; true while it is still starting up.</summary>
+    public bool IsPlaybackAvailable => !_playerResolved || _player is not null;
     public string WatchUrl => _result.WatchUrl;
     public ObservableCollection<CommentViewModel> Comments { get; } = new();
     public ObservableCollection<DownloadProfile> Profiles { get; } = new();
@@ -420,6 +418,46 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         _player.Dispose();
     }
 
+    // Completes once the player (or its absence) is known and announced, so the view has bound the video surface
+    // before anything is played.
+    private async Task<IVideoPlayer?> AttachPlayerAsync(Task<IVideoPlayer?> pending)
+    {
+        IVideoPlayer? player = null;
+        try
+        {
+            player = await pending;
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceError($"Could not create the video player: {ex.Message}");
+        }
+
+        if (_disposed)
+        {
+            player?.Dispose();
+            return null;
+        }
+
+        _playerResolved = true;
+        if (player is not null)
+        {
+            player.PositionChanged += OnPositionChanged;
+            player.LengthChanged += OnLengthChanged;
+            player.IsPlayingChanged += OnIsPlayingChanged;
+            player.BufferingChanged += OnBufferingChanged;
+            player.Failed += OnPlayerFailed;
+            // The volume slider may have been moved while the player was still starting up.
+            if (player.Volume != _volume)
+                player.Volume = _volume;
+            _player = player;
+        }
+
+        OnPropertyChanged(nameof(Player));
+        OnPropertyChanged(nameof(IsPlaybackAvailable));
+        OnPropertyChanged(nameof(ShowPlaybackSpinner));
+        return player;
+    }
+
     private async Task LoadDetailsAndPlayAsync(CancellationToken token)
     {
         try
@@ -441,7 +479,9 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             OnPropertyChanged(nameof(HasDescription));
             OnPropertyChanged(nameof(CanExpandDescription));
 
-            if (_player is null)
+            var player = await _playerReady;
+            token.ThrowIfCancellationRequested();
+            if (player is null)
                 return;
 
             if (string.IsNullOrEmpty(details.VideoStreamUrl))
@@ -449,7 +489,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             else
             {
                 await WaitUntilStreamsAvailableAsync(details.StreamsAvailableAt, token);
-                _player.Play(details.VideoStreamUrl, details.AudioStreamUrl);
+                player.Play(details.VideoStreamUrl, details.AudioStreamUrl);
             }
         }
         catch (OperationCanceledException)

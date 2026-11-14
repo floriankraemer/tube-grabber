@@ -83,19 +83,29 @@ public sealed partial class WatchView : UserControl
             return;
         }
 
-        // The player must be bound to the native surface before playback starts, or VLC opens its own window.
-        if (vm.Player is VlcVideoPlayer vlc)
+        // The player arrives once the playback engine is up; the view model announces it before it plays anything.
+        vm.PropertyChanged += (_, args) =>
         {
-            // The native child window would otherwise take keyboard focus and mouse clicks (Esc, click to pause).
-            vlc.MediaPlayer.EnableKeyInput = false;
-            vlc.MediaPlayer.EnableMouseInput = false;
-            Video.MediaPlayer = vlc.MediaPlayer;
-        }
-
+            if (args.PropertyName == nameof(WatchViewModel.Player) && ReferenceEquals(vm, ViewModel))
+                BindVideoSurface(vm);
+        };
+        BindVideoSurface(vm);
         vm.Profiles.CollectionChanged += (_, _) => RebuildDownloadMenu();
         RebuildDownloadMenu();
         ApplyLayout();
         await vm.LoadAsync();
+    }
+
+    // The player must be bound to the native surface before playback starts, or VLC opens its own window.
+    private void BindVideoSurface(WatchViewModel vm)
+    {
+        if (vm.Player is not VlcVideoPlayer vlc)
+            return;
+
+        // The native child window would otherwise take keyboard focus and mouse clicks (Esc, click to pause).
+        vlc.MediaPlayer.EnableKeyInput = false;
+        vlc.MediaPlayer.EnableMouseInput = false;
+        Video.MediaPlayer = vlc.MediaPlayer;
     }
 
     private void OnWindowStateChanged(WindowState state)

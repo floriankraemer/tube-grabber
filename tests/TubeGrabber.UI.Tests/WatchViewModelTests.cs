@@ -195,6 +195,63 @@ public sealed class WatchViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_PlayerStillStartingUp_ShowsDetailsAndPlaysOnceItArrives()
+    {
+        var pending = new TaskCompletionSource<IVideoPlayer?>();
+        using var vm = Create(pending.Task);
+        var announced = new List<string?>();
+        vm.PropertyChanged += (_, e) => announced.Add(e.PropertyName);
+
+        var load = vm.LoadAsync();
+
+        Assert.Equal("Full title", vm.Title);
+        Assert.Null(vm.Player);
+        Assert.True(vm.IsPlaybackAvailable);
+        Assert.True(vm.ShowPlaybackSpinner);
+        Assert.Empty(_player.Played);
+        vm.Volume = 30;
+
+        pending.SetResult(_player);
+        await load;
+
+        Assert.Same(_player, vm.Player);
+        Assert.Contains(nameof(WatchViewModel.Player), announced);
+        Assert.Equal([("video-url", "audio-url")], _player.Played);
+        Assert.Equal(30, _player.Volume);
+        Assert.False(vm.ShowPlaybackSpinner);
+    }
+
+    [Fact]
+    public async Task LoadAsync_PlayerTurnsOutUnavailable_MarksPlaybackUnavailable()
+    {
+        var pending = new TaskCompletionSource<IVideoPlayer?>();
+        using var vm = Create(pending.Task);
+        var load = vm.LoadAsync();
+
+        pending.SetException(new InvalidOperationException("no libvlc"));
+        await load;
+
+        Assert.False(vm.IsPlaybackAvailable);
+        Assert.False(vm.IsLoadingDetails);
+        Assert.False(vm.HasDetailsError);
+    }
+
+    [Fact]
+    public void Dispose_BeforePlayerArrives_DisposesItOnArrivalWithoutPlaying()
+    {
+        var pending = new TaskCompletionSource<IVideoPlayer?>();
+        var vm = Create(pending.Task);
+        _ = vm.LoadAsync();
+
+        vm.Dispose();
+        pending.SetResult(_player);
+
+        Assert.Equal(1, _player.DisposeCount);
+        Assert.Empty(_player.Played);
+        Assert.Null(vm.Player);
+    }
+
+    [Fact]
     public async Task LoadAsync_NoPlayer_MarksPlaybackUnavailableButKeepsDetails()
     {
         using var vm = Create(withPlayer: false);
@@ -666,14 +723,17 @@ public sealed class WatchViewModelTests : IDisposable
         return default!;
     }
 
-    private WatchViewModel Create(bool withPlayer = true)
+    private WatchViewModel Create(bool withPlayer = true) =>
+        Create(Task.FromResult<IVideoPlayer?>(withPlayer ? _player : null));
+
+    private WatchViewModel Create(Task<IVideoPlayer?> player)
     {
         var coordinator = new DownloadEnqueueCoordinator(
             _queue, _config, _profiles, new YouTubeUrlNormalizer(), TestBinaryLocator.Create(_root), new DownloadFolderService());
         return new WatchViewModel(
             new YouTubeSearchResult { VideoId = "v1", Title = "Result title", Channel = "Chan", WatchUrl = WatchUrl },
             _details, _comments, _sponsorBlock, coordinator, _config, _profiles,
-            withPlayer ? _player : null);
+            player);
     }
 
     private static VideoDetails Details(
