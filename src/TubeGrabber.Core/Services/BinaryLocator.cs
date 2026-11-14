@@ -11,8 +11,14 @@ namespace TubeGrabber.Core.Services;
 public sealed class BinaryLocator : IBinaryLocator
 {
     private readonly string _configRoot;
+    private readonly Func<string, string?> _findOnPath;
 
-    public BinaryLocator(string configRoot) => _configRoot = configRoot;
+    // The PATH lookup is injectable so tests do not depend on what is installed on the machine running them.
+    public BinaryLocator(string configRoot, Func<string, string?>? findOnPath = null)
+    {
+        _configRoot = configRoot;
+        _findOnPath = findOnPath ?? (name => ExecutablePathResolver.FindOnPath(name));
+    }
 
     public string? ResolveYtDlpPath(AppConfiguration config)
     {
@@ -24,7 +30,7 @@ public sealed class BinaryLocator : IBinaryLocator
         if (File.Exists(bundled))
             return bundled;
 
-        return ExecutablePathResolver.FindOnPath(GetYtDlpExecutableName());
+        return _findOnPath(GetYtDlpExecutableName());
     }
 
     public string? ResolveFfmpegPath(AppConfiguration config)
@@ -37,7 +43,7 @@ public sealed class BinaryLocator : IBinaryLocator
         if (File.Exists(bundled))
             return bundled;
 
-        return ExecutablePathResolver.FindOnPath(GetFfmpegExecutableName());
+        return _findOnPath(GetFfmpegExecutableName());
     }
 
     public string GetBundledYtDlpPath() =>
