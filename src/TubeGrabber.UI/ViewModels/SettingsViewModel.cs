@@ -443,8 +443,22 @@ public sealed class SettingsViewModel : ViewModelBase
 
     public string ResolvedFfmpegPath => _coordinator.ResolveFfmpegPath(Config) ?? "Not found";
 
+    /// <summary>
+    /// Re-resolves the "Resolved:" labels. They depend on the file system and PATH as well as on the edited fields, so they
+    /// go stale when the user installs a tool outside the app and comes back.
+    /// </summary>
+    public void RefreshResolvedPaths()
+    {
+        OnPropertyChanged(nameof(ResolvedYtDlpPath));
+        OnPropertyChanged(nameof(ResolvedFfmpegPath));
+        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+    }
+
     public void ApplyTestResult(string toolName, string? result)
     {
+        RefreshResolvedPaths();
+
         var card = toolName switch
         {
             "yt-dlp" => YtDlpStatus,
@@ -472,10 +486,6 @@ public sealed class SettingsViewModel : ViewModelBase
         card.Set(result, isError: false);
         ValidationError = null;
         StatusMessage = $"{toolName}: {result}";
-        OnPropertyChanged(nameof(ResolvedYtDlpPath));
-        OnPropertyChanged(nameof(ResolvedFfmpegPath));
-        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
-        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
     }
 
     private async Task RunInstallAsync(ManagedBinary binary, IBinaryInstaller installer, string displayName)
