@@ -14,10 +14,15 @@ public sealed class ChannelResultViewModelTests
 {
     private static readonly DownloadProfile Profile = new() { Id = "p1", Name = "Profile" };
     private readonly ISubscriptionMonitor _monitor = Substitute.For<ISubscriptionMonitor>();
+    private readonly IAppConfigStore _appConfig = Substitute.For<IAppConfigStore>();
+
+    public ChannelResultViewModelTests() =>
+        _appConfig.LoadAsync(Arg.Any<CancellationToken>()).Returns(new AppConfiguration());
 
     [Fact]
-    public async Task SubscribeAsync_SubscribesWithoutBacklog()
+    public async Task SubscribeAsync_QueuesTheConfiguredBacklog()
     {
+        _appConfig.LoadAsync(Arg.Any<CancellationToken>()).Returns(new AppConfiguration { SubscriptionBacklogCount = 3 });
         var row = CreateRow();
 
         await row.SubscribeAsync();
@@ -25,10 +30,22 @@ public sealed class ChannelResultViewModelTests
         await _monitor.Received(1).AddAsync(
             "https://www.youtube.com/channel/UC1",
             "p1",
-            0,
+            3,
             Arg.Any<CancellationToken>());
         Assert.True(row.IsSubscribed);
         Assert.False(row.CanSubscribe);
+        Assert.Equal("Subscribed. Downloading the latest 3 video(s).", row.StatusMessage);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_ZeroBacklog_OnlyAnnouncesNewUploads()
+    {
+        _appConfig.LoadAsync(Arg.Any<CancellationToken>()).Returns(new AppConfiguration { SubscriptionBacklogCount = 0 });
+        var row = CreateRow();
+
+        await row.SubscribeAsync();
+
+        await _monitor.Received(1).AddAsync(Arg.Any<string>(), "p1", 0, Arg.Any<CancellationToken>());
         Assert.Equal("Subscribed. New uploads will be downloaded automatically.", row.StatusMessage);
     }
 
@@ -89,5 +106,6 @@ public sealed class ChannelResultViewModelTests
             defaultProfile: null,
             isSubscribed,
             _monitor,
+            _appConfig,
             Substitute.For<IThumbnailLoader>());
 }

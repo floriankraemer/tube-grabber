@@ -93,6 +93,7 @@ public sealed class SettingsCoordinatorTests : IDisposable
         var latest = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
         latest.ActiveProfileId = other.Id;
         latest.QueueColumnWidths["Title"] = 321;
+        latest.SubscriptionBacklogCount = 8;
         await _appConfig.SaveAsync(latest, TestContext.Current.CancellationToken);
 
         await _coordinator.SaveAsync(config, [profiles[0]], TestContext.Current.CancellationToken);
@@ -100,6 +101,7 @@ public sealed class SettingsCoordinatorTests : IDisposable
         var (reloaded, _) = await _coordinator.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(other.Id, reloaded.ActiveProfileId);
         Assert.Equal(321, reloaded.QueueColumnWidths["Title"]);
+        Assert.Equal(8, reloaded.SubscriptionBacklogCount);
     }
 
     [Fact]

@@ -16,13 +16,14 @@ public sealed class SubscriptionsViewModelTests
     private static readonly DownloadProfile Audio = new() { Id = "audio", Name = "Audio" };
 
     private readonly ISubscriptionMonitor _monitor = Substitute.For<ISubscriptionMonitor>();
+    private readonly IAppConfigStore _appConfig = Substitute.For<IAppConfigStore>();
     private readonly SubscriptionsViewModel _viewModel;
 
     public SubscriptionsViewModelTests()
     {
         var profileStore = Substitute.For<IProfileStore>();
         profileStore.ListAsync(Arg.Any<CancellationToken>()).Returns([Audio, Default]);
-        var appConfig = Substitute.For<IAppConfigStore>();
+        var appConfig = _appConfig;
         appConfig.LoadAsync(Arg.Any<CancellationToken>())
             .Returns(new AppConfiguration { ActiveProfileId = "default" });
         _monitor.ListAsync(Arg.Any<CancellationToken>()).Returns(new List<ChannelSubscription>());
@@ -93,6 +94,30 @@ public sealed class SubscriptionsViewModelTests
         Assert.Equal(string.Empty, _viewModel.ChannelUrl);
         Assert.False(_viewModel.IsBusy);
         Assert.Single(_viewModel.Items);
+    }
+
+    [Fact]
+    public async Task InitializeAsync_LoadsTheSharedBacklogSetting()
+    {
+        _appConfig.LoadAsync(Arg.Any<CancellationToken>())
+            .Returns(new AppConfiguration { ActiveProfileId = "default", SubscriptionBacklogCount = 7 });
+
+        await _viewModel.InitializeAsync();
+
+        Assert.Equal(7, _viewModel.BacklogCount);
+        await _appConfig.DidNotReceive().SaveAsync(Arg.Any<AppConfiguration>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task BacklogCount_Change_IsSavedSoSearchSubscribesHonourIt()
+    {
+        await _viewModel.InitializeAsync();
+
+        _viewModel.BacklogCount = 9;
+
+        await _appConfig.Received().SaveAsync(
+            Arg.Is<AppConfiguration>(c => c.SubscriptionBacklogCount == 9),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]

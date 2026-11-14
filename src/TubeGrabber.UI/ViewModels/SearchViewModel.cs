@@ -390,6 +390,7 @@ public sealed class SearchViewModel : ViewModelBase
                 defaultProfile,
                 subscribedIds.Contains(result.ChannelId),
                 _subscriptionMonitor,
+                _appConfigStore,
                 _thumbnailLoader);
             newRows.Add(row);
             Channels.Add(row);

@@ -12,6 +12,7 @@ namespace TubeGrabber.UI.ViewModels;
 public sealed class ChannelResultViewModel : ThumbnailRowViewModel
 {
     private readonly ISubscriptionMonitor _monitor;
+    private readonly IAppConfigStore _appConfigStore;
     private DownloadProfile? _selectedProfile;
     private bool _isSubscribing;
     private bool _isSubscribed;
@@ -23,12 +24,14 @@ public sealed class ChannelResultViewModel : ThumbnailRowViewModel
         DownloadProfile? defaultProfile,
         bool isSubscribed,
         ISubscriptionMonitor monitor,
+        IAppConfigStore appConfigStore,
         IThumbnailLoader thumbnailLoader)
         : base(result.ThumbnailUrl, thumbnailLoader)
     {
         Result = result;
         Profiles = profiles;
         _monitor = monitor;
+        _appConfigStore = appConfigStore;
         _selectedProfile = defaultProfile ?? profiles.FirstOrDefault();
         _isSubscribed = isSubscribed;
         _statusMessage = isSubscribed ? "Subscribed." : null;
@@ -94,10 +97,13 @@ public sealed class ChannelResultViewModel : ThumbnailRowViewModel
         StatusMessage = null;
         try
         {
-            // Backlog 0: only uploads from now on are queued; the channel's back catalogue is left alone.
-            await _monitor.AddAsync(Result.ChannelUrl, SelectedProfile.Id, backlogCount: 0);
+            // Same "download latest N existing videos" setting as the Subscriptions page.
+            var config = await _appConfigStore.LoadAsync();
+            await _monitor.AddAsync(Result.ChannelUrl, SelectedProfile.Id, config.SubscriptionBacklogCount);
             IsSubscribed = true;
-            StatusMessage = "Subscribed. New uploads will be downloaded automatically.";
+            StatusMessage = config.SubscriptionBacklogCount > 0
+                ? $"Subscribed. Downloading the latest {config.SubscriptionBacklogCount} video(s)."
+                : "Subscribed. New uploads will be downloaded automatically.";
         }
         catch (Exception ex)
         {
