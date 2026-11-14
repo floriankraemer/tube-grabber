@@ -50,7 +50,7 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
     private FfmpegBinaryInstaller CreateInstaller(HttpMessageHandler handler) =>
         new(
             new GitHubBinaryReleaseSource(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new BinaryDownloadHelper(new HttpClient(handler)),
             WindowsRuntimeIdentifier);
 

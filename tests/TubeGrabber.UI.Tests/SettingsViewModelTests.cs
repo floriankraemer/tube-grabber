@@ -30,7 +30,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(_coordinator, _profiles, _root);
     }
@@ -85,7 +85,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             _root,
             ytDlpInstaller: installer,
-            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)));
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)));
 
         await vm.LoadAsync();
         await vm.InstallYtDlpAsync();
@@ -112,7 +112,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             _root,
             ffmpegInstaller: installer,
-            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)),
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)),
             fileSystemLauncher: launcher);
 
         await vm.LoadAsync();

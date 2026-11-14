@@ -30,7 +30,7 @@ public sealed class DownloadQueueServiceTitleTests : IDisposable
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             _appConfig,
             _profiles,
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new YouTubeUrlNormalizer(),
             new YtDlpProgressParser(),
             new YtDlpOutputPathParser(),

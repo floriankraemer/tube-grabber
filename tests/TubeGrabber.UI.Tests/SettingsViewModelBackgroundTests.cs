@@ -142,6 +142,6 @@ public sealed class SettingsViewModelBackgroundTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(new YtDlpOptionCatalog(), new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
 }

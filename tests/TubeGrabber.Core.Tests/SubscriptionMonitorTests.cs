@@ -45,7 +45,7 @@ public sealed class SubscriptionMonitorTests : IAsyncDisposable
             appConfig,
             profileStore,
             new YouTubeUrlNormalizer(),
-            new BinaryLocator(root),
+            TestBinaryLocator.Create(root),
             new DownloadFolderService());
 
         _monitor = new SubscriptionMonitor(_store, _feed, coordinator, _queue, appConfig, _notifier, _time);

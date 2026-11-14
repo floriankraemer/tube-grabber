@@ -585,7 +585,7 @@ public sealed class WatchViewModelTests : IDisposable
     private WatchViewModel Create(bool withPlayer = true)
     {
         var coordinator = new DownloadEnqueueCoordinator(
-            _queue, _config, _profiles, new YouTubeUrlNormalizer(), new BinaryLocator(_root), new DownloadFolderService());
+            _queue, _config, _profiles, new YouTubeUrlNormalizer(), TestBinaryLocator.Create(_root), new DownloadFolderService());
         return new WatchViewModel(
             new YouTubeSearchResult { VideoId = "v1", Title = "Result title", Channel = "Chan", WatchUrl = WatchUrl },
             _details, _comments, _sponsorBlock, coordinator, _config, _profiles,

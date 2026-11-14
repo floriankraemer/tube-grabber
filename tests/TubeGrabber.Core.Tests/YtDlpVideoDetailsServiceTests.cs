@@ -96,7 +96,7 @@ public sealed class YtDlpVideoDetailsServiceTests : IDisposable
         var service = new YtDlpVideoDetailsService(
             _runner,
             new AppConfigStore(_root, new ProfileStore(_root)),
-            new BinaryLocator(Path.Combine(_root, "empty")),
+            TestBinaryLocator.Create(Path.Combine(_root, "empty")),
             new JsRuntimeLocator());
 
         var ex = await Assert.ThrowsAsync<InvalidOperationException>(
@@ -113,7 +113,7 @@ public sealed class YtDlpVideoDetailsServiceTests : IDisposable
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         await appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        return new YtDlpVideoDetailsService(_runner, appConfig, new BinaryLocator(_root), new JsRuntimeLocator());
+        return new YtDlpVideoDetailsService(_runner, appConfig, TestBinaryLocator.Create(_root), new JsRuntimeLocator());
     }
 
     public void Dispose()

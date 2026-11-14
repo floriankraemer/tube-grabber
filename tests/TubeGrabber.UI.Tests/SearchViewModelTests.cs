@@ -226,6 +226,6 @@ public sealed class SearchViewModelTests
             Substitute.For<IAppConfigStore>(),
             Substitute.For<IProfileStore>(),
             new YouTubeUrlNormalizer(),
-            new BinaryLocator(Path.GetTempPath()),
+            TestBinaryLocator.Create(Path.GetTempPath()),
             new DownloadFolderService());
 }

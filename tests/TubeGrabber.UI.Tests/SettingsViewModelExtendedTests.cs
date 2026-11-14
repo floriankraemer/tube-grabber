@@ -26,7 +26,7 @@ public sealed class SettingsViewModelExtendedTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(coordinator, _profiles, _root);
     }

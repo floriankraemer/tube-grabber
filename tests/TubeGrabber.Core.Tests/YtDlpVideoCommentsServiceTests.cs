@@ -138,7 +138,7 @@ public sealed class YtDlpVideoCommentsServiceTests : IDisposable
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         await appConfig.SaveAsync(config, TestContext.Current.CancellationToken);
 
-        return new YtDlpVideoCommentsService(process, appConfig, new BinaryLocator(_root), new JsRuntimeLocator());
+        return new YtDlpVideoCommentsService(process, appConfig, TestBinaryLocator.Create(_root), new JsRuntimeLocator());
     }
 
     private sealed class FixedJsRuntimeLocator(string path) : IJsRuntimeLocator

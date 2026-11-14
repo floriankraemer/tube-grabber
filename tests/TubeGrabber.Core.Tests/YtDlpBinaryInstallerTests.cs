@@ -21,7 +21,7 @@ public sealed class YtDlpBinaryInstallerTests : IDisposable
         var handler = new FakeHttpMessageHandler();
         var helper = new BinaryDownloadHelper(new HttpClient(handler));
         var source = new GitHubBinaryReleaseSource();
-        var locator = new BinaryLocator(_root);
+        var locator = TestBinaryLocator.Create(_root);
         var installer = new YtDlpBinaryInstaller(source, locator, helper, "linux-x64");
 
         var result = await installer.InstallAsync(TestContext.Current.CancellationToken);

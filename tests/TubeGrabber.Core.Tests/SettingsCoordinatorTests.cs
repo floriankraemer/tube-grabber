@@ -25,7 +25,7 @@ public sealed class SettingsCoordinatorTests : IDisposable
             profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             new AppSettingsValidator(new ExtraArgsTokenizer(), new DownloadFolderService()),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
     }
 

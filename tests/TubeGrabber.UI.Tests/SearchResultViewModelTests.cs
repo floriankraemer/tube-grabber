@@ -118,7 +118,7 @@ public sealed class SearchResultViewModelTests
             appConfig,
             profileStore,
             new YouTubeUrlNormalizer(),
-            new BinaryLocator(root),
+            TestBinaryLocator.Create(root),
             new DownloadFolderService());
     }
 }
