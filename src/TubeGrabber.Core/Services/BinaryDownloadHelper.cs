@@ -129,11 +129,28 @@ public sealed class BinaryDownloadHelper
             CreateNoWindow = true,
         };
 
-        using var process = System.Diagnostics.Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start tar for extraction.");
+        const string Hint = "Unpacking a .tar.xz archive needs the 'tar' and 'xz' tools; install them with your package manager (for example the xz-utils package) and try again";
 
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException(process.StandardError.ReadToEnd());
+        System.Diagnostics.Process process;
+        try
+        {
+            process = System.Diagnostics.Process.Start(psi)
+                ?? throw new InvalidOperationException($"Failed to start tar. {Hint}");
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            throw new InvalidOperationException($"tar was not found. {Hint}", ex);
+        }
+
+        using (process)
+        {
+            var stderr = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                var reason = stderr.GetAwaiter().GetResult().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "tar failed";
+                throw new InvalidOperationException($"{reason}. {Hint}");
+            }
+        }
     }
 }

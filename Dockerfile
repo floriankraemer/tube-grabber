@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git make curl ca-certificates \
+    && apt-get install -y --no-install-recommends git make curl ca-certificates xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Stryker.NET — see docs/build.md; `make mutation-test` uses `dotnet-stryker`.
