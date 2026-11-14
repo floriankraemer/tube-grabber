@@ -10,11 +10,19 @@ namespace TubeGrabber.UI.ViewModels;
 public sealed class DownloadJobViewModel : ViewModelBase
 {
     private readonly DownloadJob _job;
+    private readonly Func<string, string?>? _profileNameLookup;
 
-    public DownloadJobViewModel(DownloadJob job) => _job = job;
+    /// <param name="profileNameLookup">Maps a profile id to its display name; null result means the profile no longer exists.</param>
+    public DownloadJobViewModel(DownloadJob job, Func<string, string?>? profileNameLookup = null)
+    {
+        _job = job;
+        _profileNameLookup = profileNameLookup;
+    }
 
     public Guid Id => _job.Id;
     public string Url => _job.Url;
+    /// <summary>Name of the profile the job runs with; falls back to the id when the profile was deleted.</summary>
+    public string ProfileName => _profileNameLookup?.Invoke(_job.ProfileId) ?? _job.ProfileId;
     public string? Title => YtDlpMetadataParser.FormatQueueTitle(_job);
     public DownloadStatus Status => _job.Status;
     public string StatusText => Status switch

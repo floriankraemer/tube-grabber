@@ -177,6 +177,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             _loadingProfiles = false;
         }
+
+        // Renamed or deleted profiles change the name shown on existing rows.
+        SyncJobs();
     }
 
     public async Task<bool> RequiresDownloadFolderSetupAsync()
@@ -314,6 +317,9 @@ public sealed class MainWindowViewModel : ViewModelBase
         _ = Dispatcher.UIThread.InvokeAsync(SyncJobs);
     }
 
+    private string? LookupProfileName(string profileId) =>
+        Profiles.FirstOrDefault(p => string.Equals(p.Id, profileId, StringComparison.Ordinal))?.Name;
+
     private void SyncJobs()
     {
         var queueJobs = _queue.Jobs;
@@ -329,7 +335,7 @@ public sealed class MainWindowViewModel : ViewModelBase
         {
             var existing = Jobs.FirstOrDefault(j => j.Id == job.Id);
             if (existing is null)
-                Jobs.Add(new DownloadJobViewModel(job));
+                Jobs.Add(new DownloadJobViewModel(job, LookupProfileName));
             else
                 existing.Refresh();
         }
