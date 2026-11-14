@@ -93,6 +93,24 @@ public sealed class BinaryDownloadHelper
         return target;
     }
 
+    /// <summary>
+    /// Copies <c>ffprobe</c> from an extracted ffmpeg archive next to the installed ffmpeg. yt-dlp needs it for
+    /// post-processing that reads durations (SponsorBlock removal, chapters). Returns false when the archive has none.
+    /// </summary>
+    public static bool CopyFfprobe(string extractDirectory, string targetDirectory)
+    {
+        var name = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
+        var source = Directory.EnumerateFiles(extractDirectory, name, SearchOption.AllDirectories)
+            .FirstOrDefault(f => string.Equals(Path.GetFileName(f), name, StringComparison.OrdinalIgnoreCase));
+        if (source is null)
+            return false;
+
+        var target = Path.Combine(targetDirectory, name);
+        File.Copy(source, target, overwrite: true);
+        MakeExecutable(target);
+        return true;
+    }
+
     public static string ExtractDenoFromArchive(string archivePath, string extractDirectory)
     {
         Directory.CreateDirectory(extractDirectory);
