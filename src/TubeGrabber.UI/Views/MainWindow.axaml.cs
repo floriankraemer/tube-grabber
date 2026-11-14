@@ -5,6 +5,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform;
 using TubeGrabber.UI.Services;
 using TubeGrabber.UI.ViewModels;
@@ -38,6 +39,8 @@ public sealed partial class MainWindow : Window
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
     /// <summary>Shows the Subscriptions page; used by the tray menu after the window has been brought to the front.</summary>
+    public void OpenDownloadsPage() => _ = NavigateAsync(AppPage.Downloads);
+
     public void OpenSubscriptionsPage() => _ = NavigateAsync(AppPage.Subscriptions);
 
     /// <summary>Releases view models that hold event subscriptions; called once when the app quits.</summary>
@@ -52,6 +55,29 @@ public sealed partial class MainWindow : Window
             || change.Property == WindowDecorationMarginProperty
             || change.Property == IsExtendedIntoWindowDecorationsProperty)
             UpdateChrome();
+        else if (change.Property == WindowStateProperty)
+            UpdateFullscreen();
+    }
+
+    // Fullscreen video hides the sidebar and title row; Esc (see OnKeyDown) leaves it.
+    private void UpdateFullscreen()
+    {
+        var fullscreen = WindowState == WindowState.FullScreen;
+        NavList.IsVisible = !fullscreen;
+        StatusBar.IsVisible = !fullscreen;
+        RootGrid.ColumnDefinitions[0].Width = new GridLength(fullscreen ? 0 : 220);
+        BrowsePage.SetFullscreen(fullscreen);
+        UpdateChrome();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Key.Escape && WindowState == WindowState.FullScreen)
+        {
+            WindowState = WindowState.Normal;
+            e.Handled = true;
+        }
     }
 
     private void UpdateChrome()
@@ -64,9 +90,10 @@ public sealed partial class MainWindow : Window
         RootGrid.Margin = ContentMargin(WindowDecorationMargin, ExtendClientAreaTitleBarHeightHint);
 
         // Under OS-drawn decorations (e.g. Linux window managers) the title bar already shows icon and title.
+        var fullscreen = WindowState == WindowState.FullScreen;
         var extended = IsExtendedIntoWindowDecorations;
-        TitleContent.IsVisible = extended;
-        RootGrid.RowDefinitions[0].Height = new GridLength(extended ? ExtendClientAreaTitleBarHeightHint : 8);
+        TitleContent.IsVisible = extended && !fullscreen;
+        RootGrid.RowDefinitions[0].Height = new GridLength(fullscreen ? 0 : extended ? ExtendClientAreaTitleBarHeightHint : 8);
     }
 
     /// <summary>
@@ -101,6 +128,9 @@ public sealed partial class MainWindow : Window
     {
         if (e.PropertyName != nameof(MainWindowViewModel.CurrentPage))
             return;
+
+        if (ViewModel.CurrentPage != AppPage.Browse)
+            BrowsePage.StopWatching();
 
         SyncNavSelection();
         _ = EnsureCurrentPageInitializedAsync();
@@ -183,6 +213,7 @@ public sealed partial class MainWindow : Window
     private async Task RefreshProfilePickersAsync()
     {
         await ViewModel.RefreshProfilesAsync();
+        await BrowsePage.RefreshProfilesAsync();
         await SearchPage.RefreshProfilesAsync();
         await SubscriptionsPage.RefreshProfilesAsync();
     }

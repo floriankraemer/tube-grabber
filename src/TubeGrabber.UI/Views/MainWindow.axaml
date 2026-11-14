@@ -109,7 +109,7 @@
             CornerRadius="8,0,0,0"
             ClipToBounds="True">
       <DockPanel>
-        <Border DockPanel.Dock="Bottom"
+        <Border x:Name="StatusBar" DockPanel.Dock="Bottom"
                 Height="40"
                 Padding="32,0"
                 IsVisible="{Binding ShowStatusBar}">

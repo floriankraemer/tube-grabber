@@ -38,6 +38,17 @@ public sealed partial class BrowseView : UserControl
         await _viewModel.InitializeAsync();
     }
 
+    public async Task RefreshProfilesAsync()
+    {
+        if (_viewModel.CurrentWatch is WatchViewModel watch)
+            await watch.RefreshProfilesAsync();
+    }
+
+    /// <summary>Leaving the page stops playback; the video would otherwise keep playing unseen.</summary>
+    public void StopWatching() => _viewModel.Back();
+
+    public void SetFullscreen(bool fullscreen) => BackButton.IsVisible = !fullscreen;
+
     public void OpenWatch(YouTubeSearchResult video) => _viewModel.OpenWatch(video);
 
     private async void Search_Click(object? sender, RoutedEventArgs e) => await _viewModel.SearchAsync();

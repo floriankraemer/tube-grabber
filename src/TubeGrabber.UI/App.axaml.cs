@@ -125,6 +125,7 @@ public sealed partial class App : Application
             System.Diagnostics.Trace.TraceError($"Failed to stop subscription monitor: {ex}");
         }
 
+        Services.PlaybackEngine.Dispose();
         var app = (App)Current!;
         app._tray?.Dispose();
         app._desktop?.Shutdown();

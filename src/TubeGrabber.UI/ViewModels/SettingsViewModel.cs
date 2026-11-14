@@ -135,6 +135,16 @@ public sealed class SettingsViewModel : ViewModelBase
         }
     }
 
+    public bool SponsorBlockEnabled
+    {
+        get => Config.SponsorBlockEnabled;
+        set
+        {
+            Config.SponsorBlockEnabled = value;
+            OnPropertyChanged();
+        }
+    }
+
     public bool StartAtLogin
     {
         get => Config.StartAtLogin;
@@ -274,6 +284,7 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ThemePreference));
         OnPropertyChanged(nameof(RunInBackground));
         OnPropertyChanged(nameof(StartAtLogin));
+        OnPropertyChanged(nameof(SponsorBlockEnabled));
         OnPropertyChanged(nameof(SubscriptionCheckIntervalMinutes));
         OnPropertyChanged(nameof(YtDlpPath));
         OnPropertyChanged(nameof(FfmpegPath));

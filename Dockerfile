@@ -23,5 +23,5 @@ CMD ["make", "help"]
 
 # libvlc for LibVLCSharp (in-app video playback); vlc-plugin-base provides the demuxers/codecs.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends libvlc-dev vlc-plugin-base \
+ && apt-get install -y --no-install-recommends libvlc-dev vlc-plugin-base vlc-plugin-video-output \
  && rm -rf /var/lib/apt/lists/*

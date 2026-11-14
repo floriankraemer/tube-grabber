@@ -196,6 +196,7 @@
         <ListBox x:Name="TabList" Classes="tabs" SelectedIndex="0" AutomationProperties.Name="Settings sections">
           <ListBoxItem Content="Profiles" />
           <ListBoxItem Content="Appearance" />
+          <ListBoxItem Content="Playback" />
           <ListBoxItem Content="Background" />
           <ListBoxItem Content="Binaries" />
           <ListBoxItem Content="Queue" />
@@ -517,6 +518,23 @@
                 </StackPanel>
                 <ComboBox Grid.Column="1" Width="200" VerticalAlignment="Center" AutomationProperties.Name="Theme"
                           ItemsSource="{Binding ThemePreferenceOptions}" SelectedItem="{Binding ThemePreference}" />
+              </Grid>
+            </Border>
+          </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="PlaybackPanel" IsVisible="False" Margin="0,0,-12,0">
+          <StackPanel Classes="cards" Margin="0,0,12,16">
+            <TextBlock Classes="intro" Text="Options for watching videos inside the app." />
+            <Border Classes="card setting">
+              <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel VerticalAlignment="Center" Spacing="2">
+                  <TextBlock Classes="rowTitle" Text="Skip sponsor segments while watching" />
+                  <TextBlock Classes="caption" Text="Uses community data from SponsorBlock (sponsor.ajay.app)." TextWrapping="Wrap" />
+                </StackPanel>
+                <ToggleSwitch Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center"
+                              AutomationProperties.Name="Skip sponsor segments while watching"
+                              IsChecked="{Binding SponsorBlockEnabled}" />
               </Grid>
             </Border>
           </StackPanel>

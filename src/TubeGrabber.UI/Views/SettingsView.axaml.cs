@@ -50,7 +50,7 @@ public sealed partial class SettingsView : UserControl
 
     private void OnTabChanged(object? sender, SelectionChangedEventArgs e)
     {
-        Control[] panels = [ProfilesPanel, AppearancePanel, BackgroundPanel, BinariesPanel, QueuePanel];
+        Control[] panels = [ProfilesPanel, AppearancePanel, PlaybackPanel, BackgroundPanel, BinariesPanel, QueuePanel];
         for (var i = 0; i < panels.Length; i++)
             panels[i].IsVisible = i == TabList.SelectedIndex;
     }

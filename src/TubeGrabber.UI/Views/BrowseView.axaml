@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
              xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+             xmlns:views="clr-namespace:TubeGrabber.UI.Views"
              x:Class="TubeGrabber.UI.Views.BrowseView"
              x:DataType="vm:BrowseViewModel">
   <UserControl.Styles>
@@ -191,7 +192,8 @@
 
     <!-- Watch host: the Back button belongs to Browse; the watch view model is rendered by its own DataTemplate. -->
     <DockPanel Margin="32,28,32,16" IsVisible="{Binding IsWatching}">
-      <Button DockPanel.Dock="Top"
+      <Button x:Name="BackButton"
+              DockPanel.Dock="Top"
               Classes="outlineAccent"
               HorizontalAlignment="Left"
               Margin="0,0,0,12"
@@ -202,7 +204,13 @@
           <TextBlock Text="Back" />
         </StackPanel>
       </Button>
-      <ContentControl Content="{Binding CurrentWatch}" />
+      <ContentControl Content="{Binding CurrentWatch}">
+        <ContentControl.DataTemplates>
+          <DataTemplate DataType="vm:WatchViewModel">
+            <views:WatchView />
+          </DataTemplate>
+        </ContentControl.DataTemplates>
+      </ContentControl>
     </DockPanel>
   </Panel>
 </UserControl>
