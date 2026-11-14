@@ -27,6 +27,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     private readonly HashSet<string> _skipped = new(StringComparer.Ordinal);
     private CancellationTokenSource _cts = new();
     private CancellationTokenSource? _noticeCts;
+    private CancellationTokenSource? _commentsCts;
+    private CancellationTokenSource? _profilesCts;
     private IReadOnlyList<SponsorSegment> _segments = Array.Empty<SponsorSegment>();
     private VideoDetails? _details;
     private string? _detailsError;
@@ -76,6 +78,12 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             player.Failed += OnPlayerFailed;
         }
     }
+
+    /// <summary>yt-dlp can hang on a bad network or extractor; the page then shows an error with Retry.</summary>
+    public TimeSpan DetailsTimeout { get; set; } = TimeSpan.FromSeconds(60);
+
+    /// <summary>Comment extraction pages through the API and is slower than the details lookup.</summary>
+    public TimeSpan CommentsTimeout { get; set; } = TimeSpan.FromSeconds(120);
 
     /// <summary>How long the "Skipped sponsor segment" notice stays visible.</summary>
     public TimeSpan SkipNoticeDuration { get; set; } = TimeSpan.FromSeconds(3);
@@ -291,6 +299,34 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
 
     public Task RetryCommentsAsync() => LoadCommentsAsync(_cts.Token);
 
+    // One in-flight load per kind: starting a new one cancels the previous, so results never interleave.
+    private static CancellationToken BeginOperation(ref CancellationTokenSource? slot, CancellationToken pageToken)
+    {
+        slot?.Cancel();
+        slot?.Dispose();
+        slot = CancellationTokenSource.CreateLinkedTokenSource(pageToken);
+        return slot.Token;
+    }
+
+    private static async Task<T> RunWithTimeoutAsync<T>(
+        TimeSpan timeout,
+        string description,
+        CancellationToken token,
+        Func<CancellationToken, Task<T>> work)
+    {
+        using var timeoutCts = CancellationTokenSource.CreateLinkedTokenSource(token);
+        timeoutCts.CancelAfter(timeout);
+        try
+        {
+            return await work(timeoutCts.Token);
+        }
+        catch (OperationCanceledException) when (!token.IsCancellationRequested)
+        {
+            throw new TimeoutException(
+                $"{description} took longer than {timeout.TotalSeconds:0} seconds. Check your connection and try again.");
+        }
+    }
+
     public void TogglePlayPause()
     {
         if (_player is null)
@@ -337,6 +373,12 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         _disposed = true;
         _cts.Cancel();
         _noticeCts?.Cancel();
+        _noticeCts?.Dispose();
+        _noticeCts = null;
+        _commentsCts?.Dispose();
+        _commentsCts = null;
+        _profilesCts?.Dispose();
+        _profilesCts = null;
         if (_player is null)
             return;
 
@@ -351,7 +393,11 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            var details = await _detailsService.GetDetailsAsync(WatchUrl, token);
+            var details = await RunWithTimeoutAsync(
+                DetailsTimeout,
+                "Loading the video",
+                token,
+                t => _detailsService.GetDetailsAsync(WatchUrl, t));
             token.ThrowIfCancellationRequested();
             _details = details;
             if (details.DurationSeconds is > 0 && _lengthSeconds <= 0)
@@ -386,13 +432,18 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task LoadCommentsAsync(CancellationToken token)
+    private async Task LoadCommentsAsync(CancellationToken pageToken)
     {
+        var token = BeginOperation(ref _commentsCts, pageToken);
         IsLoadingComments = true;
         CommentsError = null;
         try
         {
-            var comments = await _commentsService.GetTopCommentsAsync(WatchUrl, token);
+            var comments = await RunWithTimeoutAsync(
+                CommentsTimeout,
+                "Loading comments",
+                token,
+                t => _commentsService.GetTopCommentsAsync(WatchUrl, t));
             token.ThrowIfCancellationRequested();
             var now = DateTimeOffset.UtcNow;
             Comments.Clear();
@@ -435,11 +486,13 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         }
     }
 
-    private async Task LoadProfilesAsync(CancellationToken token)
+    private async Task LoadProfilesAsync(CancellationToken pageToken)
     {
+        var token = BeginOperation(ref _profilesCts, pageToken);
         try
         {
             var (profiles, selected) = await ProfileListLoader.LoadWithSelectionAsync(_profileStore, _appConfigStore, token);
+            token.ThrowIfCancellationRequested();
             Profiles.Clear();
             if (selected is not null)
                 Profiles.Add(selected);
@@ -484,6 +537,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     private async Task ShowSkipNoticeAsync()
     {
         _noticeCts?.Cancel();
+        _noticeCts?.Dispose();
         var cts = _noticeCts = new CancellationTokenSource();
         SkipNotice = "Skipped sponsor segment";
         try

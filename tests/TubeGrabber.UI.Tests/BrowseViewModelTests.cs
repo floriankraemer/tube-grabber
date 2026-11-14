@@ -286,6 +286,27 @@ public sealed class BrowseViewModelTests
     }
 
     [Fact]
+    public void OpenWatch_Twice_DisposesPreviousWatchBeforeCreatingNext()
+    {
+        var vm = CreateVm();
+        var first = Substitute.For<IDisposable>();
+        var second = Substitute.For<IDisposable>();
+        var queue = new Queue<IDisposable>([first, second]);
+        vm.WatchFactory = _ =>
+        {
+            first.Received(queue.Count == 1 ? 1 : 0).Dispose();
+            return queue.Dequeue();
+        };
+
+        vm.OpenWatch(Video("a"));
+        vm.OpenWatch(Video("b"));
+
+        Assert.Same(second, vm.CurrentWatch);
+        first.Received(1).Dispose();
+        second.DidNotReceive().Dispose();
+    }
+
+    [Fact]
     public void RequestSubscriptions_RaisesEvent()
     {
         var vm = CreateVm();

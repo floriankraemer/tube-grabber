@@ -366,6 +366,101 @@ public sealed class WatchViewModelTests : IDisposable
             Directory.Delete(_root, recursive: true);
     }
 
+    [Fact]
+    public async Task Comments_UnreadableOutput_ShowsErrorWithRetry()
+    {
+        var parser = new YtDlpCommentsParser();
+        _comments.GetTopCommentsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(
+                _ => Task.FromResult(parser.Parse(string.Empty)),
+                _ => Task.FromResult<IReadOnlyList<VideoComment>>([new VideoComment { Id = "1", Author = "A", Text = "t" }]));
+        using var vm = Create();
+
+        await vm.LoadAsync();
+
+        Assert.True(vm.HasCommentsError);
+        Assert.False(vm.ShowNoComments);
+
+        await vm.RetryCommentsAsync();
+
+        Assert.False(vm.HasCommentsError);
+        Assert.Single(vm.Comments);
+    }
+
+    [Fact]
+    public async Task Comments_TimeOut_ShowsTimeoutErrorAndPlaybackStillStarts()
+    {
+        _comments.GetTopCommentsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(call => HangUntilCancelled<IReadOnlyList<VideoComment>>(call.Arg<CancellationToken>()));
+        using var vm = Create();
+        vm.CommentsTimeout = TimeSpan.FromMilliseconds(50);
+
+        await vm.LoadAsync();
+
+        Assert.Contains("Loading comments took longer than", vm.CommentsError, StringComparison.Ordinal);
+        Assert.False(vm.IsLoadingComments);
+        Assert.Equal([("video-url", "audio-url")], _player.Played);
+    }
+
+    [Fact]
+    public async Task Details_TimeOut_ShowsTimeoutErrorAndRetryRecovers()
+    {
+        _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(
+                call => HangUntilCancelled<VideoDetails>(call.Arg<CancellationToken>()),
+                _ => Task.FromResult(Details()));
+        using var vm = Create();
+        vm.DetailsTimeout = TimeSpan.FromMilliseconds(50);
+
+        await vm.LoadAsync();
+
+        Assert.Contains("Loading the video took longer than", vm.DetailsError, StringComparison.Ordinal);
+        Assert.False(vm.IsLoadingDetails);
+
+        await vm.LoadAsync();
+
+        Assert.False(vm.HasDetailsError);
+        Assert.Single(_player.Played);
+    }
+
+    [Fact]
+    public async Task RetryCommentsAsync_TwiceRapidly_KeepsOnlyTheLatestResult()
+    {
+        var stale = new TaskCompletionSource<IReadOnlyList<VideoComment>>();
+        _comments.GetTopCommentsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(
+                _ => Task.FromResult<IReadOnlyList<VideoComment>>([]),
+                _ => stale.Task,
+                _ => Task.FromResult<IReadOnlyList<VideoComment>>([new VideoComment { Id = "new", Author = "A", Text = "t" }]));
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        var first = vm.RetryCommentsAsync();
+        await vm.RetryCommentsAsync();
+        stale.SetResult([new VideoComment { Id = "old1", Author = "A", Text = "t" }, new VideoComment { Id = "old2", Author = "A", Text = "t" }]);
+        await first;
+
+        Assert.Equal(["t"], vm.Comments.Select(c => c.Text));
+        Assert.False(vm.IsLoadingComments);
+    }
+
+    [Fact]
+    public async Task RefreshProfilesAsync_TwiceRapidly_YieldsOneConsistentList()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        await Task.WhenAll(vm.RefreshProfilesAsync(), vm.RefreshProfilesAsync());
+
+        Assert.Equal(["b", "a"], vm.Profiles.Select(p => p.Id));
+    }
+
+    private static async Task<T> HangUntilCancelled<T>(CancellationToken token)
+    {
+        await Task.Delay(Timeout.Infinite, token);
+        return default!;
+    }
+
     private WatchViewModel Create(bool withPlayer = true)
     {
         var coordinator = new DownloadEnqueueCoordinator(

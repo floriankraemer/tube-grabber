@@ -202,7 +202,11 @@ public sealed class BrowseViewModel : ViewModelBase
         RaiseModeChanged();
     }
 
-    public void OpenWatch(YouTubeSearchResult result) => CurrentWatch = WatchFactory(result);
+    public void OpenWatch(YouTubeSearchResult result)
+    {
+        (CurrentWatch as IDisposable)?.Dispose();
+        CurrentWatch = WatchFactory(result);
+    }
 
     public void Back()
     {
