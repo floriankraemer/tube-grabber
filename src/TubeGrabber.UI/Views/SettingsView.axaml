@@ -583,10 +583,9 @@
           <StackPanel Classes="cards" Margin="0,0,12,16">
             <TextBlock Classes="intro"
                        Text="Leave a path empty to use the tool found on your PATH. Install downloads the latest build for this system; the more menu opens GitHub if you prefer to pick a version or install manually." />
-            <ProgressBar Height="4" IsIndeterminate="True" IsVisible="{Binding IsInstalling}" />
 
           <Border Classes="card setting">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                 <Border Classes="tile"><ui:Icon Data="{DynamicResource IconDownload}" Width="16" Height="16" /></Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -598,7 +597,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                   <Button Content="Browse…" Click="BrowseYtDlp_Click" />
                   <Button Content="Test" Click="TestYtDlp_Click" />
-                  <Button Content="Install" Click="InstallYtDlp_Click" />
+                  <Button Content="Install" IsEnabled="{Binding CanInstallYtDlp}" Click="InstallYtDlp_Click" />
                   <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More yt-dlp actions">
                     <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
                     <Button.Flyout>
@@ -612,10 +611,14 @@
               <TextBox Grid.Row="1" Margin="0,12,0,0" AutomationProperties.Name="yt-dlp path" PlaceholderText="{Binding YtDlpPathPlaceholder}" Text="{Binding YtDlpPath}" />
               <TextBlock Grid.Row="2" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding YtDlpStatus.IsError}" Classes.success="{Binding !YtDlpStatus.IsError}"
                          IsVisible="{Binding YtDlpStatus.HasText}" Text="{Binding YtDlpStatus.Text}" TextWrapping="Wrap" />
+              <StackPanel Grid.Row="3" Margin="0,12,0,0" Spacing="6" IsVisible="{Binding IsInstallingYtDlp}">
+                <ProgressBar Height="4" IsIndeterminate="True" />
+                <TextBlock Classes="meta" Text="Installing yt-dlp… this can take a minute." />
+              </StackPanel>
             </Grid>
           </Border>
           <Border Classes="card setting">
-            <Grid RowDefinitions="Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                 <Border Classes="tile"><ui:Icon Data="{DynamicResource IconLayers}" Width="16" Height="16" /></Border>
                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
@@ -627,7 +630,7 @@
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                   <Button Content="Browse…" Click="BrowseFfmpeg_Click" />
                   <Button Content="Test" Click="TestFfmpeg_Click" />
-                  <Button Content="Install" Click="InstallFfmpeg_Click" />
+                  <Button Content="Install" IsEnabled="{Binding CanInstallFfmpeg}" Click="InstallFfmpeg_Click" />
                   <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More ffmpeg actions">
                     <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
                     <Button.Flyout>
@@ -641,17 +644,21 @@
               <TextBox Grid.Row="1" Margin="0,12,0,0" AutomationProperties.Name="ffmpeg path" PlaceholderText="{Binding FfmpegPathPlaceholder}" Text="{Binding FfmpegPath}" />
               <TextBlock Grid.Row="2" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding FfmpegStatus.IsError}" Classes.success="{Binding !FfmpegStatus.IsError}"
                          IsVisible="{Binding FfmpegStatus.HasText}" Text="{Binding FfmpegStatus.Text}" TextWrapping="Wrap" />
+              <StackPanel Grid.Row="3" Margin="0,12,0,0" Spacing="6" IsVisible="{Binding IsInstallingFfmpeg}">
+                <ProgressBar Height="4" IsIndeterminate="True" />
+                <TextBlock Classes="meta" Text="Installing ffmpeg… this can take a minute." />
+              </StackPanel>
             </Grid>
           </Border>
           <Border Classes="card setting">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto">
               <Grid Grid.Row="0" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
                 <Border Classes="tile"><ui:Icon Data="{DynamicResource IconTerminal}" Width="16" Height="16" /></Border>
                 <TextBlock Grid.Column="1" Classes="rowTitle" VerticalAlignment="Center" Text="JavaScript runtime (YouTube)" TextTrimming="CharacterEllipsis" />
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                   <Button Content="Browse…" IsEnabled="{Binding IsJsRuntimePathEnabled}" Click="BrowseJsRuntime_Click" />
                   <Button Content="Test" IsEnabled="{Binding IsJsRuntimePathEnabled}" Click="TestJsRuntime_Click" />
-                  <Button Content="Install Deno" IsEnabled="{Binding IsDenoInstallEnabled}" Click="InstallDeno_Click" />
+                  <Button Content="Install Deno" IsEnabled="{Binding CanInstallDeno}" Click="InstallDeno_Click" />
                   <Button Classes="icon" ToolTip.Tip="More actions" AutomationProperties.Name="More JavaScript runtime actions">
                     <ui:Icon Data="{DynamicResource IconMore}" Width="16" Height="16" />
                     <Button.Flyout>
@@ -679,6 +686,10 @@
               </TextBlock>
               <TextBlock Grid.Row="4" Margin="0,12,0,0" Classes="meta" Classes.error="{Binding JsRuntimeStatus.IsError}" Classes.success="{Binding !JsRuntimeStatus.IsError}"
                          IsVisible="{Binding JsRuntimeStatus.HasText}" Text="{Binding JsRuntimeStatus.Text}" TextWrapping="Wrap" />
+              <StackPanel Grid.Row="5" Margin="0,12,0,0" Spacing="6" IsVisible="{Binding IsInstallingDeno}">
+                <ProgressBar Height="4" IsIndeterminate="True" />
+                <TextBlock Classes="meta" Text="Installing Deno… this can take a minute." />
+              </StackPanel>
             </Grid>
           </Border>
           </StackPanel>

@@ -17,7 +17,7 @@ public sealed class SponsorSegmentSkipperTests
         var result = SponsorSegmentSkipper.NextSeekTarget(12, [Sponsor], new HashSet<string>());
 
         Assert.NotNull(result);
-        Assert.Equal(20, result.SeekTo);
+        Assert.Equal(20.5, result.SeekTo);
         Assert.Equal(["a"], result.Uuids);
     }
 
@@ -48,7 +48,7 @@ public sealed class SponsorSegmentSkipperTests
         var result = SponsorSegmentSkipper.NextSeekTarget(19.7, [Sponsor], new HashSet<string>());
 
         Assert.NotNull(result);
-        Assert.Equal(20, result.SeekTo);
+        Assert.Equal(20.5, result.SeekTo);
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class SponsorSegmentSkipperTests
         var result = SponsorSegmentSkipper.NextSeekTarget(12, segments, new HashSet<string>());
 
         Assert.NotNull(result);
-        Assert.Equal(40, result.SeekTo);
+        Assert.Equal(40.5, result.SeekTo);
         Assert.Equal(["a", "b", "c"], result.Uuids);
     }
 
@@ -89,7 +89,33 @@ public sealed class SponsorSegmentSkipperTests
         var result = SponsorSegmentSkipper.NextSeekTarget(12, segments, new HashSet<string> { "b" });
 
         Assert.NotNull(result);
-        Assert.Equal(30, result.SeekTo);
+        Assert.Equal(30.5, result.SeekTo);
+        Assert.Equal(["a", "b"], result.Uuids);
+    }
+
+    [Fact]
+    public void NextSeekTarget_NeverLandsInsideTheSegmentItSkips()
+    {
+        var result = SponsorSegmentSkipper.NextSeekTarget(12, [Sponsor], new HashSet<string>());
+
+        Assert.NotNull(result);
+        Assert.True(result.SeekTo > Sponsor.EndSeconds);
+        Assert.Equal(Sponsor.EndSeconds + SponsorSegmentSkipper.LandingMarginSeconds, result.SeekTo);
+    }
+
+    [Fact]
+    public void NextSeekTarget_SegmentStartingWithinTheLandingMargin_IsChained()
+    {
+        var segments = new[]
+        {
+            new SponsorSegment("a", "sponsor", 10, 20),
+            new SponsorSegment("b", "sponsor", 20.3, 30),
+        };
+
+        var result = SponsorSegmentSkipper.NextSeekTarget(12, segments, new HashSet<string>());
+
+        Assert.NotNull(result);
+        Assert.Equal(30.5, result.SeekTo);
         Assert.Equal(["a", "b"], result.Uuids);
     }
 

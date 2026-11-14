@@ -67,7 +67,7 @@ public sealed class TileGridPanel : Panel
         {
             var rowHeight = row.Max(c => c.DesiredSize.Height);
             for (var i = 0; i < row.Length; i++)
-                row[i].Arrange(new Rect(i * (tileWidth + Spacing), y, tileWidth, rowHeight));
+                row[i].Arrange(new Rect(TileGridLayout.TileLeft(i, columns, finalSize.Width, tileWidth, Spacing), y, tileWidth, rowHeight));
 
             y += rowHeight + Spacing;
         }

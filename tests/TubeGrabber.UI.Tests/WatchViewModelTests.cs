@@ -89,13 +89,69 @@ public sealed class WatchViewModelTests : IDisposable
         using var vm = Create();
         await vm.LoadAsync();
         _player.RaiseFailed("This video could not be played.");
+        await WaitUntilAsync(() => _player.Played.Count == 2);
+        _player.RaiseFailed("This video could not be played.");
         Assert.True(vm.HasPlaybackError);
 
         await vm.LoadAsync();
 
         Assert.False(vm.HasPlaybackError);
+        Assert.Equal(3, _player.Played.Count);
+        await _details.Received(3).GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PlaybackFailure_FirstTime_ResolvesFreshStreamsAndResumesWithoutShowingAnError()
+    {
+        _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(Details(), Details(videoUrl: "fresh-video", audioUrl: "fresh-audio"));
+        using var vm = Create();
+        await vm.LoadAsync();
+        _player.RaisePosition(42);
+
+        _player.RaiseFailed("This video could not be played.");
+        await WaitUntilAsync(() => _player.Played.Count == 2);
+
+        Assert.Equal(("fresh-video", "fresh-audio"), _player.Played[1]);
+        Assert.Equal(42, _player.StartTimes[1]);
+        Assert.False(vm.HasPlaybackError);
+    }
+
+    [Fact]
+    public async Task PlaybackFailure_AfterTheRetry_ShowsTheError()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaiseFailed("first");
+        await WaitUntilAsync(() => _player.Played.Count == 2);
+        _player.RaiseFailed("second");
+
+        Assert.Equal("second", vm.PlaybackError);
         Assert.Equal(2, _player.Played.Count);
-        await _details.Received(2).GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PlaybackFailure_WhenTheRetryLookupFails_ShowsTheOriginalError()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+        _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("offline"));
+
+        _player.RaiseFailed("This video could not be played.");
+        await WaitUntilAsync(() => vm.HasPlaybackError);
+
+        Assert.Equal("This video could not be played.", vm.PlaybackError);
+        Assert.Single(_player.Played);
+        Assert.False(vm.IsLoadingDetails);
+    }
+
+    private static async Task WaitUntilAsync(Func<bool> condition)
+    {
+        for (var i = 0; i < 200 && !condition(); i++)
+            await Task.Delay(10, TestContext.Current.CancellationToken);
+
+        Assert.True(condition(), "Condition was not met in time.");
     }
 
     [Fact]
@@ -260,7 +316,7 @@ public sealed class WatchViewModelTests : IDisposable
         _player.RaisePosition(11);
         _player.RaisePosition(15);
 
-        Assert.Equal([20d], _player.Seeks);
+        Assert.Equal([20.5], _player.Seeks);
         Assert.True(vm.HasSegments);
         Assert.Equal("Skipped sponsor segment", vm.SkipNotice);
         Assert.True(vm.HasSkipNotice);
@@ -301,7 +357,7 @@ public sealed class WatchViewModelTests : IDisposable
         _player.RaisePosition(9.9);
         _player.RaisePosition(10.2);
 
-        Assert.Equal([20d, 20d], _player.Seeks);
+        Assert.Equal([20.5, 20.5], _player.Seeks);
     }
 
     [Fact]
@@ -318,7 +374,7 @@ public sealed class WatchViewModelTests : IDisposable
         _player.RaisePosition(14);
         _player.RaisePosition(14.3);
 
-        Assert.Equal([20d], _player.Seeks);
+        Assert.Equal([20.5], _player.Seeks);
     }
 
     [Fact]
@@ -331,7 +387,7 @@ public sealed class WatchViewModelTests : IDisposable
 
         _player.RaisePosition(0.3);
 
-        Assert.Equal([8d], _player.Seeks);
+        Assert.Equal([8.5], _player.Seeks);
     }
 
     [Fact]
@@ -394,6 +450,32 @@ public sealed class WatchViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task RedrawPausedFrame_WhilePaused_StepsOneFrame()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+        _player.RaisePlaying(true);
+        _player.RaisePlaying(false);
+
+        vm.RedrawPausedFrame();
+
+        Assert.Equal(1, _player.Steps);
+    }
+
+    [Fact]
+    public async Task RedrawPausedFrame_WhilePlayingOrBeforePlayback_DoesNothing()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        vm.RedrawPausedFrame();
+        _player.RaisePlaying(true);
+        vm.RedrawPausedFrame();
+
+        Assert.Equal(0, _player.Steps);
+    }
+
+    [Fact]
     public async Task Player_Controls_AreForwarded()
     {
         using var vm = Create();
@@ -408,6 +490,8 @@ public sealed class WatchViewModelTests : IDisposable
         Assert.Equal(["pause", "resume"], _player.Commands);
         Assert.Equal(100, vm.Volume);
         Assert.Equal(100, _player.Volume);
+        _player.RaiseFailed("bad");
+        await WaitUntilAsync(() => _player.Played.Count == 2);
         _player.RaiseFailed("bad");
         Assert.Equal("bad", vm.PlaybackError);
         _player.RaiseLength(0);
@@ -592,7 +676,11 @@ public sealed class WatchViewModelTests : IDisposable
             withPlayer ? _player : null);
     }
 
-    private static VideoDetails Details(string? description = "short", DateTimeOffset? availableAt = null) => new()
+    private static VideoDetails Details(
+        string? description = "short",
+        DateTimeOffset? availableAt = null,
+        string videoUrl = "video-url",
+        string audioUrl = "audio-url") => new()
     {
         Id = "v1",
         Title = "Full title",
@@ -601,8 +689,8 @@ public sealed class WatchViewModelTests : IDisposable
         UploadDate = new DateOnly(2025, 3, 3),
         DurationSeconds = 120,
         Description = description,
-        VideoStreamUrl = "video-url",
-        AudioStreamUrl = "audio-url",
+        VideoStreamUrl = videoUrl,
+        AudioStreamUrl = audioUrl,
         StreamsAvailableAt = availableAt,
     };
 
@@ -620,9 +708,17 @@ public sealed class WatchViewModelTests : IDisposable
         public event Action<bool>? BufferingChanged;
         public event Action<string>? Failed;
 
-        public void Play(string videoUrl, string? audioUrl) => Played.Add((videoUrl, audioUrl));
+        public List<double> StartTimes { get; } = [];
+        public void Play(string videoUrl, string? audioUrl, double startSeconds = 0)
+        {
+            Played.Add((videoUrl, audioUrl));
+            StartTimes.Add(startSeconds);
+        }
+
         public void Pause() => Commands.Add("pause");
         public void Resume() => Commands.Add("resume");
+        public int Steps { get; private set; }
+        public void StepFrame() => Steps++;
         public void Seek(double seconds) => Seeks.Add(seconds);
         public void Dispose() => DisposeCount++;
         public void RaisePosition(double s) => PositionChanged?.Invoke(s);

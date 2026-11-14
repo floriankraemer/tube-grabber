@@ -15,7 +15,21 @@ public static class TileGridLayout
         return Math.Max(1, (int)Math.Floor((availableWidth + spacing) / (minTileWidth + spacing)));
     }
 
-    /// <summary>Whole pixels, so neighbouring tiles never leave a hairline gap; the remainder stays at the row end.</summary>
+    /// <summary>Whole pixels, so every tile has the same size; <see cref="TileLeft"/> hands the remainder to the gaps.</summary>
     public static double TileWidth(double availableWidth, int columns, double spacing) =>
         Math.Max(0, Math.Floor((availableWidth - spacing * (columns - 1)) / columns));
+
+    /// <summary>
+    /// Left edge of the tile at <paramref name="column"/>. The pixels left over by whole-pixel tile widths are spread over
+    /// the gaps, so the last tile ends exactly at the right edge and lines up with the header above the grid.
+    /// </summary>
+    public static double TileLeft(int column, int columns, double availableWidth, double tileWidth, double spacing)
+    {
+        var left = column * (tileWidth + spacing);
+        if (columns < 2 || double.IsInfinity(availableWidth))
+            return left;
+
+        var leftover = availableWidth - columns * tileWidth - (columns - 1) * spacing;
+        return left + Math.Round(leftover * column / (columns - 1), MidpointRounding.AwayFromZero);
+    }
 }
