@@ -54,12 +54,17 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         }
     }
 
-    public void Play(string videoUrl, string? audioUrl) =>
+    public void Play(string videoUrl, string? audioUrl, double startSeconds = 0) =>
         Enqueue(() =>
         {
             var media = new Media(_libVlc, new Uri(videoUrl));
+            // VLC's own MP4 demuxer snaps a seek to the previous DASH fragment (2-5 s early) once audio runs as an
+            // input slave; the libavformat demuxer seeks to the requested time.
+            media.AddOption(":demux=avformat");
             if (!string.IsNullOrEmpty(audioUrl))
                 media.AddOption(":input-slave=" + audioUrl);
+            if (startSeconds > 0)
+                media.AddOption(FormattableString.Invariant($":start-time={startSeconds:0.###}"));
 
             var previous = _media;
             _media = media;
@@ -74,6 +79,8 @@ public sealed class VlcVideoPlayer : IVideoPlayer
     // Queued, never run inline: libvlc calls can block, and Seek is invoked from handlers of VLC-derived events.
     // Rapid seeks coalesce so the latest target wins.
     public void Seek(double seconds) => Enqueue(() => MediaPlayer.Time = (long)(seconds * 1000), "seek");
+
+    public void StepFrame() => Enqueue(MediaPlayer.NextFrame, "step");
 
     public void Dispose()
     {

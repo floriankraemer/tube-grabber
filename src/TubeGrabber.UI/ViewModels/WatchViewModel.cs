@@ -53,6 +53,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     private bool _isDownloading;
     private string? _downloadMessage;
     private bool _downloadSucceeded;
+    private bool _playbackRetried;
+    private bool _hasPlayed;
     private bool _disposed;
 
     public WatchViewModel(
@@ -309,6 +311,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         IsLoadingDetails = true;
         _skipped.Clear();
         _lastPosition = 0;
+        _playbackRetried = false;
 
         await Task.WhenAll(
             LoadDetailsAndPlayAsync(token),
@@ -356,6 +359,13 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             _player.Pause();
         else
             _player.Resume();
+    }
+
+    /// <summary>Call after the video surface changed size: a paused picture is redrawn by stepping one frame.</summary>
+    public void RedrawPausedFrame()
+    {
+        if (_player is not null && _hasPlayed && !IsPlaying)
+            _player.StepFrame();
     }
 
     public void BeginScrub() => _isScrubbing = true;
@@ -621,11 +631,61 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             LengthSeconds = seconds;
     }
 
-    private void OnIsPlayingChanged(bool playing) => IsPlaying = playing;
+    private void OnIsPlayingChanged(bool playing)
+    {
+        _hasPlayed |= playing;
+        IsPlaying = playing;
+    }
 
     private void OnBufferingChanged(bool buffering) => IsBuffering = buffering;
 
-    private void OnPlayerFailed(string message) => PlaybackError = message;
+    // Stream URLs can fail for reasons a fresh lookup fixes (expired, rejected before they became valid), so the
+    // first failure of a load silently resolves new ones and resumes; only a second failure is shown.
+    private void OnPlayerFailed(string message)
+    {
+        if (_disposed || _player is null || _playbackRetried)
+        {
+            PlaybackError = message;
+            return;
+        }
+
+        _playbackRetried = true;
+        _ = RetryPlaybackAsync(message, _cts.Token);
+    }
+
+    private async Task RetryPlaybackAsync(string message, CancellationToken token)
+    {
+        IsLoadingDetails = true;
+        try
+        {
+            var details = await RunWithTimeoutAsync(
+                DetailsTimeout,
+                "Loading the video",
+                token,
+                t => _detailsService.GetDetailsAsync(WatchUrl, t));
+            token.ThrowIfCancellationRequested();
+            if (string.IsNullOrEmpty(details.VideoStreamUrl))
+            {
+                PlaybackError = message;
+                return;
+            }
+
+            await WaitUntilStreamsAvailableAsync(details.StreamsAvailableAt, token);
+            _player!.Play(details.VideoStreamUrl, details.AudioStreamUrl, _lastPosition);
+        }
+        catch (OperationCanceledException)
+        {
+        }
+        catch (Exception)
+        {
+            PlaybackError = message;
+        }
+        finally
+        {
+            if (!token.IsCancellationRequested)
+                IsLoadingDetails = false;
+        }
+    }
 
     private void RaiseCommentStateChanged()
     {

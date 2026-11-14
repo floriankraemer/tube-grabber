@@ -26,11 +26,18 @@ public interface IVideoPlayer : IDisposable
 
     int Volume { get; set; }
 
-    void Play(string videoUrl, string? audioUrl);
+    /// <summary>Starts playback, optionally resuming at <paramref name="startSeconds"/>.</summary>
+    void Play(string videoUrl, string? audioUrl, double startSeconds = 0);
 
     void Pause();
 
     void Resume();
 
     void Seek(double seconds);
+
+    /// <summary>
+    /// Shows the next frame at the current surface size. A paused picture is not redrawn when the surface is resized,
+    /// so it stays at its old size until a new frame arrives.
+    /// </summary>
+    void StepFrame();
 }

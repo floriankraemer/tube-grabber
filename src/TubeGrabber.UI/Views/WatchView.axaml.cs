@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 using TubeGrabber.UI.Services;
 using TubeGrabber.UI.ViewModels;
@@ -17,15 +18,33 @@ public sealed partial class WatchView : UserControl
 {
     private static readonly Thickness PageMargin = new(32, 0, 32, 24);
 
+    // Used when the platform reports no double-click time.
+    private static readonly TimeSpan FallbackDoubleClickInterval = TimeSpan.FromMilliseconds(500);
+
+    // A resize drag fires many size changes; the frame is redrawn once they stop.
+    private static readonly TimeSpan ResizeSettleDelay = TimeSpan.FromMilliseconds(150);
+
+    private readonly ClickArbiter _clicks;
+    private IDisposable? _redrawTimer;
     private Window? _window;
     private IDisposable? _windowStateSubscription;
 
     public WatchView()
     {
         InitializeComponent();
+        _clicks = new ClickArbiter(
+            () => Application.Current?.PlatformSettings?.GetDoubleTapTime(PointerType.Mouse) ?? FallbackDoubleClickInterval,
+            (delay, action) => DispatcherTimer.RunOnce(action, delay),
+            () => ViewModel?.TogglePlayPause(),
+            ToggleFullscreen);
         DataContextChanged += OnDataContextChanged;
         SizeChanged += (_, _) => ApplyLayout();
         // The native surface swallows nothing once LibVLC input is off, so clicks on it reach Avalonia like on any control.
+        VideoHost.SizeChanged += (_, _) =>
+        {
+            _redrawTimer?.Dispose();
+            _redrawTimer = DispatcherTimer.RunOnce(() => ViewModel?.RedrawPausedFrame(), ResizeSettleDelay);
+        };
         VideoHost.Tapped += OnVideoTapped;
         VideoHost.DoubleTapped += OnVideoDoubleTapped;
         SeekSlider.AddHandler(PointerPressedEvent, (_, _) => ViewModel?.BeginScrub(), RoutingStrategies.Tunnel);
@@ -48,6 +67,8 @@ public sealed partial class WatchView : UserControl
     {
         base.OnDetachedFromVisualTree(e);
         _windowStateSubscription?.Dispose();
+        _clicks.Cancel();
+        _redrawTimer?.Dispose();
         // Release the native surface before the view model disposes the player.
         Video.MediaPlayer = null;
         if (_window?.WindowState == WindowState.FullScreen)
@@ -113,14 +134,15 @@ public sealed partial class WatchView : UserControl
         VideoHost.Height = height;
     }
 
-    // Click toggles play/pause, double click toggles fullscreen (the first click of the pair is undone by the second).
+    // A click toggles play/pause once the double-click interval passes without a second click; a double click
+    // toggles fullscreen only, so the first click of the pair never pauses.
     private void OnVideoTapped(object? sender, TappedEventArgs e)
     {
-        ViewModel?.TogglePlayPause();
+        _clicks.Click();
         Scroller.Focus();
     }
 
-    private void OnVideoDoubleTapped(object? sender, TappedEventArgs e) => ToggleFullscreen();
+    private void OnVideoDoubleTapped(object? sender, TappedEventArgs e) => _clicks.DoubleClick();
 
     private void PlayPause_Click(object? sender, RoutedEventArgs e) => ViewModel?.TogglePlayPause();
 
