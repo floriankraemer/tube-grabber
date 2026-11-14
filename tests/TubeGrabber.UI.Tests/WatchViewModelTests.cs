@@ -168,7 +168,7 @@ public sealed class WatchViewModelTests : IDisposable
         var comment = Assert.Single(vm.Comments);
         Assert.Equal("Ann", comment.Author);
         Assert.Equal("3 days ago", comment.PostedAgo);
-        Assert.Equal(1200L.ToString("N0"), comment.Likes);
+        Assert.Equal($"{1200L:N0} likes", comment.Likes);
         Assert.True(comment.IsPinned && comment.IsUploader);
         Assert.Equal("Comments (1)", vm.CommentsHeader);
         Assert.True(vm.HasComments);
@@ -247,7 +247,7 @@ public sealed class WatchViewModelTests : IDisposable
     }
 
     [Fact]
-    public async Task SponsorBlock_SegmentSkippedOncePerSegment()
+    public async Task SponsorBlock_PlaybackEnteringSegment_SkipsOnce()
     {
         _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
             .Returns(new[] { new SponsorSegment("u1", "sponsor", 10, 20) });
@@ -255,17 +255,96 @@ public sealed class WatchViewModelTests : IDisposable
         vm.SkipNoticeDuration = TimeSpan.FromMilliseconds(500);
         await vm.LoadAsync();
 
-        _player.RaisePosition(5);
+        _player.RaisePosition(9.5);
+        _player.RaisePosition(10.2);
         _player.RaisePosition(11);
-        _player.RaisePosition(12);
         _player.RaisePosition(15);
 
         Assert.Equal([20d], _player.Seeks);
+        Assert.True(vm.HasSegments);
         Assert.Equal("Skipped sponsor segment", vm.SkipNotice);
         Assert.True(vm.HasSkipNotice);
         for (var i = 0; i < 100 && vm.HasSkipNotice; i++)
             await Task.Delay(50, TestContext.Current.CancellationToken);
         Assert.Null(vm.SkipNotice);
+    }
+
+    [Fact]
+    public async Task SponsorBlock_SeekingIntoTheMiddleOfASegment_DoesNotSkip()
+    {
+        _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
+            .Returns(new[] { new SponsorSegment("u1", "sponsor", 10, 20) });
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaisePosition(2);
+        _player.RaisePosition(15);
+        _player.RaisePosition(15.3);
+
+        Assert.Empty(_player.Seeks);
+        Assert.False(vm.HasSkipNotice);
+    }
+
+    [Fact]
+    public async Task SponsorBlock_PlayingIntoSegmentFromBeforeItsStartAfterSeekingBack_SkipsAgain()
+    {
+        _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
+            .Returns(new[] { new SponsorSegment("u1", "sponsor", 10, 20) });
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaisePosition(9.8);
+        _player.RaisePosition(10.1);
+        _player.RaisePosition(20.2);
+        _player.RaisePosition(40);
+        _player.RaisePosition(5);
+        _player.RaisePosition(9.9);
+        _player.RaisePosition(10.2);
+
+        Assert.Equal([20d, 20d], _player.Seeks);
+    }
+
+    [Fact]
+    public async Task SponsorBlock_SeekingBackIntoASkippedSegment_LeavesItAlone()
+    {
+        _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
+            .Returns(new[] { new SponsorSegment("u1", "sponsor", 10, 20) });
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaisePosition(9.8);
+        _player.RaisePosition(10.1);
+        _player.RaisePosition(25);
+        _player.RaisePosition(14);
+        _player.RaisePosition(14.3);
+
+        Assert.Equal([20d], _player.Seeks);
+    }
+
+    [Fact]
+    public async Task SponsorBlock_SegmentAtTheVeryStart_IsSkipped()
+    {
+        _sponsorBlock.GetSkipSegmentsAsync("v1", Arg.Any<CancellationToken>())
+            .Returns(new[] { new SponsorSegment("u1", "intro", 0, 8) });
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaisePosition(0.3);
+
+        Assert.Equal([8d], _player.Seeks);
+    }
+
+    [Fact]
+    public async Task Buffering_FollowsThePlayer()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+
+        _player.RaiseBuffering(true);
+        Assert.True(vm.IsBuffering);
+
+        _player.RaiseBuffering(false);
+        Assert.False(vm.IsBuffering);
     }
 
     [Fact]
@@ -538,6 +617,7 @@ public sealed class WatchViewModelTests : IDisposable
         public event Action<double>? PositionChanged;
         public event Action<double>? LengthChanged;
         public event Action<bool>? IsPlayingChanged;
+        public event Action<bool>? BufferingChanged;
         public event Action<string>? Failed;
 
         public void Play(string videoUrl, string? audioUrl) => Played.Add((videoUrl, audioUrl));
@@ -548,6 +628,7 @@ public sealed class WatchViewModelTests : IDisposable
         public void RaisePosition(double s) => PositionChanged?.Invoke(s);
         public void RaiseLength(double s) => LengthChanged?.Invoke(s);
         public void RaisePlaying(bool p) => IsPlayingChanged?.Invoke(p);
+        public void RaiseBuffering(bool b) => BufferingChanged?.Invoke(b);
         public void RaiseFailed(string m) => Failed?.Invoke(m);
     }
 }

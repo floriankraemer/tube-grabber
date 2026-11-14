@@ -184,6 +184,28 @@ public sealed class SubscriptionFeedServiceTests
         await _channels.Received(names.Length).GetLatestAsync(Arg.Any<string>(), 1, Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task GetHomeFeedAsync_FillsMissingChannelWithTheFeedChannelName()
+    {
+        Subscribe(Sub("A"));
+        _channels.GetLatestAsync(Url("A"), Arg.Any<int>(), Arg.Any<CancellationToken>())
+            .Returns(new ChannelFeed
+            {
+                ChannelId = "UCA",
+                ChannelName = "Channel A",
+                Entries =
+                [
+                    new YouTubeSearchResult { VideoId = "a1", Title = "a1", WatchUrl = "u1", DurationSeconds = 9 },
+                    new YouTubeSearchResult { VideoId = "a2", Title = "a2", WatchUrl = "u2", Channel = "Guest" },
+                ],
+            });
+
+        var result = await _service.GetHomeFeedAsync(2, TestContext.Current.CancellationToken);
+
+        Assert.Equal(["Channel A", "Guest"], result.Select(v => v.Channel));
+        Assert.Equal(9, result[0].DurationSeconds);
+    }
+
     private void Subscribe(params ChannelSubscription[] subscriptions) =>
         _store.LoadAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<ChannelSubscription>>(subscriptions));
 

@@ -16,7 +16,19 @@ public sealed class BrowseViewModelTests
     private readonly IYtDlpSearchService _search = Substitute.For<IYtDlpSearchService>();
     private readonly ISubscriptionFeedService _feed = Substitute.For<ISubscriptionFeedService>();
 
-    private BrowseViewModel CreateVm() => new(_search, _feed, Substitute.For<IThumbnailLoader>());
+    private readonly ISubscriptionMonitor _subscriptions = Substitute.For<ISubscriptionMonitor>();
+
+    private BrowseViewModel CreateVm() => new(_search, _feed, Substitute.For<IThumbnailLoader>(), _subscriptions);
+
+    private void Subscribed(params string[] channels) =>
+        _subscriptions.ListAsync(Arg.Any<CancellationToken>()).Returns(
+            Task.FromResult<IReadOnlyList<ChannelSubscription>>(channels.Select(c => new ChannelSubscription
+            {
+                ChannelId = c,
+                ChannelName = c,
+                ChannelUrl = $"https://www.youtube.com/@{c}",
+                ProfileId = "p",
+            }).ToList()));
 
     private static YouTubeSearchResult Video(string id, string? channel = "Chan") => new()
     {
@@ -316,5 +328,100 @@ public sealed class BrowseViewModelTests
         vm.RequestSubscriptions();
 
         Assert.True(raised);
+    }
+
+    [Fact]
+    public async Task RefreshIfSubscriptionsChangedAsync_NewSubscription_ReloadsTheFeed()
+    {
+        Subscribed("a");
+        FeedReturns(Video("old"));
+        var vm = CreateVm();
+        await vm.InitializeAsync();
+        Subscribed("a", "b");
+        FeedReturns(Video("old"), Video("new"));
+
+        await vm.RefreshIfSubscriptionsChangedAsync();
+
+        Assert.Equal(["old", "new"], vm.Tiles.Select(t => t.Result.VideoId));
+    }
+
+    [Fact]
+    public async Task RefreshIfSubscriptionsChangedAsync_SameChannels_KeepsTheFeed()
+    {
+        Subscribed("a", "b");
+        FeedReturns(Video("x"));
+        var vm = CreateVm();
+        await vm.InitializeAsync();
+        Subscribed("b", "a");
+
+        await vm.RefreshIfSubscriptionsChangedAsync();
+
+        await _feed.Received(1).GetHomeFeedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RefreshIfSubscriptionsChangedAsync_BeforeTheFirstLoad_DoesNothing()
+    {
+        Subscribed("a");
+        var vm = CreateVm();
+
+        await vm.RefreshIfSubscriptionsChangedAsync();
+
+        await _feed.DidNotReceive().GetHomeFeedAsync(Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task RefreshIfSubscriptionsChangedAsync_WhileSearching_ReloadsTheFeedOnClear()
+    {
+        Subscribed("a");
+        FeedReturns(Video("old"));
+        SearchReturns(0, hasMore: false, nextSkip: 1, Video("s1"));
+        var vm = CreateVm();
+        await vm.InitializeAsync();
+        vm.SearchQuery = "cats";
+        await vm.SearchAsync();
+        Subscribed("a", "b");
+        FeedReturns(Video("fresh"));
+
+        await vm.RefreshIfSubscriptionsChangedAsync();
+        Assert.Equal(["s1"], vm.Tiles.Select(t => t.Result.VideoId));
+
+        await vm.ClearSearchAsync();
+
+        Assert.Equal(["fresh"], vm.Tiles.Select(t => t.Result.VideoId));
+    }
+
+    [Fact]
+    public async Task RefreshIfSubscriptionsChangedAsync_SubscriptionsUnreadable_KeepsTheFeed()
+    {
+        Subscribed("a");
+        FeedReturns(Video("x"));
+        var vm = CreateVm();
+        await vm.InitializeAsync();
+        _subscriptions.ListAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new IOException("locked"));
+
+        await vm.RefreshIfSubscriptionsChangedAsync();
+
+        Assert.Equal(["x"], vm.Tiles.Select(t => t.Result.VideoId));
+    }
+
+    [Fact]
+    public async Task ContentReset_RaisedWhenFeedLoadsSearchStartsAndSearchClears()
+    {
+        FeedReturns(Video("f"));
+        SearchReturns(0, hasMore: false, nextSkip: 1, Video("s1"));
+        var vm = CreateVm();
+        var resets = 0;
+        vm.ContentReset += (_, _) => resets++;
+
+        await vm.InitializeAsync();
+        Assert.Equal(1, resets);
+
+        vm.SearchQuery = "cats";
+        await vm.SearchAsync();
+        Assert.Equal(2, resets);
+
+        await vm.ClearSearchAsync();
+        Assert.Equal(3, resets);
     }
 }

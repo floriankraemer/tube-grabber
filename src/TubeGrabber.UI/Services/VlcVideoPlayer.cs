@@ -25,6 +25,7 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         MediaPlayer.TimeChanged += OnTimeChanged;
         MediaPlayer.LengthChanged += OnLengthChanged;
         MediaPlayer.Playing += OnPlaying;
+        MediaPlayer.Buffering += OnBuffering;
         MediaPlayer.Paused += OnPaused;
         MediaPlayer.Stopped += OnPaused;
         MediaPlayer.EndReached += OnPaused;
@@ -37,6 +38,7 @@ public sealed class VlcVideoPlayer : IVideoPlayer
     public event Action<double>? PositionChanged;
     public event Action<double>? LengthChanged;
     public event Action<bool>? IsPlayingChanged;
+    public event Action<bool>? BufferingChanged;
     public event Action<string>? Failed;
 
     /// <summary>Completes once the native player is stopped and released; never completes before <see cref="Dispose"/>.</summary>
@@ -81,6 +83,7 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         MediaPlayer.TimeChanged -= OnTimeChanged;
         MediaPlayer.LengthChanged -= OnLengthChanged;
         MediaPlayer.Playing -= OnPlaying;
+        MediaPlayer.Buffering -= OnBuffering;
         MediaPlayer.Paused -= OnPaused;
         MediaPlayer.Stopped -= OnPaused;
         MediaPlayer.EndReached -= OnPaused;
@@ -115,6 +118,10 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         Post(() => LengthChanged?.Invoke(e.Length / 1000.0));
 
     private void OnPlaying(object? sender, EventArgs e) => Post(() => IsPlayingChanged?.Invoke(true));
+
+    // VLC reports the cache fill level; below 100 the picture is stalled.
+    private void OnBuffering(object? sender, MediaPlayerBufferingEventArgs e) =>
+        Post(() => BufferingChanged?.Invoke(e.Cache < 100f));
 
     private void OnPaused(object? sender, EventArgs e) => Post(() => IsPlayingChanged?.Invoke(false));
 

@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 
 using TubeGrabber.UI.Services;
 using TubeGrabber.UI.ViewModels;
@@ -14,9 +15,7 @@ namespace TubeGrabber.UI.Views;
 
 public sealed partial class WatchView : UserControl
 {
-    private const double MaxColumnWidth = 960;
-    private const double MaxVideoHeightShare = 0.6;
-    private const double VideoAspect = 9.0 / 16.0;
+    private static readonly Thickness PageMargin = new(32, 0, 32, 24);
 
     private Window? _window;
     private IDisposable? _windowStateSubscription;
@@ -26,6 +25,9 @@ public sealed partial class WatchView : UserControl
         InitializeComponent();
         DataContextChanged += OnDataContextChanged;
         SizeChanged += (_, _) => ApplyLayout();
+        // The native surface swallows nothing once LibVLC input is off, so clicks on it reach Avalonia like on any control.
+        VideoHost.Tapped += OnVideoTapped;
+        VideoHost.DoubleTapped += OnVideoDoubleTapped;
         SeekSlider.AddHandler(PointerPressedEvent, (_, _) => ViewModel?.BeginScrub(), RoutingStrategies.Tunnel);
         SeekSlider.AddHandler(PointerReleasedEvent, (_, _) => ViewModel?.CommitSeek(), RoutingStrategies.Tunnel, handledEventsToo: true);
         SeekSlider.AddHandler(KeyDownEvent, (_, _) => ViewModel?.BeginScrub(), RoutingStrategies.Tunnel);
@@ -62,7 +64,12 @@ public sealed partial class WatchView : UserControl
 
         // The player must be bound to the native surface before playback starts, or VLC opens its own window.
         if (vm.Player is VlcVideoPlayer vlc)
+        {
+            // The native child window would otherwise take keyboard focus and mouse clicks (Esc, click to pause).
+            vlc.MediaPlayer.EnableKeyInput = false;
+            vlc.MediaPlayer.EnableMouseInput = false;
             Video.MediaPlayer = vlc.MediaPlayer;
+        }
 
         vm.Profiles.CollectionChanged += (_, _) => RebuildDownloadMenu();
         RebuildDownloadMenu();
@@ -78,25 +85,48 @@ public sealed partial class WatchView : UserControl
         ApplyLayout();
     }
 
-    // 16:9 video up to 960 wide, left-aligned like YouTube; the whole window in fullscreen.
+    // Fullscreen: the video fills the window above the control bar, on black. Otherwise a 16:9 player left-aligned
+    // like YouTube: as wide as fits (up to 1280) but at most 70% of the height; see PlayerLayout.
     private void ApplyLayout()
     {
         var fullscreen = ViewModel?.IsFullscreen == true;
         Info.IsVisible = !fullscreen;
         Status.IsVisible = !fullscreen;
+        Scroller.VerticalScrollBarVisibility = fullscreen ? Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
+        Scroller.Background = fullscreen ? Brushes.Black : null;
+        Scope.RequestedThemeVariant = fullscreen ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Default;
         Column.RowDefinitions[0].Height = fullscreen ? GridLength.Star : GridLength.Auto;
-        Column.RowDefinitions[3].Height = fullscreen ? GridLength.Auto : GridLength.Star;
+        Column.Margin = fullscreen ? default : PageMargin;
         Column.HorizontalAlignment = fullscreen ? Avalonia.Layout.HorizontalAlignment.Stretch : Avalonia.Layout.HorizontalAlignment.Left;
-        // The video takes at most ~60% of the height so the title and Download stay visible without scrolling.
-        var widthForHeight = Bounds.Height * MaxVideoHeightShare / VideoAspect;
-        Column.Width = fullscreen ? double.NaN : Math.Max(0, Math.Min(Math.Min(MaxColumnWidth, Bounds.Width), widthForHeight));
-        VideoHost.Height = fullscreen ? double.NaN : Column.Width * VideoAspect;
-        VideoHost.CornerRadius = new CornerRadius(fullscreen ? 0 : 6);
+
+        if (fullscreen)
+        {
+            Column.Width = double.NaN;
+            Column.Height = Bounds.Height;
+            VideoHost.Height = double.NaN;
+            return;
+        }
+
+        Column.Height = double.NaN;
+        var (width, height) = PlayerLayout.Size(Bounds.Width - PageMargin.Left - PageMargin.Right, Bounds.Height);
+        Column.Width = width;
+        VideoHost.Height = height;
     }
+
+    // Click toggles play/pause, double click toggles fullscreen (the first click of the pair is undone by the second).
+    private void OnVideoTapped(object? sender, TappedEventArgs e)
+    {
+        ViewModel?.TogglePlayPause();
+        Scroller.Focus();
+    }
+
+    private void OnVideoDoubleTapped(object? sender, TappedEventArgs e) => ToggleFullscreen();
 
     private void PlayPause_Click(object? sender, RoutedEventArgs e) => ViewModel?.TogglePlayPause();
 
-    private void Fullscreen_Click(object? sender, RoutedEventArgs e)
+    private void Fullscreen_Click(object? sender, RoutedEventArgs e) => ToggleFullscreen();
+
+    private void ToggleFullscreen()
     {
         if (_window is not null)
             _window.WindowState = _window.WindowState == WindowState.FullScreen ? WindowState.Normal : WindowState.FullScreen;

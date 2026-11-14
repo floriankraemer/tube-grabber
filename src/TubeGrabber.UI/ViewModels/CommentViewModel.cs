@@ -14,7 +14,12 @@ public sealed class CommentViewModel
         Text = comment.Text;
         IsPinned = comment.IsPinned;
         IsUploader = comment.AuthorIsUploader;
-        Likes = comment.LikeCount is > 0 ? comment.LikeCount.Value.ToString("N0") : string.Empty;
+        Likes = comment.LikeCount switch
+        {
+            1 => "1 like",
+            > 1 => $"{comment.LikeCount.Value:N0} likes",
+            _ => string.Empty,
+        };
         PostedAgo = comment.PostedAt is { } posted ? RelativeTime(now - posted) : string.Empty;
     }
 
@@ -22,6 +27,7 @@ public sealed class CommentViewModel
     public string Text { get; }
     public bool IsPinned { get; }
     public bool IsUploader { get; }
+    /// <summary>Ready-to-show text such as "288 likes"; empty when there are none.</summary>
     public string Likes { get; }
     public string PostedAgo { get; }
 

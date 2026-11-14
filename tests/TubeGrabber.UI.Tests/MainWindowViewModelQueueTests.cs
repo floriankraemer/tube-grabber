@@ -158,4 +158,50 @@ public sealed class MainWindowViewModelQueueTests
         Assert.Equal(AppPage.Browse, vm.CurrentPage);
         Assert.Same(video, requested);
     }
+
+    [Fact]
+    public void OpenWatch_FromSearch_KeepsSearchHighlightedUntilTheWatchViewCloses()
+    {
+        var vm = ViewModelTestHelpers.CreateMainViewModel();
+        vm.CurrentPage = AppPage.Search;
+        var video = new YouTubeSearchResult { VideoId = "v1", Title = "T", WatchUrl = "https://www.youtube.com/watch?v=v1" };
+
+        vm.OpenWatch(video);
+
+        Assert.Equal(AppPage.Browse, vm.CurrentPage);
+        Assert.Equal(AppPage.Search, vm.WatchOrigin);
+        Assert.Equal(AppPage.Search, vm.NavPage);
+
+        vm.CurrentPage = AppPage.Search;
+
+        Assert.Null(vm.WatchOrigin);
+        Assert.Equal(AppPage.Search, vm.NavPage);
+    }
+
+    [Fact]
+    public void OpenWatch_FromBrowse_HasNoOriginAndBrowseStaysHighlighted()
+    {
+        var vm = ViewModelTestHelpers.CreateMainViewModel();
+        var video = new YouTubeSearchResult { VideoId = "v1", Title = "T", WatchUrl = "https://www.youtube.com/watch?v=v1" };
+
+        vm.OpenWatch(video);
+
+        Assert.Null(vm.WatchOrigin);
+        Assert.Equal(AppPage.Browse, vm.NavPage);
+    }
+
+    [Fact]
+    public void ClearWatchOrigin_MovesTheHighlightToBrowse()
+    {
+        var vm = ViewModelTestHelpers.CreateMainViewModel();
+        vm.CurrentPage = AppPage.Search;
+        vm.OpenWatch(new YouTubeSearchResult { VideoId = "v1", Title = "T", WatchUrl = "u" });
+        var changed = new List<string?>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        vm.ClearWatchOrigin();
+
+        Assert.Equal(AppPage.Browse, vm.NavPage);
+        Assert.Contains(nameof(MainWindowViewModel.NavPage), changed);
+    }
 }

@@ -16,6 +16,9 @@ namespace TubeGrabber.UI.ViewModels;
 /// </summary>
 public sealed class WatchViewModel : ViewModelBase, IDisposable
 {
+    // Position ticks further apart than this mean the user sought rather than played on.
+    private const double MaxPlaybackStepSeconds = 2;
+
     private readonly YouTubeSearchResult _result;
     private readonly IVideoDetailsService _detailsService;
     private readonly IVideoCommentsService _commentsService;
@@ -36,6 +39,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     private bool _isLoadingDetails = true;
     private bool _isPlaying;
     private bool _isScrubbing;
+    private bool _isBuffering;
+    private double _lastPosition;
     private double _lengthSeconds;
     private double _seekValue;
     private double _positionSeconds;
@@ -75,6 +80,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             player.PositionChanged += OnPositionChanged;
             player.LengthChanged += OnLengthChanged;
             player.IsPlayingChanged += OnIsPlayingChanged;
+            player.BufferingChanged += OnBufferingChanged;
             player.Failed += OnPlayerFailed;
         }
     }
@@ -174,6 +180,13 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _isPlaying, value);
     }
 
+    /// <summary>The player is waiting for data, for example after a seek; shown as a spinner in the control bar.</summary>
+    public bool IsBuffering
+    {
+        get => _isBuffering;
+        private set => SetProperty(ref _isBuffering, value);
+    }
+
     public bool IsFullscreen
     {
         get => _isFullscreen;
@@ -228,6 +241,9 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     }
 
     public bool HasSkipNotice => _skipNotice is not null;
+
+    /// <summary>The notice line is only reserved when segments exist, so it never shifts the page below the player.</summary>
+    public bool HasSegments => _segments.Count > 0;
 
     public bool IsLoadingComments
     {
@@ -292,6 +308,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         PlaybackError = null;
         IsLoadingDetails = true;
         _skipped.Clear();
+        _lastPosition = 0;
 
         await Task.WhenAll(
             LoadDetailsAndPlayAsync(token),
@@ -388,6 +405,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         _player.PositionChanged -= OnPositionChanged;
         _player.LengthChanged -= OnLengthChanged;
         _player.IsPlayingChanged -= OnIsPlayingChanged;
+        _player.BufferingChanged -= OnBufferingChanged;
         _player.Failed -= OnPlayerFailed;
         _player.Dispose();
     }
@@ -494,6 +512,7 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             token.ThrowIfCancellationRequested();
             _segments = segments;
             OnPropertyChanged(nameof(Segments));
+            OnPropertyChanged(nameof(HasSegments));
         }
         catch (OperationCanceledException)
         {
@@ -533,6 +552,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
 
     private void OnPositionChanged(double seconds)
     {
+        var previous = _lastPosition;
+        _lastPosition = seconds;
         _positionSeconds = seconds;
         if (!_isScrubbing)
             SeekValue = seconds;
@@ -542,6 +563,13 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         if (_segments.Count == 0)
             return;
 
+        // A segment skipped earlier is armed again once the position is back before its start (seek back, replay).
+        foreach (var segment in _segments)
+        {
+            if (seconds < segment.StartSeconds)
+                _skipped.Remove(segment.Uuid);
+        }
+
         var skip = SponsorSegmentSkipper.NextSeekTarget(seconds, _segments, _skipped);
         if (skip is null)
             return;
@@ -549,8 +577,20 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
         foreach (var uuid in skip.Uuids)
             _skipped.Add(uuid);
 
+        // Like the browser extension: skip only when playback runs into a segment from before its start. Landing
+        // inside one by a deliberate seek leaves it alone.
+        if (!EnteredByPlayback(previous, seconds, skip))
+            return;
+
         _player?.Seek(skip.SeekTo);
         _ = ShowSkipNoticeAsync();
+    }
+
+    // Position ticks arrive a few times per second; a larger jump, or one from after the start, was a seek.
+    private bool EnteredByPlayback(double previous, double position, SponsorSkip skip)
+    {
+        var start = _segments.Where(s => skip.Uuids.Contains(s.Uuid)).Min(s => s.StartSeconds);
+        return previous <= start && position - previous <= MaxPlaybackStepSeconds;
     }
 
     private async Task ShowSkipNoticeAsync()
@@ -576,6 +616,8 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     }
 
     private void OnIsPlayingChanged(bool playing) => IsPlaying = playing;
+
+    private void OnBufferingChanged(bool buffering) => IsBuffering = buffering;
 
     private void OnPlayerFailed(string message) => PlaybackError = message;
 

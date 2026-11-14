@@ -16,10 +16,10 @@
       <Setter Property="BorderThickness" Value="2" />
       <Setter Property="BorderBrush" Value="Transparent" />
       <Setter Property="Padding" Value="6" />
-      <Setter Property="Margin" Value="0,0,6,10" />
-      <Setter Property="Width" Value="268" />
       <Setter Property="HorizontalContentAlignment" Value="Stretch" />
       <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="VerticalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
       <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
     </Style>
     <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
@@ -102,15 +102,16 @@
       </Border>
 
       <Grid Grid.Row="3">
-        <!-- The viewer extends 12px past the content edge so its scrollbar sits outside the tiles. -->
-        <ScrollViewer Margin="0,0,-12,0"
+        <!-- The viewer extends over the page margin so its scrollbar sits at the page's right edge. -->
+        <ScrollViewer x:Name="TilesScroller"
+                      Margin="0,0,-32,0"
                       IsVisible="{Binding HasTiles}"
                       ScrollChanged="TilesScrollViewer_ScrollChanged">
-          <StackPanel Margin="0,0,12,8">
+          <StackPanel Margin="0,0,32,8">
             <ItemsControl ItemsSource="{Binding Tiles}">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
-                  <WrapPanel />
+                  <ui:TileGridPanel MinTileWidth="240" Spacing="8" />
                 </ItemsPanelTemplate>
               </ItemsControl.ItemsPanel>
               <ItemsControl.ItemTemplate>
@@ -118,8 +119,8 @@
                   <Button Classes="tile"
                           Click="Tile_Click"
                           AutomationProperties.Name="{Binding Title}">
-                    <StackPanel Spacing="8">
-                      <Border Classes="thumb" Height="140">
+                    <StackPanel Spacing="8" VerticalAlignment="Top">
+                      <Border Classes="thumb" Height="{Binding $self.Bounds.Width, Converter={x:Static ui:Aspect.SixteenByNine}}">
                         <Grid>
                           <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
                           <Border HorizontalAlignment="Right"
@@ -134,17 +135,15 @@
                         </Grid>
                       </Border>
                       <StackPanel Spacing="2">
-                        <!-- Fixed two-line height keeps the tile rows aligned whatever the title length. -->
                         <TextBlock Classes="rowTitle"
                                    Text="{Binding Title}"
                                    TextWrapping="Wrap"
                                    TextTrimming="CharacterEllipsis"
-                                   MaxLines="2"
-                                   MinHeight="40" />
+                                   MaxLines="2" />
                         <TextBlock Classes="meta"
                                    Text="{Binding Channel}"
                                    TextTrimming="CharacterEllipsis"
-                                   MinHeight="18" />
+                                   IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
                       </StackPanel>
                     </StackPanel>
                   </Button>
@@ -191,12 +190,12 @@
     </Grid>
 
     <!-- Watch host: the Back button belongs to Browse; the watch view model is rendered by its own DataTemplate. -->
-    <DockPanel Margin="32,28,32,16" IsVisible="{Binding IsWatching}">
+    <DockPanel x:Name="WatchHost" Margin="0,28,0,0" IsVisible="{Binding IsWatching}">
       <Button x:Name="BackButton"
               DockPanel.Dock="Top"
               Classes="outlineAccent"
               HorizontalAlignment="Left"
-              Margin="0,0,0,12"
+              Margin="32,0,0,12"
               AutomationProperties.Name="Back to Browse"
               Click="Back_Click">
         <StackPanel Orientation="Horizontal" Spacing="8">

@@ -31,7 +31,8 @@ public sealed class PlaybackEngine : IDisposable
                 try
                 {
                     LibVLCSharp.Shared.Core.Initialize();
-                    _libVlc = new LibVLC("--no-xlib");
+                    // Input stays with Avalonia: the native video window must not take keys (Esc leaves fullscreen) or clicks.
+                    _libVlc = new LibVLC("--no-xlib", "--no-keyboard-events", "--no-mouse-events");
                 }
                 catch (Exception ex)
                 {
