@@ -165,7 +165,7 @@ public sealed class ChannelFeedServiceTests : IDisposable
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         await appConfig.SaveAsync(config);
 
-        var runner = new YtDlpFlatPlaylistRunner(process, appConfig, new BinaryLocator(_root), new JsRuntimeLocator());
+        var runner = new YtDlpFlatPlaylistRunner(process, appConfig, TestBinaryLocator.Create(_root), new JsRuntimeLocator());
         return (new ChannelFeedService(runner, new YouTubeUrlNormalizer()), process);
     }
 

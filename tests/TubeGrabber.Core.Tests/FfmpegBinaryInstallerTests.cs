@@ -37,6 +37,21 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
     }
 
     [Fact]
+    public async Task InstallAsync_InstallsFfprobeBesideFfmpeg()
+    {
+        var ext = OperatingSystem.IsWindows() ? ".exe" : string.Empty;
+        var installer = CreateInstaller(new FakeArchiveHttpMessageHandler(
+            $"ffmpeg-master-latest-win64-gpl/bin/ffmpeg{ext}",
+            $"ffmpeg-master-latest-win64-gpl/bin/ffprobe{ext}"));
+
+        var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(result.IsSuccess);
+        var ffprobe = Path.Combine(Path.GetDirectoryName(result.InstalledPath!)!, $"ffprobe{ext}");
+        Assert.True(File.Exists(ffprobe));
+    }
+
+    [Fact]
     public async Task InstallAsync_RemovesExtractDirectoryWhenExtractionFails()
     {
         var installer = CreateInstaller(new FakeArchiveHttpMessageHandler("readme.txt"));
@@ -50,7 +65,7 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
     private FfmpegBinaryInstaller CreateInstaller(HttpMessageHandler handler) =>
         new(
             new GitHubBinaryReleaseSource(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new BinaryDownloadHelper(new HttpClient(handler)),
             WindowsRuntimeIdentifier);
 
@@ -60,7 +75,7 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
             Directory.Delete(_root, recursive: true);
     }
 
-    private sealed class FakeArchiveHttpMessageHandler(string entryName) : HttpMessageHandler
+    private sealed class FakeArchiveHttpMessageHandler(params string[] entryNames) : HttpMessageHandler
     {
         private const int MinimumArchiveSizeBytes = 1_000_100;
 
@@ -69,9 +84,10 @@ public sealed class FfmpegBinaryInstallerTests : IDisposable
             using var memory = new MemoryStream();
             using (var archive = new ZipArchive(memory, ZipArchiveMode.Create, leaveOpen: true))
             {
-                var entry = archive.CreateEntry(entryName, CompressionLevel.NoCompression);
-                using (var stream = entry.Open())
+                foreach (var entryName in entryNames)
                 {
+                    var entry = archive.CreateEntry(entryName, CompressionLevel.NoCompression);
+                    using var stream = entry.Open();
                     var payload = new byte[ExecutableSizeBytes];
                     stream.Write(payload, 0, payload.Length);
                 }

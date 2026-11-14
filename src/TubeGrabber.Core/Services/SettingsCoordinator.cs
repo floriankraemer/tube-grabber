@@ -44,7 +44,7 @@ public sealed class SettingsCoordinator
         _validator.Validate(config, profile);
 
     /// <summary>
-    /// Writes the profiles and the settings. The active profile and the queue column widths belong to other pages, which
+    /// Writes the profiles and the settings. The active profile, the queue column widths and the subscription backlog belong to other pages, which
     /// persist them on their own, so the copy held by Settings must not overwrite them.
     /// </summary>
     public async Task SaveAsync(
@@ -58,6 +58,7 @@ public sealed class SettingsCoordinator
         var latest = await _appConfigStore.LoadAsync(cancellationToken);
         config.ActiveProfileId = latest.ActiveProfileId;
         config.QueueColumnWidths = latest.QueueColumnWidths;
+        config.SubscriptionBacklogCount = latest.SubscriptionBacklogCount;
         await _appConfigStore.SaveAsync(config, cancellationToken);
     }
 

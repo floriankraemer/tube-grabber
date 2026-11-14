@@ -7,6 +7,7 @@ namespace TubeGrabber.UI.ViewModels;
 /// <summary>The pages hosted by the main window's sidebar navigation.</summary>
 public enum AppPage
 {
+    Browse,
     Downloads,
     Search,
     Subscriptions,

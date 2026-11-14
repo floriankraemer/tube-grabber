@@ -31,7 +31,7 @@ public sealed class DownloadEnqueueCoordinatorTests
         var coordinator = CreateCoordinator(
             Substitute.For<IDownloadQueueService>(),
             appConfig,
-            new BinaryLocator(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
+            TestBinaryLocator.Create(Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))));
 
         var result = await coordinator.TryEnqueueAsync("https://www.youtube.com/watch?v=abc", "default", TestContext.Current.CancellationToken);
 
@@ -60,7 +60,7 @@ public sealed class DownloadEnqueueCoordinatorTests
         Directory.CreateDirectory(ytDlpDir);
         File.WriteAllText(Path.Combine(ytDlpDir, "yt-dlp"), string.Empty);
 
-        var coordinator = CreateCoordinator(queue, appConfig, new BinaryLocator(root), profileStore);
+        var coordinator = CreateCoordinator(queue, appConfig, TestBinaryLocator.Create(root), profileStore);
 
         var result = await coordinator.TryEnqueueAsync(
             "https://www.youtube.com/watch?v=abc&t=5",
@@ -83,6 +83,6 @@ public sealed class DownloadEnqueueCoordinatorTests
             appConfig ?? Substitute.For<IAppConfigStore>(),
             profileStore ?? Substitute.For<IProfileStore>(),
             new YouTubeUrlNormalizer(),
-            binaryLocator ?? new BinaryLocator(Path.GetTempPath()),
+            binaryLocator ?? TestBinaryLocator.Create(Path.GetTempPath()),
             new DownloadFolderService());
 }

@@ -18,6 +18,16 @@ public sealed class DownloadJobViewModelTests
     }
 
     [Fact]
+    public void ProfileName_UsesTheLookup_AndFallsBackToTheIdWhenTheProfileIsGone()
+    {
+        var job = new DownloadJob { Url = "https://example.com", ProfileId = "audio-only" };
+
+        Assert.Equal("Audio only", new DownloadJobViewModel(job, id => id == "audio-only" ? "Audio only" : null).ProfileName);
+        Assert.Equal("audio-only", new DownloadJobViewModel(job, _ => null).ProfileName);
+        Assert.Equal("audio-only", new DownloadJobViewModel(job).ProfileName);
+    }
+
+    [Fact]
     public void StatusKind_DistinguishesProcessingFromActiveDownload()
     {
         var job = new DownloadJob { Url = "https://example.com", ProfileId = "default", Status = DownloadStatus.Running };

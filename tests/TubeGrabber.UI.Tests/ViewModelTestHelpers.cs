@@ -21,7 +21,7 @@ internal static class ViewModelTestHelpers
         IBinaryLocator? binaryLocator = null) =>
         new(
             appConfig ?? Substitute.For<IAppConfigStore>(),
-            binaryLocator ?? new BinaryLocator(Path.GetTempPath()));
+            binaryLocator ?? TestBinaryLocator.Create(Path.GetTempPath()));
 
     public static DownloadEnqueueCoordinator CreateEnqueueCoordinator(
         IDownloadQueueService? queue = null,
@@ -33,7 +33,7 @@ internal static class ViewModelTestHelpers
             appConfig ?? Substitute.For<IAppConfigStore>(),
             profileStore ?? Substitute.For<IProfileStore>(),
             new YouTubeUrlNormalizer(),
-            binaryLocator ?? new BinaryLocator(Path.GetTempPath()),
+            binaryLocator ?? TestBinaryLocator.Create(Path.GetTempPath()),
             new DownloadFolderService());
 
     public static MainWindowViewModel CreateMainViewModel(
@@ -84,7 +84,7 @@ internal static class ViewModelTestHelpers
             ytDlpInstaller ?? Substitute.For<IBinaryInstaller>(),
             ffmpegInstaller ?? Substitute.For<IBinaryInstaller>(),
             denoInstaller ?? Substitute.For<IBinaryInstaller>(),
-            binaryInstallService ?? CreateBinaryInstallService(appConfig, new BinaryLocator(configRoot)),
+            binaryInstallService ?? CreateBinaryInstallService(appConfig, TestBinaryLocator.Create(configRoot)),
             fileSystemLauncher ?? Substitute.For<IFileSystemLauncher>(),
             loginItemService ?? Substitute.For<ILoginItemService>());
     }

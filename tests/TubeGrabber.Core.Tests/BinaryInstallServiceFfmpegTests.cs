@@ -22,7 +22,7 @@ public sealed class BinaryInstallServiceFfmpegTests
         installer.InstallAsync(Arg.Any<CancellationToken>())
             .Returns(BinaryInstallResult.Success("/tmp/ffmpeg"));
 
-        var service = new BinaryInstallService(appConfig, new BinaryLocator(Path.GetTempPath()));
+        var service = new BinaryInstallService(appConfig, TestBinaryLocator.Create(Path.GetTempPath()));
         await service.InstallAsync(ManagedBinary.Ffmpeg, installer, TestContext.Current.CancellationToken);
         Assert.Equal("/tmp/ffmpeg", config.FfmpegPath);
     }

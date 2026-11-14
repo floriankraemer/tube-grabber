@@ -20,7 +20,7 @@ public sealed class QueueColumnLayout
 
     /// <summary>Keys of the current columns. A saved layout with any other key predates this column set and is ignored.</summary>
     public static readonly IReadOnlySet<string> KnownKeys =
-        new HashSet<string>(StringComparer.Ordinal) { "status", "title", "progress", "actions" };
+        new HashSet<string>(StringComparer.Ordinal) { "status", "title", "profile", "progress", "actions" };
 
     public static void SetLayoutKey(DataGridColumn column, string? value) =>
         column.SetValue(LayoutKeyProperty, value);

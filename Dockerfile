@@ -9,7 +9,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends git make curl ca-certificates \
+    && apt-get install -y --no-install-recommends git make curl ca-certificates xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Stryker.NET — see docs/build.md; `make mutation-test` uses `dotnet-stryker`.
@@ -20,3 +20,8 @@ ENV PATH="${PATH}:/root/.dotnet/tools"
 WORKDIR /src
 
 CMD ["make", "help"]
+
+# libvlc for LibVLCSharp (in-app video playback); vlc-plugin-base provides the demuxers/codecs.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends libvlc-dev vlc-plugin-base vlc-plugin-video-output \
+ && rm -rf /var/lib/apt/lists/*

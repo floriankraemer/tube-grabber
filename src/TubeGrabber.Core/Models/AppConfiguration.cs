@@ -14,6 +14,8 @@ public sealed class AppConfiguration
     public string? DownloadFolder { get; set; }
     public int MaxConcurrentDownloads { get; set; } = Constants.AppPaths.DefaultMaxConcurrentDownloads;
     public int SubscriptionCheckIntervalMinutes { get; set; } = Constants.AppPaths.DefaultSubscriptionCheckIntervalMinutes;
+    /// <summary>How many existing videos of a channel are downloaded when subscribing, from any page.</summary>
+    public int SubscriptionBacklogCount { get; set; } = Constants.AppPaths.DefaultSubscriptionBacklogCount;
     public string ActiveProfileId { get; set; } = Constants.AppPaths.DefaultProfileId;
     public int CatalogVersion { get; set; } = Constants.SchemaVersions.OptionCatalog;
     public string YtDlpReleaseTag { get; set; } = Constants.BinaryReleaseManifest.YtDlpReleaseTag;
@@ -22,4 +24,5 @@ public sealed class AppConfiguration
     public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
     public bool RunInBackground { get; set; } = true;
     public bool StartAtLogin { get; set; }
+    public bool SponsorBlockEnabled { get; set; } = true;
 }

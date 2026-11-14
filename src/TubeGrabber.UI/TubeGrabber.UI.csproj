@@ -8,6 +8,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>TubeGrabber.UI</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,14 +20,52 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="LibVLCSharp" Version="3.10.2" />
+    <PackageReference Include="LibVLCSharp.Avalonia" Version="3.10.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('osx'))">
+    <PackageReference Include="VideoLAN.LibVLC.Mac" Version="3.1.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.2" />
   </ItemGroup>
 
   <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.24" />
     <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
     <!-- Override the vulnerable System.Drawing.Common 4.7.0 pulled in transitively (GHSA-rxg9-xrhp-64gj). -->
     <PackageReference Include="System.Drawing.Common" Version="10.0.14" />
   </ItemGroup>
+
+  <!-- Ship libvlc only for the RID being published (package default: all three) and skip plugin groups playback of
+       http(s) streams with input-slave does not need. Lua (playlist/youtube parsers) and codecs stay. -->
+  <PropertyGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <VlcWindowsX64Enabled>$(RuntimeIdentifier.EndsWith('-x64'))</VlcWindowsX64Enabled>
+    <VlcWindowsX86Enabled>$(RuntimeIdentifier.EndsWith('-x86'))</VlcWindowsX86Enabled>
+    <VlcWindowsArm64Enabled>$(RuntimeIdentifier.EndsWith('-arm64'))</VlcWindowsArm64Enabled>
+  </PropertyGroup>
+  <ItemGroup Condition="$(RuntimeIdentifier.StartsWith('win'))">
+    <VlcWindowsX64IncludeFiles Include="libvlc.%2A;libvlccore.%2A;hrtfs\%2A%2A;lua\%2A%2A;plugins\%2A%2A" />
+    <VlcWindowsX86IncludeFiles Include="libvlc.%2A;libvlccore.%2A;hrtfs\%2A%2A;lua\%2A%2A;plugins\%2A%2A" />
+    <VlcWindowsArm64IncludeFiles Include="libvlc.%2A;libvlccore.%2A;hrtfs\%2A%2A;lua\%2A%2A;plugins\%2A%2A" />
+    <VlcWindowsX64ExcludeFiles Include="libvlc.lib;libvlccore.lib;plugins\visualization\%2A%2A;plugins\access_output\%2A%2A;plugins\stream_out\%2A%2A;plugins\mux\%2A%2A;plugins\services_discovery\%2A%2A;plugins\video_splitter\%2A%2A" />
+    <VlcWindowsX86ExcludeFiles Include="@(VlcWindowsX64ExcludeFiles)" />
+    <VlcWindowsArm64ExcludeFiles Include="@(VlcWindowsX64ExcludeFiles)" />
+  </ItemGroup>
+
+  <!-- libvlc needs its plugins folder on disk beside libvlc.dll (LibVLCSharp looks in <BaseDirectory>/libvlc/<rid>);
+       keep that whole tree out of the single-file bundle. -->
+  <Target Name="KeepLibVlcOnDisk" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Condition="$([System.String]::Copy('%(ResolvedFileToPublish.RelativePath)').StartsWith('libvlc'))">
+        <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
+      </ResolvedFileToPublish>
+      <!-- native symbol files of SkiaSharp/HarfBuzzSharp (100 MB, not needed at runtime) -->
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb' AND $([System.String]::Copy('%(Filename)').StartsWith('lib'))" />
+    </ItemGroup>
+  </Target>
 
   <ItemGroup>
     <ProjectReference Include="..\TubeGrabber.Core\TubeGrabber.Core.csproj" />

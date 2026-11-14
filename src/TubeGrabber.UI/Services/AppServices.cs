@@ -3,6 +3,7 @@
 // See LICENSE for details.
 
 using TubeGrabber.Core.Abstractions;
+using TubeGrabber.Core.Models;
 using TubeGrabber.Core.Services;
 using TubeGrabber.UI.Services.Notifications;
 using TubeGrabber.UI.ViewModels;
@@ -70,11 +71,18 @@ public sealed class AppServices
         StoragePicker = new StoragePickerService();
         LoginItemService = new LoginItemService();
         DesktopNotifier = DesktopNotifierFactory.Create();
+        var subscriptionStore = new SubscriptionStore(ConfigRoot);
+        var channelFeedService = new ChannelFeedService(
+            new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
+            UrlNormalizer);
+        SubscriptionFeedService = new SubscriptionFeedService(subscriptionStore, channelFeedService);
+        VideoDetailsService = new YtDlpVideoDetailsService(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator);
+        VideoCommentsService = new YtDlpVideoCommentsService(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator);
+        SponsorBlockClient = new SponsorBlockClient(HttpClient);
+        PlaybackEngine = new PlaybackEngine();
         SubscriptionMonitor = new SubscriptionMonitor(
-            new SubscriptionStore(ConfigRoot),
-            new ChannelFeedService(
-                new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
-                UrlNormalizer),
+            subscriptionStore,
+            channelFeedService,
             EnqueueCoordinator,
             Queue,
             AppConfigStore,
@@ -113,6 +121,11 @@ public sealed class AppServices
     public ILoginItemService LoginItemService { get; }
     public IDesktopNotifier DesktopNotifier { get; }
     public ISubscriptionMonitor SubscriptionMonitor { get; }
+    public ISubscriptionFeedService SubscriptionFeedService { get; }
+    public IVideoDetailsService VideoDetailsService { get; }
+    public IVideoCommentsService VideoCommentsService { get; }
+    public ISponsorBlockClient SponsorBlockClient { get; }
+    public PlaybackEngine PlaybackEngine { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -122,6 +135,25 @@ public sealed class AppServices
         DownloadFolderService,
         UrlNormalizer,
         FileSystemLauncher);
+
+    public BrowseViewModel CreateBrowseViewModel() => new(
+        SearchService,
+        SubscriptionFeedService,
+        ThumbnailLoader,
+        SubscriptionMonitor)
+    {
+        WatchFactory = result => CreateWatchViewModel(result),
+    };
+
+    public WatchViewModel CreateWatchViewModel(YouTubeSearchResult result) => new(
+        result,
+        VideoDetailsService,
+        VideoCommentsService,
+        SponsorBlockClient,
+        EnqueueCoordinator,
+        AppConfigStore,
+        ProfileStore,
+        PlaybackEngine.CreatePlayerAsync());
 
     public SearchViewModel CreateSearchViewModel() => new(
         SearchService,

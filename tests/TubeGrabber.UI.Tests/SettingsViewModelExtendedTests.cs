@@ -26,7 +26,7 @@ public sealed class SettingsViewModelExtendedTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(coordinator, _profiles, _root);
     }
@@ -43,6 +43,35 @@ public sealed class SettingsViewModelExtendedTests : IDisposable
 
         Assert.Equal(string.Empty, _viewModel.Profiles.ExtraArgs);
         Assert.False(_viewModel.HasUnsavedChanges);
+    }
+
+    [Fact]
+    public void RefreshResolvedPaths_PicksUpAToolInstalledOutsideTheApp()
+    {
+        Directory.CreateDirectory(_root);
+        var ffmpeg = Path.Combine(_root, "my-ffmpeg");
+        _viewModel.FfmpegPath = ffmpeg;
+        Assert.NotEqual(ffmpeg, _viewModel.ResolvedFfmpegPath);
+        var raised = new List<string?>();
+        _viewModel.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+        File.WriteAllText(ffmpeg, "#!/bin/sh");
+        _viewModel.RefreshResolvedPaths();
+
+        Assert.Contains(nameof(SettingsViewModel.ResolvedFfmpegPath), raised);
+        Assert.Equal(ffmpeg, _viewModel.ResolvedFfmpegPath);
+    }
+
+    [Fact]
+    public void FfmpegPath_Edit_ReResolvesImmediately()
+    {
+        Directory.CreateDirectory(_root);
+        var ffmpeg = Path.Combine(_root, "typed-ffmpeg");
+        File.WriteAllText(ffmpeg, "#!/bin/sh");
+
+        _viewModel.FfmpegPath = ffmpeg;
+
+        Assert.Equal(ffmpeg, _viewModel.ResolvedFfmpegPath);
     }
 
     [Fact]

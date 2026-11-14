@@ -22,7 +22,8 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
 
     private string _channelUrl = string.Empty;
     private DownloadProfile? _selectedProfile;
-    private decimal _backlogCount = 3;
+    private decimal _backlogCount = Core.Constants.AppPaths.DefaultSubscriptionBacklogCount;
+    private bool _loadingBacklog;
     private bool _isBusy;
     private bool _isChecking;
     private string? _statusMessage;
@@ -64,7 +65,13 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
     public decimal BacklogCount
     {
         get => _backlogCount;
-        set => SetProperty(ref _backlogCount, Math.Clamp(value, 0, MaxBacklogCount));
+        set
+        {
+            if (!SetProperty(ref _backlogCount, Math.Clamp(value, 0, MaxBacklogCount)) || _loadingBacklog)
+                return;
+
+            _ = PersistBacklogAsync();
+        }
     }
 
     public bool IsBusy
@@ -117,7 +124,40 @@ public sealed class SubscriptionsViewModel : ViewModelBase, IDisposable
         private set => SetProperty(ref _errorMessage, value);
     }
 
-    public Task InitializeAsync() => RefreshProfilesAsync();
+    public async Task InitializeAsync()
+    {
+        await LoadBacklogAsync();
+        await RefreshProfilesAsync();
+    }
+
+    private async Task LoadBacklogAsync()
+    {
+        var config = await _appConfigStore.LoadAsync();
+        _loadingBacklog = true;
+        try
+        {
+            BacklogCount = config.SubscriptionBacklogCount;
+        }
+        finally
+        {
+            _loadingBacklog = false;
+        }
+    }
+
+    // Shared with subscribing from Search, so it lives in the app configuration rather than on this page.
+    private async Task PersistBacklogAsync()
+    {
+        try
+        {
+            var config = await _appConfigStore.LoadAsync();
+            config.SubscriptionBacklogCount = (int)BacklogCount;
+            await _appConfigStore.SaveAsync(config);
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message;
+        }
+    }
 
     /// <summary>Reloads the profile pickers (for example after profiles were added or deleted in Settings) and the rows.</summary>
     public async Task RefreshProfilesAsync()

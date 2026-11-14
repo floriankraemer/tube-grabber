@@ -4,6 +4,7 @@
 
 using NSubstitute;
 using TubeGrabber.Core.Abstractions;
+using TubeGrabber.Core.Constants;
 using TubeGrabber.Core.Models;
 using TubeGrabber.Core.Services;
 using TubeGrabber.UI.Services;
@@ -30,7 +31,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(_coordinator, _profiles, _root);
     }
@@ -85,7 +86,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             _root,
             ytDlpInstaller: installer,
-            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)));
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)));
 
         await vm.LoadAsync();
         await vm.InstallYtDlpAsync();
@@ -94,6 +95,79 @@ public sealed class SettingsViewModelTests : IDisposable
         Assert.Equal("yt-dlp installed.", vm.StatusMessage);
         var config = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
         Assert.Equal(installedPath, config.YtDlpPath);
+    }
+
+    [Fact]
+    public async Task InstallDenoAsync_KeepsOtherUnsavedEditsDirty()
+    {
+        var installedPath = Path.Combine(_root, "bin", "deno");
+        var installer = Substitute.For<IBinaryInstaller>();
+        installer.InstallAsync(Arg.Any<CancellationToken>()).Returns(BinaryInstallResult.Success(installedPath));
+        var vm = ViewModelTestHelpers.CreateSettingsViewModel(
+            _coordinator,
+            _profiles,
+            _root,
+            denoInstaller: installer,
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)));
+        await vm.LoadAsync();
+        vm.MaxConcurrentDownloads = 7;
+        vm.SelectedJsRuntimeEngine = vm.JsRuntimeEngineOptions.First(e => e.Id == JsRuntimeEngines.Deno);
+
+        await vm.InstallDenoAsync();
+
+        Assert.Equal(installedPath, vm.JsRuntimePath);
+        Assert.Equal(7, vm.MaxConcurrentDownloads);
+        Assert.True(vm.HasUnsavedChanges);
+        Assert.Equal("Unsaved changes", vm.UnsavedSummary);
+    }
+
+    [Fact]
+    public async Task InstallDenoAsync_WithNothingElseEdited_LeavesNoUnsavedChanges()
+    {
+        var installer = Substitute.For<IBinaryInstaller>();
+        installer.InstallAsync(Arg.Any<CancellationToken>())
+            .Returns(BinaryInstallResult.Success(Path.Combine(_root, "bin", "deno")));
+        var vm = ViewModelTestHelpers.CreateSettingsViewModel(
+            _coordinator,
+            _profiles,
+            _root,
+            denoInstaller: installer,
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)));
+        await vm.LoadAsync();
+        vm.SelectedJsRuntimeEngine = vm.JsRuntimeEngineOptions.First(e => e.Id == JsRuntimeEngines.Deno);
+
+        await vm.InstallDenoAsync();
+
+        Assert.False(vm.HasUnsavedChanges);
+    }
+
+    [Fact]
+    public async Task InstallFfmpegAsync_ReportsWhichToolIsInstallingUntilDone()
+    {
+        var gate = new TaskCompletionSource<BinaryInstallResult>();
+        var installer = Substitute.For<IBinaryInstaller>();
+        installer.InstallAsync(Arg.Any<CancellationToken>()).Returns(gate.Task);
+        var vm = ViewModelTestHelpers.CreateSettingsViewModel(
+            _coordinator,
+            _profiles,
+            _root,
+            ffmpegInstaller: installer,
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)));
+        await vm.LoadAsync();
+
+        var install = vm.InstallFfmpegAsync();
+
+        Assert.True(vm.IsInstallingFfmpeg);
+        Assert.False(vm.IsInstallingYtDlp);
+        Assert.False(vm.CanInstallFfmpeg);
+        Assert.Equal("Installing ffmpeg…", vm.StatusMessage);
+
+        gate.SetResult(BinaryInstallResult.Failure("network error", null));
+        await install;
+
+        Assert.False(vm.IsInstallingFfmpeg);
+        Assert.True(vm.CanInstallFfmpeg);
+        Assert.Null(vm.StatusMessage);
     }
 
     [Fact]
@@ -112,7 +186,7 @@ public sealed class SettingsViewModelTests : IDisposable
             _profiles,
             _root,
             ffmpegInstaller: installer,
-            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, new BinaryLocator(_root)),
+            binaryInstallService: ViewModelTestHelpers.CreateBinaryInstallService(_appConfig, TestBinaryLocator.Create(_root)),
             fileSystemLauncher: launcher);
 
         await vm.LoadAsync();

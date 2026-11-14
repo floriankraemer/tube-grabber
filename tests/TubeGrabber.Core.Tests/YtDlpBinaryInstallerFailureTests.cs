@@ -21,7 +21,7 @@ public sealed class YtDlpBinaryInstallerFailureTests : IDisposable
     {
         var handler = new FailingHttpMessageHandler();
         var helper = new BinaryDownloadHelper(new HttpClient(handler));
-        var installer = new YtDlpBinaryInstaller(new GitHubBinaryReleaseSource(), new BinaryLocator(_root), helper, "linux-x64");
+        var installer = new YtDlpBinaryInstaller(new GitHubBinaryReleaseSource(), TestBinaryLocator.Create(_root), helper, "linux-x64");
 
         var result = await installer.InstallAsync(TestContext.Current.CancellationToken);
 

@@ -47,6 +47,7 @@ public sealed class FfmpegBinaryInstaller : IBinaryInstaller
                 File.Copy(ffmpegPath, target, overwrite: true);
 
             BinaryDownloadHelper.MakeExecutable(target);
+            BinaryDownloadHelper.CopyFfprobe(extractDir, Path.GetDirectoryName(target)!);
             return BinaryInstallResult.Success(target);
         }
         catch (UnsupportedPlatformException ex)

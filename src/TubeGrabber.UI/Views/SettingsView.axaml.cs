@@ -50,10 +50,30 @@ public sealed partial class SettingsView : UserControl
 
     private void OnTabChanged(object? sender, SelectionChangedEventArgs e)
     {
-        Control[] panels = [ProfilesPanel, AppearancePanel, BackgroundPanel, BinariesPanel, QueuePanel];
+        Control[] panels = [ProfilesPanel, AppearancePanel, PlaybackPanel, BackgroundPanel, BinariesPanel, QueuePanel];
         for (var i = 0; i < panels.Length; i++)
             panels[i].IsVisible = i == TabList.SelectedIndex;
+
+        if (ReferenceEquals(panels[TabList.SelectedIndex < 0 ? 0 : TabList.SelectedIndex], BinariesPanel))
+            ViewModel.RefreshResolvedPaths();
     }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (TopLevel.GetTopLevel(this) is Window window)
+            window.Activated += OnWindowActivated;
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        if (TopLevel.GetTopLevel(this) is Window window)
+            window.Activated -= OnWindowActivated;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    // Back from installing a tool in a terminal or package manager: the resolved paths may have changed.
+    private void OnWindowActivated(object? sender, EventArgs e) => ViewModel.RefreshResolvedPaths();
 
     private async void Save_Click(object? sender, RoutedEventArgs e) =>
         await ViewModel.SaveAsync();

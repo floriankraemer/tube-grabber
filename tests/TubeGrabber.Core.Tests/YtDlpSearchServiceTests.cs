@@ -46,7 +46,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         var service = new YtDlpSearchService(
             new SearchRunner(json),
             appConfig,
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
 
         var page = await service.SearchAsync("test query", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken);
@@ -62,7 +62,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         var service = new YtDlpSearchService(
             new SearchRunner("{}"),
             new AppConfigStore(_root, new ProfileStore(_root)),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.SearchAsync("   ", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken));
@@ -118,7 +118,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         var service = new YtDlpSearchService(
             new SearchRunner(json),
             appConfig,
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
 
         var page = await service.SearchAsync("query", SearchFilters.Default, cancellationToken: TestContext.Current.CancellationToken);
@@ -194,7 +194,7 @@ public sealed class YtDlpSearchServiceTests : IDisposable
         return new YtDlpSearchService(
             new SearchRunner(json),
             appConfig,
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
     }
 

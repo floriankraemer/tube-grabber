@@ -18,7 +18,7 @@ public sealed class YtDlpBinaryInstallerFallbackTests : IDisposable
     [Fact]
     public async Task InstallAsync_OnFailure_ReturnsExistingBinary()
     {
-        var locator = new BinaryLocator(_root);
+        var locator = TestBinaryLocator.Create(_root);
         var existing = locator.GetBundledYtDlpPath();
         Directory.CreateDirectory(Path.GetDirectoryName(existing)!);
         await File.WriteAllTextAsync(existing, "existing", TestContext.Current.CancellationToken);

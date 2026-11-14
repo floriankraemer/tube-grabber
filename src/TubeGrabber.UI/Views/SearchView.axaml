@@ -64,6 +64,27 @@
       <Setter Property="Foreground" Value="{DynamicResource AppTextTertiaryBrush}" />
     </Style>
 
+    <Style Selector="Button.resultLink">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="-2" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+    </Style>
+    <Style Selector="Button.resultLink:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.resultLink:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.resultLink:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+    </Style>
+
     <Style Selector="Border.thumb">
       <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
       <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
@@ -164,50 +185,59 @@
     </Border>
 
     <Grid Grid.Row="4" Margin="0,12,0,0">
-      <!-- The viewer extends 12px past the content edge so its scrollbar sits outside the cards. -->
+      <!-- The viewer extends over the page margin so its scrollbar sits at the page's right edge. -->
       <ScrollViewer x:Name="ResultsScrollViewer"
-                    Margin="0,0,-12,0"
+                    Margin="0,0,-32,0"
                     IsVisible="{Binding HasResults}"
                     ScrollChanged="ResultsScrollViewer_ScrollChanged">
-        <StackPanel Margin="0,0,12,8">
+        <StackPanel Margin="0,0,32,8">
         <ItemsControl ItemsSource="{Binding Results}"
                       IsVisible="{Binding IsVideoMode}">
           <ItemsControl.ItemTemplate>
             <DataTemplate x:DataType="vm:SearchResultViewModel">
               <Border Classes="card" Padding="12" Margin="0,0,0,8">
-                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="16">
-                  <Border Grid.Column="0" Classes="thumb" Width="160" Height="90">
-                    <Grid>
-                      <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
-                      <Border HorizontalAlignment="Right"
-                              VerticalAlignment="Bottom"
-                              Margin="6"
-                              Padding="4,1"
-                              Background="#CC000000"
-                              CornerRadius="3"
-                              IsVisible="{Binding DurationDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-                        <TextBlock Text="{Binding DurationDisplay}" FontSize="12" Foreground="White" />
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                  <Button Grid.Column="0"
+                          Classes="resultLink"
+                          Cursor="Hand"
+                          AutomationProperties.Name="{Binding Title}"
+                          Click="OpenWatch_Click">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="16">
+                      <Border Grid.Column="0" Classes="thumb" Width="160" Height="90">
+                        <Grid>
+                          <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                          <Border HorizontalAlignment="Right"
+                                  VerticalAlignment="Bottom"
+                                  Margin="6"
+                                  Padding="4,1"
+                                  Background="#CC000000"
+                                  CornerRadius="3"
+                                  IsVisible="{Binding DurationDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding DurationDisplay}" FontSize="12" Foreground="White" />
+                          </Border>
+                        </Grid>
                       </Border>
+
+                      <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
+                        <TextBlock Classes="rowTitle"
+                                   Text="{Binding Title}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxLines="2" />
+                        <TextBlock Classes="meta"
+                                   Text="{Binding Channel}"
+                                   TextTrimming="CharacterEllipsis"
+                                   IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <!-- Keeps its line while empty, so the title does not move when a status appears. -->
+                        <TextBlock Classes="caption"
+                                   Text="{Binding StatusMessage}"
+                                   TextWrapping="Wrap"
+                                   MinHeight="16" />
+                      </StackPanel>
                     </Grid>
-                  </Border>
+                  </Button>
 
-                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="4">
-                    <TextBlock Classes="rowTitle"
-                               Text="{Binding Title}"
-                               TextWrapping="Wrap"
-                               TextTrimming="CharacterEllipsis"
-                               MaxLines="2" />
-                    <TextBlock Classes="meta"
-                               Text="{Binding Channel}"
-                               TextTrimming="CharacterEllipsis"
-                               IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                    <TextBlock Classes="caption"
-                               Text="{Binding StatusMessage}"
-                               TextWrapping="Wrap"
-                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
-                  </StackPanel>
-
-                  <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8" Width="190">
+                  <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="8" Width="190">
                     <ComboBox HorizontalAlignment="Stretch" Height="32"
                               ItemsSource="{Binding Profiles}"
                               SelectedItem="{Binding SelectedProfile}"
@@ -256,10 +286,11 @@
                                Text="{Binding Subtitle}"
                                TextTrimming="CharacterEllipsis"
                                IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <!-- Keeps its line while empty, so the title does not move when a status appears. -->
                     <TextBlock Classes="caption"
                                Text="{Binding StatusMessage}"
                                TextWrapping="Wrap"
-                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                               MinHeight="16" />
                   </StackPanel>
 
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8" Width="190">

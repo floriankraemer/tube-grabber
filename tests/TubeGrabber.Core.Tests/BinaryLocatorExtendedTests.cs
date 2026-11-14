@@ -21,7 +21,7 @@ public sealed class BinaryLocatorExtendedTests : IDisposable
     [Fact]
     public void ResolveFfmpegPath_UsesBundledBinary()
     {
-        var locator = new BinaryLocator(_root);
+        var locator = TestBinaryLocator.Create(_root);
         var path = locator.ResolveFfmpegPath(new AppConfiguration());
         Assert.NotNull(path);
         Assert.True(File.Exists(path));
@@ -30,7 +30,7 @@ public sealed class BinaryLocatorExtendedTests : IDisposable
     [Fact]
     public void GetBundledPaths_ReturnExpectedLocations()
     {
-        var locator = new BinaryLocator(_root);
+        var locator = TestBinaryLocator.Create(_root);
         Assert.Contains("yt-dlp", locator.GetBundledYtDlpPath());
         Assert.Contains("ffmpeg", locator.GetBundledFfmpegPath());
     }

@@ -26,7 +26,7 @@ public sealed class SettingsViewModel : ViewModelBase
     private string? _validationError;
     private string? _statusMessage;
     private JsRuntimeEngineDefinition _selectedJsRuntime = JsRuntimeEngines.All[0];
-    private bool _isInstalling;
+    private ManagedBinary? _installing;
     private string? _validationProfileId;
     private string _configSnapshot = string.Empty;
 
@@ -95,10 +95,25 @@ public sealed class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _statusMessage, value);
     }
 
-    public bool IsInstalling
+    public bool IsInstalling => _installing is not null;
+    public bool IsInstallingYtDlp => _installing == ManagedBinary.YtDlp;
+    public bool IsInstallingFfmpeg => _installing == ManagedBinary.Ffmpeg;
+    public bool IsInstallingDeno => _installing == ManagedBinary.Deno;
+
+    // One install at a time: they share the config file and the status line.
+    public bool CanInstallYtDlp => !IsInstalling;
+    public bool CanInstallFfmpeg => !IsInstalling;
+    public bool CanInstallDeno => !IsInstalling && IsDenoInstallEnabled;
+
+    private void SetInstalling(ManagedBinary? binary)
     {
-        get => _isInstalling;
-        private set => SetProperty(ref _isInstalling, value);
+        _installing = binary;
+        foreach (var name in new[]
+                 {
+                     nameof(IsInstalling), nameof(IsInstallingYtDlp), nameof(IsInstallingFfmpeg), nameof(IsInstallingDeno),
+                     nameof(CanInstallYtDlp), nameof(CanInstallFfmpeg), nameof(CanInstallDeno),
+                 })
+            OnPropertyChanged(name);
     }
 
     public ThemePreference ThemePreference
@@ -131,6 +146,16 @@ public sealed class SettingsViewModel : ViewModelBase
         set
         {
             Config.RunInBackground = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public bool SponsorBlockEnabled
+    {
+        get => Config.SponsorBlockEnabled;
+        set
+        {
+            Config.SponsorBlockEnabled = value;
             OnPropertyChanged();
         }
     }
@@ -201,6 +226,7 @@ public sealed class SettingsViewModel : ViewModelBase
             OnPropertyChanged(nameof(JsRuntimeDescription));
             OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
             OnPropertyChanged(nameof(IsDenoInstallEnabled));
+            OnPropertyChanged(nameof(CanInstallDeno));
             OnPropertyChanged(nameof(ResolvedJsRuntimePath));
             OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
             Profiles.RefreshPreview();
@@ -267,6 +293,7 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(JsRuntimeDescription));
         OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
         OnPropertyChanged(nameof(IsDenoInstallEnabled));
+        OnPropertyChanged(nameof(CanInstallDeno));
         OnPropertyChanged(nameof(ResolvedYtDlpPath));
         OnPropertyChanged(nameof(ResolvedFfmpegPath));
         OnPropertyChanged(nameof(ResolvedJsRuntimePath));
@@ -274,6 +301,7 @@ public sealed class SettingsViewModel : ViewModelBase
         OnPropertyChanged(nameof(ThemePreference));
         OnPropertyChanged(nameof(RunInBackground));
         OnPropertyChanged(nameof(StartAtLogin));
+        OnPropertyChanged(nameof(SponsorBlockEnabled));
         OnPropertyChanged(nameof(SubscriptionCheckIntervalMinutes));
         OnPropertyChanged(nameof(YtDlpPath));
         OnPropertyChanged(nameof(FfmpegPath));
@@ -432,8 +460,22 @@ public sealed class SettingsViewModel : ViewModelBase
 
     public string ResolvedFfmpegPath => _coordinator.ResolveFfmpegPath(Config) ?? "Not found";
 
+    /// <summary>
+    /// Re-resolves the "Resolved:" labels. They depend on the file system and PATH as well as on the edited fields, so they
+    /// go stale when the user installs a tool outside the app and comes back.
+    /// </summary>
+    public void RefreshResolvedPaths()
+    {
+        OnPropertyChanged(nameof(ResolvedYtDlpPath));
+        OnPropertyChanged(nameof(ResolvedFfmpegPath));
+        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
+        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
+    }
+
     public void ApplyTestResult(string toolName, string? result)
     {
+        RefreshResolvedPaths();
+
         var card = toolName switch
         {
             "yt-dlp" => YtDlpStatus,
@@ -461,17 +503,16 @@ public sealed class SettingsViewModel : ViewModelBase
         card.Set(result, isError: false);
         ValidationError = null;
         StatusMessage = $"{toolName}: {result}";
-        OnPropertyChanged(nameof(ResolvedYtDlpPath));
-        OnPropertyChanged(nameof(ResolvedFfmpegPath));
-        OnPropertyChanged(nameof(ResolvedJsRuntimePath));
-        OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
     }
 
     private async Task RunInstallAsync(ManagedBinary binary, IBinaryInstaller installer, string displayName)
     {
-        IsInstalling = true;
+        if (IsInstalling)
+            return;
+
+        SetInstalling(binary);
         ValidationError = null;
-        StatusMessage = $"Installing {displayName}...";
+        StatusMessage = $"Installing {displayName}…";
 
         try
         {
@@ -484,28 +525,10 @@ public sealed class SettingsViewModel : ViewModelBase
                 return;
             }
 
-            var (config, _) = await _coordinator.LoadAsync();
-            Config = config;
-
-            switch (binary)
-            {
-                case ManagedBinary.YtDlp:
-                    YtDlpPath = config.YtDlpPath ?? string.Empty;
-                    break;
-                case ManagedBinary.Ffmpeg:
-                    FfmpegPath = config.FfmpegPath ?? string.Empty;
-                    break;
-                case ManagedBinary.Deno:
-                    _selectedJsRuntime = JsRuntimeEngines.Find(JsRuntimeEngines.Deno) ?? JsRuntimeEngines.All[0];
-                    OnPropertyChanged(nameof(SelectedJsRuntimeEngine));
-                    JsRuntimePath = config.JsRuntimePath ?? string.Empty;
-                    OnPropertyChanged(nameof(ResolvedJsRuntimePath));
-                    OnPropertyChanged(nameof(JsRuntimesArgumentPreview));
-                    break;
-            }
-
-            // The installer saved the new path itself and the reload above replaced the edited copy.
-            TakeConfigSnapshot();
+            // The installer already saved the new path. Only that field moves from disk into the edited copy and
+            // into the saved snapshot, so edits to everything else stay in place and stay unsaved.
+            var (saved, _) = await _coordinator.LoadAsync();
+            ApplyInstalledPath(binary, saved);
             ValidationError = null;
             StatusMessage = $"{displayName} installed.";
         }
@@ -516,8 +539,56 @@ public sealed class SettingsViewModel : ViewModelBase
         }
         finally
         {
-            IsInstalling = false;
+            SetInstalling(null);
         }
+    }
+
+    private void ApplyInstalledPath(ManagedBinary binary, AppConfiguration saved)
+    {
+        void Mark(AppConfiguration target)
+        {
+            switch (binary)
+            {
+                case ManagedBinary.YtDlp:
+                    target.YtDlpPath = saved.YtDlpPath;
+                    break;
+                case ManagedBinary.Ffmpeg:
+                    target.FfmpegPath = saved.FfmpegPath;
+                    break;
+                case ManagedBinary.Deno:
+                    target.JsRuntimeEngine = saved.JsRuntimeEngine;
+                    target.JsRuntimePath = saved.JsRuntimePath;
+                    break;
+            }
+        }
+
+        if (_configSnapshot.Length > 0)
+        {
+            var snapshot = System.Text.Json.JsonSerializer.Deserialize<AppConfiguration>(_configSnapshot)!;
+            Mark(snapshot);
+            _configSnapshot = System.Text.Json.JsonSerializer.Serialize(snapshot);
+        }
+
+        switch (binary)
+        {
+            case ManagedBinary.YtDlp:
+                YtDlpPath = saved.YtDlpPath ?? string.Empty;
+                break;
+            case ManagedBinary.Ffmpeg:
+                FfmpegPath = saved.FfmpegPath ?? string.Empty;
+                break;
+            case ManagedBinary.Deno:
+                _selectedJsRuntime = JsRuntimeEngines.Find(JsRuntimeEngines.Deno) ?? JsRuntimeEngines.All[0];
+                Config.JsRuntimeEngine = saved.JsRuntimeEngine;
+                OnPropertyChanged(nameof(SelectedJsRuntimeEngine));
+                OnPropertyChanged(nameof(JsRuntimeDescription));
+                OnPropertyChanged(nameof(IsJsRuntimePathEnabled));
+                OnPropertyChanged(nameof(IsDenoInstallEnabled));
+                JsRuntimePath = saved.JsRuntimePath ?? string.Empty;
+                break;
+        }
+
+        RefreshUnsavedState();
     }
 
     private void SyncStartAtLogin()

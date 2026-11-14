@@ -32,7 +32,7 @@ public sealed class ProfilesViewModelTests : IDisposable
             _store,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _monitor.ListAsync(Arg.Any<CancellationToken>()).Returns(Array.Empty<ChannelSubscription>());
         _viewModel = ViewModelTestHelpers.CreateProfilesViewModel(_coordinator, _store, _monitor);

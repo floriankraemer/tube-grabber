@@ -9,7 +9,7 @@
     <OutputType>Exe</OutputType>
     <Include>[TubeGrabber.UI]*</Include>
     <Exclude>[TubeGrabber.UI]TubeGrabber.UI.App,[TubeGrabber.UI]TubeGrabber.UI.Program,[TubeGrabber.UI]TubeGrabber.UI.Views.*</Exclude>
-    <ExcludeByFile>**/Views/**,**/Program.cs,**/App.axaml.cs,**/Services/AppServices.cs,**/Services/FileSystemLauncherService.cs,**/Services/StoragePickerService.cs,**/Services/Notifications/*Notifier.cs,**/*MainWindowViewModel.cs,**/*SettingsViewModel.cs</ExcludeByFile>
+    <ExcludeByFile>**/Views/**,**/Program.cs,**/App.axaml.cs,**/Services/AppServices.cs,**/Services/FileSystemLauncherService.cs,**/Services/VlcVideoPlayer.cs,**/Services/PlaybackEngine.cs,**/Controls/SeekTrack.cs,**/Controls/TileGridPanel.cs,**/Controls/Aspect.cs,**/Services/StoragePickerService.cs,**/Services/Notifications/*Notifier.cs,**/*MainWindowViewModel.cs,**/*SettingsViewModel.cs</ExcludeByFile>
     <CoverageThreshold>85</CoverageThreshold>
     <CoverageThresholdType>line</CoverageThresholdType>
   </PropertyGroup>

@@ -67,6 +67,20 @@ public sealed class SettingsViewModelBackgroundTests : IDisposable
     }
 
     [Fact]
+    public async Task SponsorBlockEnabled_DefaultsOnAndPersistsWhenToggled()
+    {
+        await _viewModel.LoadAsync();
+        Assert.True(_viewModel.SponsorBlockEnabled);
+        _viewModel.DownloadFolder = _root;
+        _viewModel.SponsorBlockEnabled = false;
+
+        Assert.True(await _viewModel.SaveAsync());
+
+        var config = await _appConfig.LoadAsync(TestContext.Current.CancellationToken);
+        Assert.False(config.SponsorBlockEnabled);
+    }
+
+    [Fact]
     public async Task SaveAsync_StartAtLoginChanged_RegistersLoginItem()
     {
         await _viewModel.LoadAsync();
@@ -128,6 +142,6 @@ public sealed class SettingsViewModelBackgroundTests : IDisposable
             _profiles,
             new YtDlpCommandBuilder(new YtDlpOptionCatalog(), new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
 }

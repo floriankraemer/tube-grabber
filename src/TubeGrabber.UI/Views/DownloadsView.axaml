@@ -178,6 +178,20 @@
               </DataTemplate>
             </DataGridTemplateColumn.CellTemplate>
           </DataGridTemplateColumn>
+          <DataGridTemplateColumn Header="Profile" Width="130" MinWidth="90"
+                                  SortMemberPath="ProfileName"
+                                  svc:QueueColumnLayout.LayoutKey="profile">
+            <DataGridTemplateColumn.CellTemplate>
+              <DataTemplate x:DataType="vm:DownloadJobViewModel">
+                <TextBlock Classes="meta"
+                           Text="{Binding ProfileName}"
+                           Margin="12,0"
+                           VerticalAlignment="Center"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip.Tip="{Binding ProfileName}" />
+              </DataTemplate>
+            </DataGridTemplateColumn.CellTemplate>
+          </DataGridTemplateColumn>
           <DataGridTemplateColumn Header="Progress" Width="190" MinWidth="140"
                                   SortMemberPath="Progress"
                                   svc:QueueColumnLayout.LayoutKey="progress">

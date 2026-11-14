@@ -99,7 +99,7 @@ public sealed class YtDlpFlatPlaylistRunnerTests : IDisposable
         config.YtDlpPath = Path.Combine(_root, "bin", "yt-dlp", "yt-dlp");
         await appConfig.SaveAsync(config);
 
-        return new YtDlpFlatPlaylistRunner(processRunner, appConfig, new BinaryLocator(_root), new JsRuntimeLocator());
+        return new YtDlpFlatPlaylistRunner(processRunner, appConfig, TestBinaryLocator.Create(_root), new JsRuntimeLocator());
     }
 
     private sealed class FakeProcessRunner(YtDlpRunResult result) : IYtDlpProcessRunner

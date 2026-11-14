@@ -93,6 +93,24 @@ public sealed class BinaryDownloadHelper
         return target;
     }
 
+    /// <summary>
+    /// Copies <c>ffprobe</c> from an extracted ffmpeg archive next to the installed ffmpeg. yt-dlp needs it for
+    /// post-processing that reads durations (SponsorBlock removal, chapters). Returns false when the archive has none.
+    /// </summary>
+    public static bool CopyFfprobe(string extractDirectory, string targetDirectory)
+    {
+        var name = OperatingSystem.IsWindows() ? "ffprobe.exe" : "ffprobe";
+        var source = Directory.EnumerateFiles(extractDirectory, name, SearchOption.AllDirectories)
+            .FirstOrDefault(f => string.Equals(Path.GetFileName(f), name, StringComparison.OrdinalIgnoreCase));
+        if (source is null)
+            return false;
+
+        var target = Path.Combine(targetDirectory, name);
+        File.Copy(source, target, overwrite: true);
+        MakeExecutable(target);
+        return true;
+    }
+
     public static string ExtractDenoFromArchive(string archivePath, string extractDirectory)
     {
         Directory.CreateDirectory(extractDirectory);
@@ -129,11 +147,28 @@ public sealed class BinaryDownloadHelper
             CreateNoWindow = true,
         };
 
-        using var process = System.Diagnostics.Process.Start(psi)
-            ?? throw new InvalidOperationException("Failed to start tar for extraction.");
+        const string Hint = "Unpacking a .tar.xz archive needs the 'tar' and 'xz' tools; install them with your package manager (for example the xz-utils package) and try again";
 
-        process.WaitForExit();
-        if (process.ExitCode != 0)
-            throw new InvalidOperationException(process.StandardError.ReadToEnd());
+        System.Diagnostics.Process process;
+        try
+        {
+            process = System.Diagnostics.Process.Start(psi)
+                ?? throw new InvalidOperationException($"Failed to start tar. {Hint}");
+        }
+        catch (System.ComponentModel.Win32Exception ex)
+        {
+            throw new InvalidOperationException($"tar was not found. {Hint}", ex);
+        }
+
+        using (process)
+        {
+            var stderr = process.StandardError.ReadToEndAsync();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+            {
+                var reason = stderr.GetAwaiter().GetResult().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? "tar failed";
+                throw new InvalidOperationException($"{reason}. {Hint}");
+            }
+        }
     }
 }

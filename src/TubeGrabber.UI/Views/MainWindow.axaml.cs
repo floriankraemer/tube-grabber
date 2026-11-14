@@ -5,6 +5,7 @@
 using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Platform;
 using TubeGrabber.UI.Services;
 using TubeGrabber.UI.ViewModels;
@@ -30,6 +31,8 @@ public sealed partial class MainWindow : Window
         Opened += OnOpenedAsync;
         Closing += OnClosingAsync;
         DataContextChanged += OnDataContextChanged;
+        BrowsePage.SubscriptionsRequested += (_, _) => OpenSubscriptionsPage();
+        BrowsePage.BackRequested += (_, _) => CloseWatch();
         SettingsPage.Saved += OnSettingsSavedAsync;
         SettingsPage.ProfilesChanged += OnProfilesChangedAsync;
     }
@@ -37,10 +40,26 @@ public sealed partial class MainWindow : Window
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
     /// <summary>Shows the Subscriptions page; used by the tray menu after the window has been brought to the front.</summary>
+    public void OpenDownloadsPage() => _ = NavigateAsync(AppPage.Downloads);
+
     public void OpenSubscriptionsPage() => _ = NavigateAsync(AppPage.Subscriptions);
 
+    /// <summary>Back from a video: to the page it was opened from (for example Search, with its results intact), else to the Browse grid.</summary>
+    private void CloseWatch()
+    {
+        if (ViewModel.WatchOrigin is { } origin)
+            _ = NavigateAsync(origin);
+        else
+            BrowsePage.StopWatching();
+    }
+
     /// <summary>Releases view models that hold event subscriptions; called once when the app quits.</summary>
-    public void DisposePages() => SubscriptionsPage.DisposeViewModel();
+    public void DisposePages()
+    {
+        // An open video holds a native player that must be stopped before LibVLC is disposed.
+        BrowsePage.StopWatching();
+        SubscriptionsPage.DisposeViewModel();
+    }
 
     public Task SaveStateAsync() => DownloadsPage.SaveStateAsync();
 
@@ -51,6 +70,31 @@ public sealed partial class MainWindow : Window
             || change.Property == WindowDecorationMarginProperty
             || change.Property == IsExtendedIntoWindowDecorationsProperty)
             UpdateChrome();
+        else if (change.Property == WindowStateProperty)
+            UpdateFullscreen();
+    }
+
+    // Fullscreen video hides the sidebar and title row; Esc (see OnKeyDown) leaves it.
+    private void UpdateFullscreen()
+    {
+        var fullscreen = WindowState == WindowState.FullScreen;
+        NavList.IsVisible = !fullscreen;
+        StatusBar.IsVisible = !fullscreen;
+        RootGrid.ColumnDefinitions[0].Width = new GridLength(fullscreen ? 0 : 220);
+        BrowsePage.SetFullscreen(fullscreen);
+        // The video runs edge to edge: no rounded, bordered page card around it (see the fullscreen style).
+        PageLayer.Classes.Set("fullscreen", fullscreen);
+        UpdateChrome();
+    }
+
+    protected override void OnKeyDown(KeyEventArgs e)
+    {
+        base.OnKeyDown(e);
+        if (e.Key == Key.Escape && WindowState == WindowState.FullScreen)
+        {
+            WindowState = WindowState.Normal;
+            e.Handled = true;
+        }
     }
 
     private void UpdateChrome()
@@ -60,12 +104,15 @@ public sealed partial class MainWindow : Window
             return;
 
         Classes.Set("solid", !HasBackdropMaterial(ActualTransparencyLevel));
-        RootGrid.Margin = ContentMargin(WindowDecorationMargin, ExtendClientAreaTitleBarHeightHint);
+
+        // Fullscreen covers the screen: the frame and shadow insets of the decorations would show as margins.
+        var fullscreen = WindowState == WindowState.FullScreen;
+        RootGrid.Margin = fullscreen ? default : ContentMargin(WindowDecorationMargin, ExtendClientAreaTitleBarHeightHint);
 
         // Under OS-drawn decorations (e.g. Linux window managers) the title bar already shows icon and title.
         var extended = IsExtendedIntoWindowDecorations;
-        TitleContent.IsVisible = extended;
-        RootGrid.RowDefinitions[0].Height = new GridLength(extended ? ExtendClientAreaTitleBarHeightHint : 8);
+        TitleContent.IsVisible = extended && !fullscreen;
+        RootGrid.RowDefinitions[0].Height = new GridLength(fullscreen ? 0 : extended ? ExtendClientAreaTitleBarHeightHint : 8);
     }
 
     /// <summary>
@@ -92,13 +139,24 @@ public sealed partial class MainWindow : Window
             return;
 
         _observedViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _observedViewModel.WatchRequested += (_, video) => BrowsePage.OpenWatch(video);
         SyncNavSelection();
     }
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The sidebar follows the page a video was opened from, which can change without the page changing.
+        if (e.PropertyName == nameof(MainWindowViewModel.NavPage))
+        {
+            SyncNavSelection();
+            return;
+        }
+
         if (e.PropertyName != nameof(MainWindowViewModel.CurrentPage))
             return;
+
+        if (ViewModel.CurrentPage != AppPage.Browse)
+            BrowsePage.StopWatching();
 
         SyncNavSelection();
         _ = EnsureCurrentPageInitializedAsync();
@@ -108,6 +166,9 @@ public sealed partial class MainWindow : Window
     {
         switch (ViewModel.CurrentPage)
         {
+            case AppPage.Browse:
+                await BrowsePage.EnsureInitializedAsync();
+                break;
             case AppPage.Search:
                 await SearchPage.EnsureInitializedAsync();
                 break;
@@ -122,7 +183,7 @@ public sealed partial class MainWindow : Window
 
     private void SyncNavSelection()
     {
-        var page = ViewModel.CurrentPage;
+        var page = ViewModel.NavPage;
         _syncingNav = true;
         try
         {
@@ -153,7 +214,18 @@ public sealed partial class MainWindow : Window
     /// <summary>Shows a page. Leaving Settings with unsaved changes asks first; Cancel keeps the user on Settings.</summary>
     private async Task NavigateAsync(AppPage page)
     {
-        if (DataContext is not MainWindowViewModel vm || vm.CurrentPage == page)
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        // Browse clicked while a video opened from another page is showing: close it and show the Browse grid.
+        if (page == AppPage.Browse && vm.WatchOrigin is not null)
+        {
+            BrowsePage.StopWatching();
+            vm.ClearWatchOrigin();
+            return;
+        }
+
+        if (vm.CurrentPage == page)
             return;
 
         if (vm.CurrentPage == AppPage.Settings)
@@ -178,6 +250,7 @@ public sealed partial class MainWindow : Window
     private async Task RefreshProfilePickersAsync()
     {
         await ViewModel.RefreshProfilesAsync();
+        await BrowsePage.RefreshProfilesAsync();
         await SearchPage.RefreshProfilesAsync();
         await SubscriptionsPage.RefreshProfilesAsync();
     }

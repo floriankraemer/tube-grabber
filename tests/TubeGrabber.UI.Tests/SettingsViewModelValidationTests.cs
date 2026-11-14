@@ -23,7 +23,7 @@ public sealed class SettingsViewModelValidationTests : IDisposable
             profiles,
             new YtDlpCommandBuilder(catalog, new ExtraArgsTokenizer()),
             ViewModelTestHelpers.CreateValidator(),
-            new BinaryLocator(_root),
+            TestBinaryLocator.Create(_root),
             new JsRuntimeLocator());
         _viewModel = ViewModelTestHelpers.CreateSettingsViewModel(coordinator, profiles, _root);
     }

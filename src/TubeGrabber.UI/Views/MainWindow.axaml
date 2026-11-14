@@ -19,6 +19,11 @@
     <Style Selector="Window">
       <Setter Property="Background" Value="Transparent" />
     </Style>
+    <Style Selector="Border#PageLayer.fullscreen">
+      <Setter Property="Background" Value="Black" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
     <Style Selector="Window.solid">
       <Setter Property="Background" Value="{DynamicResource AppWindowBackgroundBrush}" />
     </Style>
@@ -52,6 +57,12 @@
           <DockPanel LastChildFill="False" />
         </ItemsPanelTemplate>
       </ListBox.ItemsPanel>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Browse}" DockPanel.Dock="Top">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <ui:Icon Data="{DynamicResource IconHome}" Width="18" Height="18" />
+          <TextBlock Text="Browse" VerticalAlignment="Center" />
+        </StackPanel>
+      </ListBoxItem>
       <ListBoxItem Tag="{x:Static vm:AppPage.Downloads}" DockPanel.Dock="Top">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
           <ui:Icon Grid.Column="0" Data="{DynamicResource IconDownload}" Width="18" Height="18" />
@@ -95,7 +106,8 @@
     </ListBox>
 
     <!-- Page layer. Each page is its own view and stays alive (hidden) while another page is shown. -->
-    <Border Grid.Row="1"
+    <Border x:Name="PageLayer"
+            Grid.Row="1"
             Grid.Column="1"
             Background="{DynamicResource AppLayerBrush}"
             BorderBrush="{DynamicResource AppBorderBrush}"
@@ -103,7 +115,7 @@
             CornerRadius="8,0,0,0"
             ClipToBounds="True">
       <DockPanel>
-        <Border DockPanel.Dock="Bottom"
+        <Border x:Name="StatusBar" DockPanel.Dock="Bottom"
                 Height="40"
                 Padding="32,0"
                 IsVisible="{Binding ShowStatusBar}">
@@ -124,7 +136,8 @@
         </Border>
 
         <Panel>
-          <!-- Wrapped in plain panels because Search, Subscriptions and Settings own their DataContext. -->
+          <!-- Wrapped in plain panels because Browse, Search, Subscriptions and Settings own their DataContext. -->
+          <Panel IsVisible="{Binding IsBrowsePage}"><views:BrowseView x:Name="BrowsePage" /></Panel>
           <Panel IsVisible="{Binding IsDownloadsPage}"><views:DownloadsView x:Name="DownloadsPage" /></Panel>
           <Panel IsVisible="{Binding IsSearchPage}"><views:SearchView x:Name="SearchPage" /></Panel>
           <Panel IsVisible="{Binding IsSubscriptionsPage}"><views:SubscriptionsView x:Name="SubscriptionsPage" /></Panel>
