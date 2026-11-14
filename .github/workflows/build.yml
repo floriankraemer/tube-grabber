@@ -39,6 +39,7 @@ jobs:
             -c Release -r "${{ matrix.rid }}" --self-contained true \
             -p:PublishSingleFile=true \
             -p:Version="${VERSION%%[-+]*}" -p:InformationalVersion="$VERSION" \
+            -p:IncludeSourceRevisionInInformationalVersion=false \
             -o dist
           exe=TubeGrabber; [ "${{ runner.os }}" = Windows ] && exe=TubeGrabber.exe
           mv "dist/TubeGrabber.UI${exe#TubeGrabber}" "dist/$exe"
