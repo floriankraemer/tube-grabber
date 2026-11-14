@@ -45,6 +45,35 @@ public sealed class YtDlpVideoDetailsParserTests
     }
 
     [Fact]
+    public void Parse_PickedFormatsHaveAvailableAt_ExposesTheLatestOne()
+    {
+        const string json = """
+            {
+              "id": "abc",
+              "formats": [
+                { "url": "https://v", "vcodec": "avc1.640028", "acodec": "none", "ext": "mp4", "height": 1080, "available_at": 1794663468 },
+                { "url": "https://a", "vcodec": "none", "acodec": "mp4a.40.2", "ext": "m4a", "abr": 128, "available_at": 1794663470.4 },
+                { "url": "https://other", "vcodec": "avc1.4d401f", "acodec": "none", "ext": "mp4", "height": 720, "available_at": 1794669999 }
+              ]
+            }
+            """;
+
+        var details = _parser.Parse(json);
+
+        Assert.Equal(DateTimeOffset.FromUnixTimeSeconds(1794663471), details.StreamsAvailableAt);
+    }
+
+    [Fact]
+    public void Parse_NoAvailableAt_LeavesItNull()
+    {
+        const string json = """
+            { "id": "abc", "formats": [ { "url": "https://m", "vcodec": "avc1", "acodec": "mp4a", "ext": "mp4", "height": 360 } ] }
+            """;
+
+        Assert.Null(_parser.Parse(json).StreamsAvailableAt);
+    }
+
+    [Fact]
     public void Parse_OnlyAbove1080_FallsBackToMuxed()
     {
         const string json = """

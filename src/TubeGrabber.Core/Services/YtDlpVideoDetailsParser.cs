@@ -48,6 +48,7 @@ public sealed class YtDlpVideoDetailsParser
             ThumbnailUrl = ReadString(root, "thumbnail"),
             VideoStreamUrl = streams.VideoUrl,
             AudioStreamUrl = streams.AudioUrl,
+            StreamsAvailableAt = streams.AvailableAt,
         };
     }
 
@@ -68,7 +69,8 @@ public sealed class YtDlpVideoDetailsParser
                 ReadString(f, "format_note"),
                 ReadDouble(f, "height") is { } h ? (int)h : null,
                 ReadDouble(f, "tbr"),
-                ReadDouble(f, "abr")));
+                ReadDouble(f, "abr"),
+                ReadDouble(f, "available_at") is { } at ? DateTimeOffset.FromUnixTimeSeconds((long)Math.Ceiling(at)) : null));
         }
 
         return formats;

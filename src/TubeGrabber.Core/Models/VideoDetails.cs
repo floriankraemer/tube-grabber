@@ -17,4 +17,7 @@ public sealed class VideoDetails
     public string? ThumbnailUrl { get; init; }
     public string? VideoStreamUrl { get; init; }
     public string? AudioStreamUrl { get; init; }
+
+    /// <summary>Stream URLs answer 403 before this moment; playback must not start earlier.</summary>
+    public DateTimeOffset? StreamsAvailableAt { get; init; }
 }

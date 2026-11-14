@@ -69,8 +69,16 @@
       <TextBlock Classes="meta" Text="Loading video…" IsVisible="{Binding ShowPlaybackSpinner}" />
       <TextBlock Classes="meta" Text="{Binding SkipNotice}" IsVisible="{Binding HasSkipNotice}"
                  Foreground="{DynamicResource AppSuccessBrush}" />
-      <TextBlock Classes="error" Text="{Binding PlaybackError}" IsVisible="{Binding HasPlaybackError}"
-                 TextWrapping="Wrap" />
+      <Border IsVisible="{Binding HasPlaybackError}" Padding="12" CornerRadius="6"
+              Background="{DynamicResource AppErrorBackgroundBrush}">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+            <Button Content="Retry" Click="RetryDetails_Click" />
+            <Button Content="Open in browser" Click="OpenInBrowser_Click" />
+          </StackPanel>
+          <TextBlock Classes="error" Text="{Binding PlaybackError}" TextWrapping="Wrap" VerticalAlignment="Center" />
+        </DockPanel>
+      </Border>
       <Border IsVisible="{Binding HasDetailsError}" Padding="12" CornerRadius="6"
               Background="{DynamicResource AppErrorBackgroundBrush}">
         <DockPanel>

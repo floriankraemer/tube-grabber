@@ -14,9 +14,14 @@ public sealed record StreamFormat(
     string? FormatNote,
     int? Height,
     double? TotalBitrate,
-    double? AudioBitrate);
+    double? AudioBitrate,
+    DateTimeOffset? AvailableAt = null);
 
-public sealed record PickedStreams(string? VideoUrl, string? AudioUrl);
+/// <param name="AvailableAt">
+/// When the URLs start to work. YouTube answers 403 for a few seconds after yt-dlp resolved a URL, which is why
+/// yt-dlp tags every format with <c>available_at</c>; null when no such wait applies.
+/// </param>
+public sealed record PickedStreams(string? VideoUrl, string? AudioUrl, DateTimeOffset? AvailableAt = null);
 
 /// <summary>Pure selection of playable stream URLs from yt-dlp formats.</summary>
 public static class YtDlpStreamPicker
@@ -37,13 +42,16 @@ public static class YtDlpStreamPicker
             f => (string.Equals(f.Extension, "m4a", StringComparison.OrdinalIgnoreCase) ? 1 : 0, 0, f.AudioBitrate ?? 0));
 
         if (video is not null && audio is not null)
-            return new PickedStreams(video.Url, audio.Url);
+            return new PickedStreams(video.Url, audio.Url, Latest(video.AvailableAt, audio.AvailableAt));
 
         var muxed = PickBest(
             usable.Where(f => !IsNone(f.VideoCodec) && !IsNone(f.AudioCodec)),
             f => (0, f.Height ?? 0, f.TotalBitrate ?? 0));
-        return new PickedStreams(muxed?.Url, null);
+        return new PickedStreams(muxed?.Url, null, muxed?.AvailableAt);
     }
+
+    private static DateTimeOffset? Latest(DateTimeOffset? a, DateTimeOffset? b) =>
+        a is null ? b : b is null ? a : a > b ? a : b;
 
     private static StreamFormat? PickBest(
         IEnumerable<StreamFormat> candidates,

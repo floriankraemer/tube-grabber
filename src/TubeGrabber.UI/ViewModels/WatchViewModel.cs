@@ -88,6 +88,9 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
     /// <summary>How long the "Skipped sponsor segment" notice stays visible.</summary>
     public TimeSpan SkipNoticeDuration { get; set; } = TimeSpan.FromSeconds(3);
 
+    /// <summary>Upper bound for waiting until fresh stream URLs become valid; guards against a skewed clock.</summary>
+    public TimeSpan MaxStreamWait { get; set; } = TimeSpan.FromSeconds(30);
+
     public IVideoPlayer? Player => _player;
     public bool IsPlaybackAvailable => _player is not null;
     public string WatchUrl => _result.WatchUrl;
@@ -416,7 +419,10 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             if (string.IsNullOrEmpty(details.VideoStreamUrl))
                 PlaybackError = "No playable stream was found for this video.";
             else
+            {
+                await WaitUntilStreamsAvailableAsync(details.StreamsAvailableAt, token);
                 _player.Play(details.VideoStreamUrl, details.AudioStreamUrl);
+            }
         }
         catch (OperationCanceledException)
         {
@@ -430,6 +436,19 @@ public sealed class WatchViewModel : ViewModelBase, IDisposable
             if (!token.IsCancellationRequested)
                 IsLoadingDetails = false;
         }
+    }
+
+    // googlevideo rejects a URL with 403 until yt-dlp's available_at; playing earlier fails intermittently.
+    private async Task WaitUntilStreamsAvailableAsync(DateTimeOffset? availableAt, CancellationToken token)
+    {
+        if (availableAt is null)
+            return;
+
+        var wait = availableAt.Value - DateTimeOffset.UtcNow;
+        if (wait > MaxStreamWait)
+            wait = MaxStreamWait;
+        if (wait > TimeSpan.Zero)
+            await Task.Delay(wait, token);
     }
 
     private async Task LoadCommentsAsync(CancellationToken pageToken)

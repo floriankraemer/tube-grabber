@@ -58,6 +58,47 @@ public sealed class WatchViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task LoadAsync_StreamsNotYetAvailable_WaitsBeforePlaying()
+    {
+        var availableAt = DateTimeOffset.UtcNow.AddMilliseconds(400);
+        _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>()).Returns(Details(availableAt: availableAt));
+        using var vm = Create();
+
+        await vm.LoadAsync();
+
+        Assert.Single(_player.Played);
+        Assert.True(DateTimeOffset.UtcNow >= availableAt);
+    }
+
+    [Fact]
+    public async Task LoadAsync_StreamAvailabilityFarAway_WaitIsCapped()
+    {
+        _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>())
+            .Returns(Details(availableAt: DateTimeOffset.UtcNow.AddHours(1)));
+        using var vm = Create();
+        vm.MaxStreamWait = TimeSpan.FromMilliseconds(50);
+
+        await vm.LoadAsync();
+
+        Assert.Single(_player.Played);
+    }
+
+    [Fact]
+    public async Task LoadAsync_RetryAfterPlaybackFailure_ResolvesFreshStreamsAndClearsError()
+    {
+        using var vm = Create();
+        await vm.LoadAsync();
+        _player.RaiseFailed("This video could not be played.");
+        Assert.True(vm.HasPlaybackError);
+
+        await vm.LoadAsync();
+
+        Assert.False(vm.HasPlaybackError);
+        Assert.Equal(2, _player.Played.Count);
+        await _details.Received(2).GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
     public async Task LoadAsync_DetailsFail_ShowsErrorAndDoesNotPlay()
     {
         _details.GetDetailsAsync(WatchUrl, Arg.Any<CancellationToken>()).ThrowsAsync(new InvalidOperationException("boom"));
@@ -472,7 +513,7 @@ public sealed class WatchViewModelTests : IDisposable
             withPlayer ? _player : null);
     }
 
-    private static VideoDetails Details(string? description = "short") => new()
+    private static VideoDetails Details(string? description = "short", DateTimeOffset? availableAt = null) => new()
     {
         Id = "v1",
         Title = "Full title",
@@ -483,6 +524,7 @@ public sealed class WatchViewModelTests : IDisposable
         Description = description,
         VideoStreamUrl = "video-url",
         AudioStreamUrl = "audio-url",
+        StreamsAvailableAt = availableAt,
     };
 
     private sealed class FakePlayer : IVideoPlayer
