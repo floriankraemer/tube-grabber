@@ -15,6 +15,13 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Release smoke tests assert this output; it must not touch config, logging or the single-instance guard.
+        if (args.Contains("--version", StringComparer.OrdinalIgnoreCase))
+        {
+            Console.WriteLine(AppVersion.Current);
+            return;
+        }
+
         // Must run before anything touches App.Services, which reads the config folder.
         var migration = ConfigFolderMigration.MigrateFromUserHome();
         InstallFileLogging();
