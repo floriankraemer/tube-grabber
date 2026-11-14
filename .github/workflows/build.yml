@@ -1,0 +1,73 @@
+name: Build
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+
+jobs:
+  build:
+    name: Build ${{ matrix.target }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, rid: linux-x64, target: linux-x86_64 }
+          - { os: ubuntu-24.04-arm, rid: linux-arm64, target: linux-arm64 }
+          - { os: macos-latest, rid: osx-arm64, target: macos-arm64 } # Apple Silicon only, never Intel
+          - { os: windows-latest, rid: win-x64, target: windows-x86_64 }
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Publish (version stamped from the tag)
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          dotnet publish src/TubeGrabber.UI/TubeGrabber.UI.csproj \
+            -c Release -r "${{ matrix.rid }}" --self-contained true \
+            -p:PublishSingleFile=true \
+            -p:Version="${VERSION%%[-+]*}" -p:InformationalVersion="$VERSION" \
+            -p:IncludeSourceRevisionInInformationalVersion=false \
+            -o dist
+          exe=TubeGrabber; [ "${{ runner.os }}" = Windows ] && exe=TubeGrabber.exe
+          mv "dist/TubeGrabber.UI${exe#TubeGrabber}" "dist/$exe"
+          echo "EXE=dist/$exe" >> "$GITHUB_ENV"
+
+      - name: Smoke test
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          out="$("$EXE" --version | tr -d '\r')"
+          echo "--version printed: $out"
+          [ "$out" = "$VERSION" ] || { echo "::error::expected '$VERSION', got '$out'"; exit 1; }
+
+      - name: Archive
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # '+' (build metadata) is rewritten by GitHub in asset names, so keep it out of file names.
+          name="TubeGrabber_${VERSION//+/-}_${{ matrix.target }}"
+          mv dist "$name"
+          if [ "${{ runner.os }}" = Windows ]; then
+            7z a "$name.zip" "$name" > /dev/null; echo "ARCHIVE=$name.zip" >> "$GITHUB_ENV"
+          else
+            tar -czf "$name.tar.gz" "$name"; echo "ARCHIVE=$name.tar.gz" >> "$GITHUB_ENV"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: TubeGrabber-${{ matrix.target }}
+          path: ${{ env.ARCHIVE }}
+          if-no-files-found: error

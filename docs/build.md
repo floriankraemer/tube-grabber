@@ -50,3 +50,12 @@ Coverage gates (`--coverlet-threshold`, total; settings live in each test csproj
 When the runtime identifier starts with `win` (for example `make publish-ui-win` or `RID=win-x64`), the project targets `net10.0-windows10.0.17763.0` instead.
 Toast notifications need this target, because they use the Windows-only `Microsoft.Toolkit.Uwp.Notifications` package.
 Other platforms build against plain `net10.0`.
+
+## Releases
+
+Commits and PR titles follow [Conventional Commits](https://www.conventionalcommits.org/); `fix` bumps PATCH, `feat` bumps MINOR, and `!` bumps MAJOR (MINOR while below 1.0).
+Tags are plain semver without a `v` prefix, for example `1.0.0` or `1.1.0-rc1`.
+
+- Every push to `master` rebuilds the rolling `latest` pre-release (version `0.0.0-latest+<sha7>`).
+- Pushing a tag runs the tests, builds Linux x86_64/arm64, macOS arm64 and Windows x86_64, smoke-tests each binary (`TubeGrabber --version` must print the tag), and creates a **draft** release with `SHA256SUMS`. Tags with a `-suffix` are pre-releases.
+- Write the release notes into the draft, then publish it.

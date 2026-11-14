@@ -3,54 +3,54 @@ name: Release
 on:
   push:
     tags:
-      - "[0-9]*.[0-9]*.[0-9]*"
-      - "[0-9]*.[0-9]*.[0-9]*-*"
+      - "[0-9]+.[0-9]+.[0-9]+*"
+
+permissions:
+  contents: write
 
 jobs:
-  release:
-    name: Build and publish UI release assets
+  validate:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      prerelease: ${{ steps.v.outputs.prerelease }}
     steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: "10.0.x"
-
-      - name: Publish UI for each RID
+      - id: v
         run: |
-          set -euxo pipefail
-          for rid in win-x64 linux-x64 osx-x64 osx-arm64; do
-            dotnet publish src/TubeGrabber.UI/TubeGrabber.UI.csproj \
-              -c Release \
-              -r "$rid" \
-              --self-contained true \
-              -o "dist/$rid" \
-              /p:PublishSingleFile=true
-            ui_name=TubeGrabber
-            if [ "$rid" = "win-x64" ]; then ui_name=TubeGrabber.exe; fi
-            if [ -f "dist/$rid/TubeGrabber.UI" ]; then mv "dist/$rid/TubeGrabber.UI" "dist/$rid/$ui_name"; fi
-            if [ -f "dist/$rid/TubeGrabber.UI.exe" ]; then mv "dist/$rid/TubeGrabber.UI.exe" "dist/$rid/$ui_name"; fi
-          done
+          tag="$GITHUB_REF_NAME"
+          re='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?$'
+          [[ "$tag" =~ $re ]] || { echo "::error::tag '$tag' is not strict semver (MAJOR.MINOR.PATCH[-pre])"; exit 1; }
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$([[ -n "${BASH_REMATCH[4]}" ]] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
-      - name: Package archives
+  test:
+    needs: validate
+    uses: ./.github/workflows/tests.yml
+
+  build:
+    needs: [validate, test]
+    uses: ./.github/workflows/build.yml
+    with:
+      version: ${{ needs.validate.outputs.version }}
+
+  publish:
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          pattern: TubeGrabber-*
+          merge-multiple: true
+
+      - run: cd assets && sha256sum * > SHA256SUMS
+
+      # Draft: write the notes (docs: release notes template), then publish by hand.
+      - name: Create draft release
         env:
-          TAG: ${{ github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+          PRERELEASE: ${{ needs.validate.outputs.prerelease }}
         run: |
-          set -euxo pipefail
-          mkdir -p release
-          (cd dist/win-x64 && zip -r "../../release/TubeGrabber-${TAG}-win-x64.zip" .)
-          tar -czvf "release/TubeGrabber-${TAG}-linux-x64.tar.gz" -C dist/linux-x64 .
-          tar -czvf "release/TubeGrabber-${TAG}-osx-x64.tar.gz" -C dist/osx-x64 .
-          tar -czvf "release/TubeGrabber-${TAG}-osx-arm64.tar.gz" -C dist/osx-arm64 .
-
-      - uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ github.ref_name }}
-          name: Tube Grabber ${{ github.ref_name }}
-          files: release/*
-          generate_release_notes: true
-          fail_on_unmatched_files: true
+          gh release create "$GITHUB_REF_NAME" assets/* --repo "$GITHUB_REPOSITORY" \
+            --title "Tube Grabber $GITHUB_REF_NAME" --draft --generate-notes \
+            $([ "$PRERELEASE" = true ] && echo --prerelease)
