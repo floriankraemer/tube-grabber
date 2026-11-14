@@ -11,13 +11,17 @@ namespace TubeGrabber.UI.Services;
 public sealed class VlcVideoPlayer : IVideoPlayer
 {
     private readonly LibVLC _libVlc;
+    private readonly SerialCommandQueue _commands = new();
+    private readonly TaskCompletionSource _teardown = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private Media? _media;
-    private bool _disposed;
+    private int _volume = 100;
+    private int _disposedFlag;
 
     public VlcVideoPlayer(LibVLC libVlc)
     {
         _libVlc = libVlc;
         MediaPlayer = new MediaPlayer(libVlc);
+        _volume = Math.Max(0, MediaPlayer.Volume);
         MediaPlayer.TimeChanged += OnTimeChanged;
         MediaPlayer.LengthChanged += OnLengthChanged;
         MediaPlayer.Playing += OnPlaying;
@@ -35,37 +39,45 @@ public sealed class VlcVideoPlayer : IVideoPlayer
     public event Action<bool>? IsPlayingChanged;
     public event Action<string>? Failed;
 
+    /// <summary>Completes once the native player is stopped and released; never completes before <see cref="Dispose"/>.</summary>
+    public Task TeardownTask => _teardown.Task;
+
     public int Volume
     {
-        get => Math.Max(0, MediaPlayer.Volume);
-        set => MediaPlayer.Volume = Math.Clamp(value, 0, 100);
+        get => _volume;
+        set
+        {
+            _volume = Math.Clamp(value, 0, 100);
+            Enqueue(() => MediaPlayer.Volume = _volume, "volume");
+        }
     }
 
-    public void Play(string videoUrl, string? audioUrl)
-    {
-        var media = new Media(_libVlc, new Uri(videoUrl));
-        if (!string.IsNullOrEmpty(audioUrl))
-            media.AddOption(":input-slave=" + audioUrl);
+    public void Play(string videoUrl, string? audioUrl) =>
+        Enqueue(() =>
+        {
+            var media = new Media(_libVlc, new Uri(videoUrl));
+            if (!string.IsNullOrEmpty(audioUrl))
+                media.AddOption(":input-slave=" + audioUrl);
 
-        var previous = _media;
-        _media = media;
-        MediaPlayer.Play(media);
-        previous?.Dispose();
-    }
+            var previous = _media;
+            _media = media;
+            MediaPlayer.Play(media);
+            previous?.Dispose();
+        }, "play");
 
-    public void Pause() => MediaPlayer.SetPause(true);
+    public void Pause() => Enqueue(() => MediaPlayer.SetPause(true), "pause");
 
-    public void Resume() => MediaPlayer.SetPause(false);
+    public void Resume() => Enqueue(() => MediaPlayer.SetPause(false), "pause");
 
-    // Off the caller's thread: libvlc calls can block, and Seek is invoked from handlers of VLC-derived events.
-    public void Seek(double seconds) => Task.Run(() => MediaPlayer.Time = (long)(seconds * 1000));
+    // Queued, never run inline: libvlc calls can block, and Seek is invoked from handlers of VLC-derived events.
+    // Rapid seeks coalesce so the latest target wins.
+    public void Seek(double seconds) => Enqueue(() => MediaPlayer.Time = (long)(seconds * 1000), "seek");
 
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposedFlag, 1) == 1)
             return;
 
-        _disposed = true;
         MediaPlayer.TimeChanged -= OnTimeChanged;
         MediaPlayer.LengthChanged -= OnLengthChanged;
         MediaPlayer.Playing -= OnPlaying;
@@ -73,15 +85,27 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         MediaPlayer.Stopped -= OnPaused;
         MediaPlayer.EndReached -= OnPaused;
         MediaPlayer.EncounteredError -= OnError;
-        var player = MediaPlayer;
-        var media = _media;
-        // Stop() can block; the MediaPlayer must go before LibVLC itself, which PlaybackEngine disposes at exit.
-        Task.Run(() =>
+        // Pending commands are dropped; the teardown runs after the one in flight. The MediaPlayer must go before
+        // LibVLC itself, which PlaybackEngine disposes only after TeardownTask completes.
+        _ = _commands.Close(() =>
         {
-            player.Stop();
-            player.Dispose();
-            media?.Dispose();
+            try
+            {
+                MediaPlayer.Stop();
+                MediaPlayer.Dispose();
+                _media?.Dispose();
+            }
+            finally
+            {
+                _teardown.TrySetResult();
+            }
         });
+    }
+
+    private void Enqueue(Action command, string key)
+    {
+        if (!IsDisposed)
+            _commands.Enqueue(command, key);
     }
 
     private void OnTimeChanged(object? sender, MediaPlayerTimeChangedEventArgs e) =>
@@ -97,9 +121,11 @@ public sealed class VlcVideoPlayer : IVideoPlayer
     private void OnError(object? sender, EventArgs e) =>
         Post(() => Failed?.Invoke("This video could not be played. Try again, or open it in your browser."));
 
+    private bool IsDisposed => Volatile.Read(ref _disposedFlag) == 1;
+
     private void Post(Action action)
     {
-        if (!_disposed)
+        if (!IsDisposed)
             Dispatcher.UIThread.Post(action);
     }
 }

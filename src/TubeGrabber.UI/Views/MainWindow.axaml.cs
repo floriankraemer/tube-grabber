@@ -44,7 +44,12 @@ public sealed partial class MainWindow : Window
     public void OpenSubscriptionsPage() => _ = NavigateAsync(AppPage.Subscriptions);
 
     /// <summary>Releases view models that hold event subscriptions; called once when the app quits.</summary>
-    public void DisposePages() => SubscriptionsPage.DisposeViewModel();
+    public void DisposePages()
+    {
+        // An open video holds a native player that must be stopped before LibVLC is disposed.
+        BrowsePage.StopWatching();
+        SubscriptionsPage.DisposeViewModel();
+    }
 
     public Task SaveStateAsync() => DownloadsPage.SaveStateAsync();
 
