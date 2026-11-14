@@ -26,7 +26,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string? _statusMessage;
     private string? _errorMessage;
     private bool _loadingProfiles;
-    private AppPage _currentPage = AppPage.Downloads;
+    private AppPage _currentPage = AppPage.Browse;
     private int _activeJobCount;
     private string? _downloadFolder;
     private string _downloadsSubtitle = QueueStatusMessageBuilder.BuildSubtitle([], null);
@@ -71,6 +71,16 @@ public sealed class MainWindowViewModel : ViewModelBase
 
     public bool HasJobs => Jobs.Count > 0;
 
+    /// <summary>Raised by <see cref="OpenWatch"/> so the Browse page can show the watch view.</summary>
+    public event EventHandler<YouTubeSearchResult>? WatchRequested;
+
+    /// <summary>Switches to Browse and opens the watch view for a video.</summary>
+    public void OpenWatch(YouTubeSearchResult video)
+    {
+        CurrentPage = AppPage.Browse;
+        WatchRequested?.Invoke(this, video);
+    }
+
     public AppPage CurrentPage
     {
         get => _currentPage;
@@ -79,6 +89,7 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (!SetProperty(ref _currentPage, value))
                 return;
 
+            OnPropertyChanged(nameof(IsBrowsePage));
             OnPropertyChanged(nameof(IsDownloadsPage));
             OnPropertyChanged(nameof(IsSearchPage));
             OnPropertyChanged(nameof(IsSubscriptionsPage));
@@ -89,6 +100,8 @@ public sealed class MainWindowViewModel : ViewModelBase
             ErrorMessage = null;
         }
     }
+
+    public bool IsBrowsePage => CurrentPage == AppPage.Browse;
 
     public bool IsDownloadsPage => CurrentPage == AppPage.Downloads;
 

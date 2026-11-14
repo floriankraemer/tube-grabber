@@ -31,4 +31,14 @@ public sealed class AppServicesTests
         var vm = services.CreateSettingsViewModel();
         Assert.NotNull(vm);
     }
+
+    [Fact]
+    public void CreateBrowseViewModel_ReturnsConfiguredInstance()
+    {
+        var services = new AppServices();
+        var vm = services.CreateBrowseViewModel();
+
+        Assert.NotNull(vm);
+        Assert.NotNull(services.SubscriptionFeedService);
+    }
 }

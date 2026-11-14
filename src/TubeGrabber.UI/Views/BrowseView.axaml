@@ -1,0 +1,208 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:TubeGrabber.UI.ViewModels"
+             xmlns:ui="clr-namespace:TubeGrabber.UI.Controls"
+             x:Class="TubeGrabber.UI.Views.BrowseView"
+             x:DataType="vm:BrowseViewModel">
+  <UserControl.Styles>
+    <Style Selector="Grid.commandRow > :is(Control)">
+      <Setter Property="Height" Value="36" />
+    </Style>
+
+    <!-- Whole tile is one flat button: Tab focuses it, Enter or Space opens the video. -->
+    <Style Selector="Button.tile">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+      <Setter Property="Padding" Value="6" />
+      <Setter Property="Margin" Value="0,0,6,10" />
+      <Setter Property="Width" Value="268" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="VerticalContentAlignment" Value="Top" />
+      <Setter Property="CornerRadius" Value="{DynamicResource OverlayCornerRadius}" />
+    </Style>
+    <Style Selector="Button.tile:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.tile:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppSubtlePressedBrush}" />
+    </Style>
+    <Style Selector="Button.tile:focus-visible /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppFocusBrush}" />
+    </Style>
+
+    <Style Selector="Border.thumb">
+      <Setter Property="Background" Value="{DynamicResource AppSubtleBrush}" />
+      <Setter Property="CornerRadius" Value="{DynamicResource ControlCornerRadius}" />
+      <Setter Property="ClipToBounds" Value="True" />
+    </Style>
+    <Style Selector="StackPanel.centerState">
+      <Setter Property="HorizontalAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Spacing" Value="8" />
+    </Style>
+  </UserControl.Styles>
+
+  <Panel>
+    <Grid RowDefinitions="Auto,Auto,Auto,*" Margin="32,28,32,16" IsVisible="{Binding ShowGrid}">
+      <StackPanel Grid.Row="0" Spacing="2">
+        <TextBlock Classes="pageTitle" Text="Browse" />
+        <TextBlock Classes="meta" Text="{Binding PageSubtitle}" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+
+      <Grid Grid.Row="1" Classes="commandRow" ColumnDefinitions="*,Auto" ColumnSpacing="8" Margin="0,20,0,12">
+        <TextBox Grid.Column="0"
+                 PlaceholderText="Search YouTube videos"
+                 Text="{Binding SearchQuery}"
+                 VerticalContentAlignment="Center"
+                 KeyDown="SearchQuery_KeyDown"
+                 AutomationProperties.Name="Search YouTube videos">
+          <TextBox.InnerLeftContent>
+            <ui:Icon Data="{DynamicResource IconSearch}" Width="16" Height="16" Margin="10,0,0,0"
+                     Foreground="{DynamicResource AppTextTertiaryBrush}" />
+          </TextBox.InnerLeftContent>
+          <TextBox.InnerRightContent>
+            <Button Classes="icon"
+                    Width="28" Height="28" MinWidth="28" MinHeight="28" Margin="0,0,4,0"
+                    IsVisible="{Binding CanClearSearch}"
+                    ToolTip.Tip="Clear search and show your feed"
+                    AutomationProperties.Name="Clear search"
+                    Click="ClearSearch_Click">
+              <ui:Icon Data="{DynamicResource IconClose}" Width="14" Height="14" />
+            </Button>
+          </TextBox.InnerRightContent>
+        </TextBox>
+        <Button Grid.Column="1"
+                Classes="accent"
+                Padding="16,0"
+                VerticalContentAlignment="Center"
+                Click="Search_Click">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ui:Icon Data="{DynamicResource IconSearch}" Width="16" Height="16" />
+            <TextBlock Text="Search" />
+          </StackPanel>
+        </Button>
+      </Grid>
+
+      <Border Grid.Row="2"
+              Margin="0,0,0,12"
+              Padding="12,10"
+              Background="{DynamicResource AppErrorBackgroundBrush}"
+              CornerRadius="{DynamicResource ControlCornerRadius}"
+              IsVisible="{Binding HasError}">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+          <ui:Icon Grid.Column="0" Data="{DynamicResource IconError}" Width="16" Height="16"
+                   Foreground="{DynamicResource AppErrorBrush}" VerticalAlignment="Top" Margin="0,2,0,0" />
+          <TextBlock Grid.Column="1" Classes="error" Text="{Binding ErrorMessage}" TextWrapping="Wrap"
+                     VerticalAlignment="Center" />
+          <Button Grid.Column="2" Classes="outlineAccent" Content="Retry" Click="Retry_Click" />
+        </Grid>
+      </Border>
+
+      <Grid Grid.Row="3">
+        <!-- The viewer extends 12px past the content edge so its scrollbar sits outside the tiles. -->
+        <ScrollViewer Margin="0,0,-12,0"
+                      IsVisible="{Binding HasTiles}"
+                      ScrollChanged="TilesScrollViewer_ScrollChanged">
+          <StackPanel Margin="0,0,12,8">
+            <ItemsControl ItemsSource="{Binding Tiles}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:VideoTileViewModel">
+                  <Button Classes="tile"
+                          Click="Tile_Click"
+                          AutomationProperties.Name="{Binding Title}">
+                    <StackPanel Spacing="8">
+                      <Border Classes="thumb" Height="140">
+                        <Grid>
+                          <Image Source="{Binding Thumbnail}" Stretch="UniformToFill" />
+                          <Border HorizontalAlignment="Right"
+                                  VerticalAlignment="Bottom"
+                                  Margin="6"
+                                  Padding="4,1"
+                                  Background="#CC000000"
+                                  CornerRadius="3"
+                                  IsVisible="{Binding DurationDisplay, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+                            <TextBlock Text="{Binding DurationDisplay}" FontSize="12" Foreground="White" />
+                          </Border>
+                        </Grid>
+                      </Border>
+                      <StackPanel Spacing="2">
+                        <!-- Fixed two-line height keeps the tile rows aligned whatever the title length. -->
+                        <TextBlock Classes="rowTitle"
+                                   Text="{Binding Title}"
+                                   TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis"
+                                   MaxLines="2"
+                                   MinHeight="40" />
+                        <TextBlock Classes="meta"
+                                   Text="{Binding Channel}"
+                                   TextTrimming="CharacterEllipsis"
+                                   MinHeight="18" />
+                      </StackPanel>
+                    </StackPanel>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Classes="outlineAccent"
+                    Content="Load more"
+                    Margin="0,8,0,0"
+                    HorizontalAlignment="Center"
+                    IsVisible="{Binding CanLoadMore}"
+                    IsEnabled="{Binding !IsLoadingMore}"
+                    Click="LoadMore_Click" />
+            <ProgressBar Width="160"
+                         Margin="0,8,0,0"
+                         IsIndeterminate="True"
+                         IsVisible="{Binding IsLoadingMore}" />
+          </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel Classes="centerState" IsVisible="{Binding ShowInitialLoading}">
+          <ProgressBar Width="200" IsIndeterminate="True" />
+          <TextBlock Classes="meta" Text="{Binding LoadingText}" HorizontalAlignment="Center" />
+        </StackPanel>
+
+        <StackPanel Classes="centerState" IsVisible="{Binding ShowEmptyFeed}">
+          <ui:Icon Data="{DynamicResource IconSubscriptions}" Width="40" Height="40" HorizontalAlignment="Center"
+                   Foreground="{DynamicResource AppTextTertiaryBrush}" />
+          <TextBlock Classes="rowTitle" Text="Your feed is empty" HorizontalAlignment="Center" />
+          <TextBlock Classes="meta" Text="Subscribe to channels to see their latest videos here."
+                     HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+          <Button Classes="accent" Content="Go to Subscriptions" HorizontalAlignment="Center"
+                  Margin="0,4,0,0" Click="Subscriptions_Click" />
+        </StackPanel>
+
+        <StackPanel Classes="centerState" IsVisible="{Binding ShowNoResults}">
+          <ui:Icon Data="{DynamicResource IconSearch}" Width="32" Height="32"
+                   Foreground="{DynamicResource AppTextTertiaryBrush}" HorizontalAlignment="Center" />
+          <TextBlock Classes="rowTitle" Text="No results" HorizontalAlignment="Center" />
+          <TextBlock Classes="meta" Text="Try different keywords." HorizontalAlignment="Center" />
+        </StackPanel>
+      </Grid>
+    </Grid>
+
+    <!-- Watch host: the Back button belongs to Browse; the watch view model is rendered by its own DataTemplate. -->
+    <DockPanel Margin="32,28,32,16" IsVisible="{Binding IsWatching}">
+      <Button DockPanel.Dock="Top"
+              Classes="outlineAccent"
+              HorizontalAlignment="Left"
+              Margin="0,0,0,12"
+              AutomationProperties.Name="Back to Browse"
+              Click="Back_Click">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <ui:Icon Data="{DynamicResource IconUndo}" Width="16" Height="16" />
+          <TextBlock Text="Back" />
+        </StackPanel>
+      </Button>
+      <ContentControl Content="{Binding CurrentWatch}" />
+    </DockPanel>
+  </Panel>
+</UserControl>

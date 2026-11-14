@@ -52,6 +52,12 @@
           <DockPanel LastChildFill="False" />
         </ItemsPanelTemplate>
       </ListBox.ItemsPanel>
+      <ListBoxItem Tag="{x:Static vm:AppPage.Browse}" DockPanel.Dock="Top">
+        <StackPanel Orientation="Horizontal" Spacing="14">
+          <ui:Icon Data="{DynamicResource IconHome}" Width="18" Height="18" />
+          <TextBlock Text="Browse" VerticalAlignment="Center" />
+        </StackPanel>
+      </ListBoxItem>
       <ListBoxItem Tag="{x:Static vm:AppPage.Downloads}" DockPanel.Dock="Top">
         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="14">
           <ui:Icon Grid.Column="0" Data="{DynamicResource IconDownload}" Width="18" Height="18" />
@@ -124,7 +130,8 @@
         </Border>
 
         <Panel>
-          <!-- Wrapped in plain panels because Search, Subscriptions and Settings own their DataContext. -->
+          <!-- Wrapped in plain panels because Browse, Search, Subscriptions and Settings own their DataContext. -->
+          <Panel IsVisible="{Binding IsBrowsePage}"><views:BrowseView x:Name="BrowsePage" /></Panel>
           <Panel IsVisible="{Binding IsDownloadsPage}"><views:DownloadsView x:Name="DownloadsPage" /></Panel>
           <Panel IsVisible="{Binding IsSearchPage}"><views:SearchView x:Name="SearchPage" /></Panel>
           <Panel IsVisible="{Binding IsSubscriptionsPage}"><views:SubscriptionsView x:Name="SubscriptionsPage" /></Panel>

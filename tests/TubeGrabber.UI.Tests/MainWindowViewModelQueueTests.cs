@@ -109,16 +109,17 @@ public sealed class MainWindowViewModelQueueTests
     }
 
     [Fact]
-    public void CurrentPage_DefaultsToDownloads()
+    public void CurrentPage_DefaultsToBrowse()
     {
         var vm = ViewModelTestHelpers.CreateMainViewModel();
 
-        Assert.Equal(AppPage.Downloads, vm.CurrentPage);
-        Assert.True(vm.IsDownloadsPage);
+        Assert.Equal(AppPage.Browse, vm.CurrentPage);
+        Assert.True(vm.IsBrowsePage);
         Assert.True(vm.ShowStatusBar);
     }
 
     [Theory]
+    [InlineData(AppPage.Downloads, nameof(MainWindowViewModel.IsDownloadsPage))]
     [InlineData(AppPage.Search, nameof(MainWindowViewModel.IsSearchPage))]
     [InlineData(AppPage.Subscriptions, nameof(MainWindowViewModel.IsSubscriptionsPage))]
     [InlineData(AppPage.Settings, nameof(MainWindowViewModel.IsSettingsPage))]
@@ -132,6 +133,7 @@ public sealed class MainWindowViewModelQueueTests
 
         var flags = new Dictionary<string, bool>
         {
+            [nameof(MainWindowViewModel.IsBrowsePage)] = vm.IsBrowsePage,
             [nameof(MainWindowViewModel.IsDownloadsPage)] = vm.IsDownloadsPage,
             [nameof(MainWindowViewModel.IsSearchPage)] = vm.IsSearchPage,
             [nameof(MainWindowViewModel.IsSubscriptionsPage)] = vm.IsSubscriptionsPage,
@@ -140,5 +142,20 @@ public sealed class MainWindowViewModelQueueTests
         Assert.Equal([expectedFlag], flags.Where(f => f.Value).Select(f => f.Key));
         Assert.Contains(expectedFlag, changed);
         Assert.Equal(page != AppPage.Settings, vm.ShowStatusBar);
+    }
+
+    [Fact]
+    public void OpenWatch_SwitchesToBrowseAndRaisesWatchRequested()
+    {
+        var vm = ViewModelTestHelpers.CreateMainViewModel();
+        vm.CurrentPage = AppPage.Search;
+        YouTubeSearchResult? requested = null;
+        vm.WatchRequested += (_, video) => requested = video;
+        var video = new YouTubeSearchResult { VideoId = "v1", Title = "T", WatchUrl = "https://www.youtube.com/watch?v=v1" };
+
+        vm.OpenWatch(video);
+
+        Assert.Equal(AppPage.Browse, vm.CurrentPage);
+        Assert.Same(video, requested);
     }
 }

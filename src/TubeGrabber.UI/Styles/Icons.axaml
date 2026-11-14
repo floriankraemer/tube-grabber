@@ -1,6 +1,7 @@
 <!-- Icon set: 24x24 design grid, stroked at 1.5 by the Icon control. Ported from the design mockup (icons.js). -->
 <ResourceDictionary xmlns="https://github.com/avaloniaui"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <StreamGeometry x:Key="IconHome">M4 11 12 4l8 7M6 9.5V19.5h4v-5h4v5h4V9.5</StreamGeometry>
   <StreamGeometry x:Key="IconDownload">M12 4v11m0 0-4.5-4.5M12 15l4.5-4.5M5 19.5h14</StreamGeometry>
   <StreamGeometry x:Key="IconSearch">M4.5 10.5a6 6 0 1 0 12 0a6 6 0 1 0 -12 0z M15 15l5 5</StreamGeometry>
   <StreamGeometry x:Key="IconSubscriptions">M6 6.5h12a2.5 2.5 0 0 1 2.5 2.5v7a2.5 2.5 0 0 1 -2.5 2.5h-12a2.5 2.5 0 0 1 -2.5 -2.5v-7a2.5 2.5 0 0 1 2.5 -2.5z M7 3.5h10M10.5 10v5.2l4.2-2.6z</StreamGeometry>

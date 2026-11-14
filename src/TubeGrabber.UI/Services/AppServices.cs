@@ -70,11 +70,14 @@ public sealed class AppServices
         StoragePicker = new StoragePickerService();
         LoginItemService = new LoginItemService();
         DesktopNotifier = DesktopNotifierFactory.Create();
+        var subscriptionStore = new SubscriptionStore(ConfigRoot);
+        var channelFeedService = new ChannelFeedService(
+            new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
+            UrlNormalizer);
+        SubscriptionFeedService = new SubscriptionFeedService(subscriptionStore, channelFeedService);
         SubscriptionMonitor = new SubscriptionMonitor(
-            new SubscriptionStore(ConfigRoot),
-            new ChannelFeedService(
-                new YtDlpFlatPlaylistRunner(ProcessRunner, AppConfigStore, BinaryLocator, JsRuntimeLocator),
-                UrlNormalizer),
+            subscriptionStore,
+            channelFeedService,
             EnqueueCoordinator,
             Queue,
             AppConfigStore,
@@ -113,6 +116,7 @@ public sealed class AppServices
     public ILoginItemService LoginItemService { get; }
     public IDesktopNotifier DesktopNotifier { get; }
     public ISubscriptionMonitor SubscriptionMonitor { get; }
+    public ISubscriptionFeedService SubscriptionFeedService { get; }
 
     public MainWindowViewModel CreateMainViewModel() => new(
         Queue,
@@ -122,6 +126,11 @@ public sealed class AppServices
         DownloadFolderService,
         UrlNormalizer,
         FileSystemLauncher);
+
+    public BrowseViewModel CreateBrowseViewModel() => new(
+        SearchService,
+        SubscriptionFeedService,
+        ThumbnailLoader);
 
     public SearchViewModel CreateSearchViewModel() => new(
         SearchService,

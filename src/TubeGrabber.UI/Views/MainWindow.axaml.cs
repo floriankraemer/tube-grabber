@@ -30,6 +30,7 @@ public sealed partial class MainWindow : Window
         Opened += OnOpenedAsync;
         Closing += OnClosingAsync;
         DataContextChanged += OnDataContextChanged;
+        BrowsePage.SubscriptionsRequested += (_, _) => OpenSubscriptionsPage();
         SettingsPage.Saved += OnSettingsSavedAsync;
         SettingsPage.ProfilesChanged += OnProfilesChangedAsync;
     }
@@ -92,6 +93,7 @@ public sealed partial class MainWindow : Window
             return;
 
         _observedViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        _observedViewModel.WatchRequested += (_, video) => BrowsePage.OpenWatch(video);
         SyncNavSelection();
     }
 
@@ -108,6 +110,9 @@ public sealed partial class MainWindow : Window
     {
         switch (ViewModel.CurrentPage)
         {
+            case AppPage.Browse:
+                await BrowsePage.EnsureInitializedAsync();
+                break;
             case AppPage.Search:
                 await SearchPage.EnsureInitializedAsync();
                 break;
