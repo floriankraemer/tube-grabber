@@ -76,6 +76,15 @@ public sealed partial class SearchView : UserControl
         await row.AddToQueueAsync();
     }
 
+    private void OpenWatch_Click(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: SearchResultViewModel row })
+            return;
+
+        if (TopLevel.GetTopLevel(this)?.DataContext is MainWindowViewModel mainViewModel)
+            mainViewModel.OpenWatch(row.Result);
+    }
+
     private async void Subscribe_Click(object? sender, RoutedEventArgs e)
     {
         if (sender is not Button { DataContext: ChannelResultViewModel row })
