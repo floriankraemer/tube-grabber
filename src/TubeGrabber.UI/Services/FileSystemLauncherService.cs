@@ -34,6 +34,11 @@ public sealed class FileSystemLauncherService : IFileSystemLauncher
         {
             return false;
         }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The opener (xdg-open, open, explorer) is not installed or could not be started.
+            return false;
+        }
     }
 
     public bool TryOpenUrl(string url)
@@ -60,6 +65,11 @@ public sealed class FileSystemLauncherService : IFileSystemLauncher
         }
         catch (InvalidOperationException)
         {
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The opener (xdg-open, open, explorer) is not installed or could not be started.
             return false;
         }
     }
@@ -97,6 +107,11 @@ public sealed class FileSystemLauncherService : IFileSystemLauncher
         }
         catch (InvalidOperationException)
         {
+            return false;
+        }
+        catch (System.ComponentModel.Win32Exception)
+        {
+            // The opener (xdg-open, open, explorer) is not installed or could not be started.
             return false;
         }
     }

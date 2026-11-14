@@ -720,11 +720,12 @@
         <Panel Grid.Column="0" VerticalAlignment="Center">
           <!-- One message at a time: a validation error beats the unsaved summary, which beats the last status. -->
           <Button Classes="linkError" Click="OpenFailingProfile_Click" IsVisible="{Binding HasValidationError}"
+                  HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
                   ToolTip.Tip="{Binding ValidationError}">
-            <StackPanel Orientation="Horizontal" Spacing="8">
+            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
               <ui:Icon Data="{DynamicResource IconError}" Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0" Foreground="{DynamicResource AppErrorBrush}" />
-              <TextBlock Classes="error" Text="{Binding ValidationError}" TextWrapping="Wrap" MaxHeight="64" TextTrimming="CharacterEllipsis" />
-            </StackPanel>
+              <TextBlock Grid.Column="1" Classes="error" Text="{Binding ValidationError}" TextWrapping="Wrap" MaxHeight="96" TextTrimming="CharacterEllipsis" />
+            </Grid>
           </Button>
           <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding ShowUnsavedSummary}">
             <Ellipse Width="8" Height="8" Fill="{DynamicResource AppAccentBrush}" VerticalAlignment="Center" />
