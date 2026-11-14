@@ -22,4 +22,5 @@ public sealed class AppConfiguration
     public ThemePreference ThemePreference { get; set; } = ThemePreference.System;
     public bool RunInBackground { get; set; } = true;
     public bool StartAtLogin { get; set; }
+    public bool SponsorBlockEnabled { get; set; } = true;
 }
