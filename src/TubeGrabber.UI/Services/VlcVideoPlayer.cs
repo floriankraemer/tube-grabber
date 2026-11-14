@@ -59,8 +59,9 @@ public sealed class VlcVideoPlayer : IVideoPlayer
         {
             var media = new Media(_libVlc, new Uri(videoUrl));
             // VLC's own MP4 demuxer snaps a seek to the previous DASH fragment (2-5 s early) once audio runs as an
-            // input slave; the libavformat demuxer seeks to the requested time.
-            media.AddOption(":demux=avformat");
+            // input slave; the libavformat demuxer seeks to the requested time. The official Windows libVLC
+            // package ships without the avformat demuxer, so fall back to VLC's own demuxers there.
+            media.AddOption(":demux=avformat,any");
             if (!string.IsNullOrEmpty(audioUrl))
                 media.AddOption(":input-slave=" + audioUrl);
             if (startSeconds > 0)
