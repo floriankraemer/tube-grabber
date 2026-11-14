@@ -167,6 +167,18 @@ public sealed class AppConfigStoreTests : IDisposable
         Assert.False(loaded.StartAtLogin);
     }
 
+    [Fact]
+    public async Task Load_ConfigWithoutSponsorBlockKey_EnablesSponsorBlock()
+    {
+        var json = $$"""{ "SchemaVersion": {{SchemaVersions.AppConfig}} }""";
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(Path.Combine(_root, AppPaths.AppConfigFileName), json, TestContext.Current.CancellationToken);
+
+        var loaded = await _store.LoadAsync(TestContext.Current.CancellationToken);
+
+        Assert.True(loaded.SponsorBlockEnabled);
+    }
+
     public void Dispose()
     {
         if (Directory.Exists(_root))
