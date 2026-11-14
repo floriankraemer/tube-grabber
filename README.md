@@ -57,7 +57,7 @@ On Linux, install libVLC from your package manager first:
 sudo apt install libvlc5 vlc-plugin-base vlc-plugin-video-output   # Debian/Ubuntu
 ```
 
-On Fedora, install `vlc-libs` and `vlc` from RPM Fusion.
+On Fedora, install the `vlc` package.
 
 Without libVLC, the watch page still shows the video details, comments, and the **Download** button.
 It also offers an **Open in browser** button.
