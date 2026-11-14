@@ -71,6 +71,7 @@ ci:
 
 publish-ui:
 	@echo "Publishing UI for RID: $(PUBLISH_RID)"
+	rm -rf artifacts/publish-ui-$(PUBLISH_RID)
 	dotnet publish $(UI) -c Release -r $(PUBLISH_RID) --self-contained true -o artifacts/publish-ui-$(PUBLISH_RID) \
 		/p:PublishSingleFile=true \
 		/p:EnableCompressionInSingleFile=true \
@@ -80,6 +81,8 @@ publish-ui:
 	source_path="$$output_dir/TubeGrabber.UI$$ui_ext"; \
 	target_path="$$output_dir/$(UI_APP_NAME)$$ui_ext"; \
 	if [ -f "$$source_path" ] && [ "$$source_path" != "$$target_path" ]; then mv "$$source_path" "$$target_path"; fi
+	@# the container runs as root; hand outputs back to the owner of the bind-mounted checkout
+	chown -R $$(stat -c %u:%g Makefile) artifacts/publish-ui-$(PUBLISH_RID)
 
 publish-ui-win: publish-ui
 
