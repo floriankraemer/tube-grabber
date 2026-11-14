@@ -108,7 +108,9 @@
                       IsVisible="{Binding HasTiles}"
                       ScrollChanged="TilesScrollViewer_ScrollChanged">
           <StackPanel Margin="0,0,32,8">
-            <ItemsControl ItemsSource="{Binding Tiles}">
+            <!-- A tile's hover and focus outline sits 8px (2 border + 6 padding) outside its thumbnail; pulling the grid out by
+                 that much lines the thumbnails up with the header and search bar. -->
+            <ItemsControl ItemsSource="{Binding Tiles}" Margin="-8,0">
               <ItemsControl.ItemsPanel>
                 <ItemsPanelTemplate>
                   <ui:TileGridPanel MinTileWidth="240" Spacing="8" />
