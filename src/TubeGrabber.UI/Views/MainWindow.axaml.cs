@@ -32,6 +32,7 @@ public sealed partial class MainWindow : Window
         Closing += OnClosingAsync;
         DataContextChanged += OnDataContextChanged;
         BrowsePage.SubscriptionsRequested += (_, _) => OpenSubscriptionsPage();
+        BrowsePage.BackRequested += (_, _) => CloseWatch();
         SettingsPage.Saved += OnSettingsSavedAsync;
         SettingsPage.ProfilesChanged += OnProfilesChangedAsync;
     }
@@ -42,6 +43,15 @@ public sealed partial class MainWindow : Window
     public void OpenDownloadsPage() => _ = NavigateAsync(AppPage.Downloads);
 
     public void OpenSubscriptionsPage() => _ = NavigateAsync(AppPage.Subscriptions);
+
+    /// <summary>Back from a video: to the page it was opened from (for example Search, with its results intact), else to the Browse grid.</summary>
+    private void CloseWatch()
+    {
+        if (ViewModel.WatchOrigin is { } origin)
+            _ = NavigateAsync(origin);
+        else
+            BrowsePage.StopWatching();
+    }
 
     /// <summary>Releases view models that hold event subscriptions; called once when the app quits.</summary>
     public void DisposePages()
@@ -72,6 +82,8 @@ public sealed partial class MainWindow : Window
         StatusBar.IsVisible = !fullscreen;
         RootGrid.ColumnDefinitions[0].Width = new GridLength(fullscreen ? 0 : 220);
         BrowsePage.SetFullscreen(fullscreen);
+        // The video runs edge to edge: no rounded, bordered page card around it (see the fullscreen style).
+        PageLayer.Classes.Set("fullscreen", fullscreen);
         UpdateChrome();
     }
 
@@ -92,10 +104,12 @@ public sealed partial class MainWindow : Window
             return;
 
         Classes.Set("solid", !HasBackdropMaterial(ActualTransparencyLevel));
-        RootGrid.Margin = ContentMargin(WindowDecorationMargin, ExtendClientAreaTitleBarHeightHint);
+
+        // Fullscreen covers the screen: the frame and shadow insets of the decorations would show as margins.
+        var fullscreen = WindowState == WindowState.FullScreen;
+        RootGrid.Margin = fullscreen ? default : ContentMargin(WindowDecorationMargin, ExtendClientAreaTitleBarHeightHint);
 
         // Under OS-drawn decorations (e.g. Linux window managers) the title bar already shows icon and title.
-        var fullscreen = WindowState == WindowState.FullScreen;
         var extended = IsExtendedIntoWindowDecorations;
         TitleContent.IsVisible = extended && !fullscreen;
         RootGrid.RowDefinitions[0].Height = new GridLength(fullscreen ? 0 : extended ? ExtendClientAreaTitleBarHeightHint : 8);
@@ -131,6 +145,13 @@ public sealed partial class MainWindow : Window
 
     private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
+        // The sidebar follows the page a video was opened from, which can change without the page changing.
+        if (e.PropertyName == nameof(MainWindowViewModel.NavPage))
+        {
+            SyncNavSelection();
+            return;
+        }
+
         if (e.PropertyName != nameof(MainWindowViewModel.CurrentPage))
             return;
 
@@ -162,7 +183,7 @@ public sealed partial class MainWindow : Window
 
     private void SyncNavSelection()
     {
-        var page = ViewModel.CurrentPage;
+        var page = ViewModel.NavPage;
         _syncingNav = true;
         try
         {
@@ -193,7 +214,18 @@ public sealed partial class MainWindow : Window
     /// <summary>Shows a page. Leaving Settings with unsaved changes asks first; Cancel keeps the user on Settings.</summary>
     private async Task NavigateAsync(AppPage page)
     {
-        if (DataContext is not MainWindowViewModel vm || vm.CurrentPage == page)
+        if (DataContext is not MainWindowViewModel vm)
+            return;
+
+        // Browse clicked while a video opened from another page is showing: close it and show the Browse grid.
+        if (page == AppPage.Browse && vm.WatchOrigin is not null)
+        {
+            BrowsePage.StopWatching();
+            vm.ClearWatchOrigin();
+            return;
+        }
+
+        if (vm.CurrentPage == page)
             return;
 
         if (vm.CurrentPage == AppPage.Settings)

@@ -27,6 +27,7 @@ public sealed class MainWindowViewModel : ViewModelBase
     private string? _errorMessage;
     private bool _loadingProfiles;
     private AppPage _currentPage = AppPage.Browse;
+    private AppPage? _watchOrigin;
     private int _activeJobCount;
     private string? _downloadFolder;
     private string _downloadsSubtitle = QueueStatusMessageBuilder.BuildSubtitle([], null);
@@ -74,12 +75,33 @@ public sealed class MainWindowViewModel : ViewModelBase
     /// <summary>Raised by <see cref="OpenWatch"/> so the Browse page can show the watch view.</summary>
     public event EventHandler<YouTubeSearchResult>? WatchRequested;
 
-    /// <summary>Switches to Browse and opens the watch view for a video.</summary>
+    /// <summary>
+    /// Switches to Browse, which hosts the watch view, and opens the video. The page it was opened from is
+    /// remembered: it stays highlighted in the sidebar and Back returns to it.
+    /// </summary>
     public void OpenWatch(YouTubeSearchResult video)
     {
+        WatchOrigin = CurrentPage == AppPage.Browse ? null : CurrentPage;
         CurrentPage = AppPage.Browse;
         WatchRequested?.Invoke(this, video);
     }
+
+    /// <summary>The page an open watch view was started from, or null when it was started on Browse itself.</summary>
+    public AppPage? WatchOrigin
+    {
+        get => _watchOrigin;
+        private set
+        {
+            if (SetProperty(ref _watchOrigin, value))
+                OnPropertyChanged(nameof(NavPage));
+        }
+    }
+
+    /// <summary>The page the sidebar highlights: where the user came from while a video from another page is open.</summary>
+    public AppPage NavPage => WatchOrigin ?? CurrentPage;
+
+    /// <summary>Forgets the origin once the watch view is closed.</summary>
+    public void ClearWatchOrigin() => WatchOrigin = null;
 
     public AppPage CurrentPage
     {
@@ -89,6 +111,11 @@ public sealed class MainWindowViewModel : ViewModelBase
             if (!SetProperty(ref _currentPage, value))
                 return;
 
+            // The watch view lives on Browse; leaving Browse closes it.
+            if (value != AppPage.Browse)
+                WatchOrigin = null;
+
+            OnPropertyChanged(nameof(NavPage));
             OnPropertyChanged(nameof(IsBrowsePage));
             OnPropertyChanged(nameof(IsDownloadsPage));
             OnPropertyChanged(nameof(IsSearchPage));

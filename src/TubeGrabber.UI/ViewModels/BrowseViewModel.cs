@@ -20,11 +20,13 @@ public sealed class BrowseViewModel : ViewModelBase
     private readonly IYtDlpSearchService _searchService;
     private readonly ISubscriptionFeedService _feedService;
     private readonly IThumbnailLoader _thumbnailLoader;
+    private readonly ISubscriptionMonitor? _subscriptions;
 
     private string _searchQuery = string.Empty;
     private string _activeQuery = string.Empty;
     private bool _isSearchMode;
     private bool _hasLoaded;
+    private string? _feedKey;
     private int _nextSkip;
     private bool _isLoading;
     private bool _isLoadingMore;
@@ -38,14 +40,19 @@ public sealed class BrowseViewModel : ViewModelBase
     public BrowseViewModel(
         IYtDlpSearchService searchService,
         ISubscriptionFeedService feedService,
-        IThumbnailLoader thumbnailLoader)
+        IThumbnailLoader thumbnailLoader,
+        ISubscriptionMonitor? subscriptions = null)
     {
         _searchService = searchService;
         _feedService = feedService;
         _thumbnailLoader = thumbnailLoader;
+        _subscriptions = subscriptions;
         Tiles = new ObservableCollection<VideoTileViewModel>();
         Tiles.CollectionChanged += (_, _) => RaiseViewStateChanged();
     }
+
+    /// <summary>Raised when the shown content is replaced wholesale (feed, new search), so the view can scroll back to the top.</summary>
+    public event EventHandler? ContentReset;
 
     /// <summary>Raised when the empty-feed hint asks to go to the Subscriptions page.</summary>
     public event EventHandler? SubscriptionsRequested;
@@ -160,6 +167,47 @@ public sealed class BrowseViewModel : ViewModelBase
     /// <summary>Loads the home feed the first time the page is shown.</summary>
     public Task InitializeAsync() => LoadFeedAsync();
 
+    /// <summary>
+    /// Reloads the feed when the set of subscribed channels differs from the one the feed was built for. Called when
+    /// the page is shown again; subscribing happens on other pages.
+    /// </summary>
+    public async Task RefreshIfSubscriptionsChangedAsync()
+    {
+        if (!_hasLoaded || _subscriptions is null)
+            return;
+
+        if (await ReadFeedKeyAsync() == _feedKey)
+            return;
+
+        if (_isSearchMode)
+        {
+            // Back to the feed later must not show the outdated tiles.
+            _feedTiles = null;
+            _feedKey = null;
+            return;
+        }
+
+        await LoadFeedAsync();
+    }
+
+    // Identifies what the feed shows: the enabled channels, order-insensitive.
+    private async Task<string?> ReadFeedKeyAsync()
+    {
+        if (_subscriptions is null)
+            return null;
+
+        try
+        {
+            var subscriptions = await _subscriptions.ListAsync();
+            return string.Join('\n', subscriptions.Where(s => s.Enabled).Select(s => s.ChannelUrl).Order(StringComparer.Ordinal));
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Trace.TraceWarning($"Could not read subscriptions for the feed: {ex.Message}");
+            return null;
+        }
+    }
+
     /// <summary>Retries whatever failed: the feed, or the active search.</summary>
     public Task RetryAsync() => _isSearchMode ? FetchSearchAsync(reset: true) : LoadFeedAsync();
 
@@ -200,6 +248,7 @@ public sealed class BrowseViewModel : ViewModelBase
         IsLoadingMore = false;
         ReplaceTiles(_feedTiles);
         RaiseModeChanged();
+        ContentReset?.Invoke(this, EventArgs.Empty);
     }
 
     public void OpenWatch(YouTubeSearchResult result)
@@ -250,9 +299,11 @@ public sealed class BrowseViewModel : ViewModelBase
         Tiles.Clear();
         IsLoading = true;
         RaiseModeChanged();
+        ContentReset?.Invoke(this, EventArgs.Empty);
 
         try
         {
+            _feedKey = await ReadFeedKeyAsync();
             var feed = await _feedService.GetHomeFeedAsync(FeedVideosPerChannel, token);
             if (token.IsCancellationRequested)
                 return;
@@ -290,6 +341,7 @@ public sealed class BrowseViewModel : ViewModelBase
             Tiles.Clear();
             IsLoading = true;
             RaiseModeChanged();
+            ContentReset?.Invoke(this, EventArgs.Empty);
         }
         else
         {

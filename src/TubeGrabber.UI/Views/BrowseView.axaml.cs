@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // See LICENSE for details.
 
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using TubeGrabber.Core.Models;
@@ -22,8 +24,13 @@ public sealed partial class BrowseView : UserControl
         InitializeComponent();
         _viewModel = App.Services.CreateBrowseViewModel();
         _viewModel.SubscriptionsRequested += (_, _) => SubscriptionsRequested?.Invoke(this, EventArgs.Empty);
+        // The scroll position of the previous content (feed or another search) must not carry over; wait for the new layout.
+        _viewModel.ContentReset += (_, _) => Dispatcher.UIThread.Post(TilesScroller.ScrollToHome);
         DataContext = _viewModel;
     }
+
+    /// <summary>Raised by the Back button; the main window decides where it leads (Browse itself or the page the video was opened from).</summary>
+    public event EventHandler? BackRequested;
 
     /// <summary>Raised when the empty-feed hint asks to open the Subscriptions page.</summary>
     public event EventHandler? SubscriptionsRequested;
@@ -32,7 +39,10 @@ public sealed partial class BrowseView : UserControl
     public async Task EnsureInitializedAsync()
     {
         if (_initialized)
+        {
+            await _viewModel.RefreshIfSubscriptionsChangedAsync();
             return;
+        }
 
         _initialized = true;
         await _viewModel.InitializeAsync();
@@ -47,7 +57,12 @@ public sealed partial class BrowseView : UserControl
     /// <summary>Leaving the page stops playback; the video would otherwise keep playing unseen.</summary>
     public void StopWatching() => _viewModel.Back();
 
-    public void SetFullscreen(bool fullscreen) => BackButton.IsVisible = !fullscreen;
+    public void SetFullscreen(bool fullscreen)
+    {
+        BackButton.IsVisible = !fullscreen;
+        // The video runs edge to edge, without the page margin.
+        WatchHost.Margin = fullscreen ? default : new Thickness(0, 28, 0, 0);
+    }
 
     public void OpenWatch(YouTubeSearchResult video) => _viewModel.OpenWatch(video);
 
@@ -61,7 +76,13 @@ public sealed partial class BrowseView : UserControl
 
     private void Subscriptions_Click(object? sender, RoutedEventArgs e) => _viewModel.RequestSubscriptions();
 
-    private void Back_Click(object? sender, RoutedEventArgs e) => _viewModel.Back();
+    private void Back_Click(object? sender, RoutedEventArgs e)
+    {
+        if (BackRequested is null)
+            _viewModel.Back();
+        else
+            BackRequested.Invoke(this, EventArgs.Empty);
+    }
 
     private void Tile_Click(object? sender, RoutedEventArgs e)
     {

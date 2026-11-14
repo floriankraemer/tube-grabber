@@ -139,7 +139,8 @@ public sealed class AppServices
     public BrowseViewModel CreateBrowseViewModel() => new(
         SearchService,
         SubscriptionFeedService,
-        ThumbnailLoader)
+        ThumbnailLoader,
+        SubscriptionMonitor)
     {
         WatchFactory = result => CreateWatchViewModel(result),
     };

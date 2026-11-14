@@ -185,12 +185,12 @@
     </Border>
 
     <Grid Grid.Row="4" Margin="0,12,0,0">
-      <!-- The viewer extends 12px past the content edge so its scrollbar sits outside the cards. -->
+      <!-- The viewer extends over the page margin so its scrollbar sits at the page's right edge. -->
       <ScrollViewer x:Name="ResultsScrollViewer"
-                    Margin="0,0,-12,0"
+                    Margin="0,0,-32,0"
                     IsVisible="{Binding HasResults}"
                     ScrollChanged="ResultsScrollViewer_ScrollChanged">
-        <StackPanel Margin="0,0,12,8">
+        <StackPanel Margin="0,0,32,8">
         <ItemsControl ItemsSource="{Binding Results}"
                       IsVisible="{Binding IsVideoMode}">
           <ItemsControl.ItemTemplate>
@@ -228,10 +228,11 @@
                                    Text="{Binding Channel}"
                                    TextTrimming="CharacterEllipsis"
                                    IsVisible="{Binding Channel, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                        <!-- Keeps its line while empty, so the title does not move when a status appears. -->
                         <TextBlock Classes="caption"
                                    Text="{Binding StatusMessage}"
                                    TextWrapping="Wrap"
-                                   IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                   MinHeight="16" />
                       </StackPanel>
                     </Grid>
                   </Button>
@@ -285,10 +286,11 @@
                                Text="{Binding Subtitle}"
                                TextTrimming="CharacterEllipsis"
                                IsVisible="{Binding Subtitle, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <!-- Keeps its line while empty, so the title does not move when a status appears. -->
                     <TextBlock Classes="caption"
                                Text="{Binding StatusMessage}"
                                TextWrapping="Wrap"
-                               IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                               MinHeight="16" />
                   </StackPanel>
 
                   <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="8" Width="190">

@@ -44,7 +44,7 @@ public sealed class SubscriptionFeedService : ISubscriptionFeedService
         try
         {
             var feed = await _feed.GetLatestAsync(subscription.ChannelUrl, perChannel, ct);
-            return feed.Entries;
+            return feed.Entries.Select(entry => WithChannel(entry, feed.ChannelName)).ToList();
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
@@ -56,6 +56,22 @@ public sealed class SubscriptionFeedService : ISubscriptionFeedService
             return null;
         }
     }
+
+    // Flat channel playlists omit the uploader per entry; the feed knows which channel every entry came from.
+    private static YouTubeSearchResult WithChannel(YouTubeSearchResult entry, string channelName) =>
+        !string.IsNullOrEmpty(entry.Channel) || string.IsNullOrEmpty(channelName)
+            ? entry
+            : new YouTubeSearchResult
+            {
+                VideoId = entry.VideoId,
+                Title = entry.Title,
+                Channel = channelName,
+                WatchUrl = entry.WatchUrl,
+                ThumbnailUrl = entry.ThumbnailUrl,
+                DurationSeconds = entry.DurationSeconds,
+                LiveStatus = entry.LiveStatus,
+                Availability = entry.Availability,
+            };
 
     // ponytail: flat-playlist entries lack reliable upload dates, so the feed interleaves channels round-robin
     // instead of sorting by date. Switch to a date sort once the feed carries timestamps.
